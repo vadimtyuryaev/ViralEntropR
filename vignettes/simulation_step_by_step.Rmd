@@ -1,0 +1,492 @@
+---
+title: "Variant Simulation and Analysis: Step by Step"
+author: "Package Maintainer"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+    df_print: paged
+vignette: >
+  %\VignetteIndexEntry{Variant Simulation and Analysis: Step by Step}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  warning  = FALSE,
+  message  = FALSE
+)
+```
+
+# Introduction
+
+This vignette provides a comprehensive, step-by-step walkthrough of the
+`ViralEntroR` pipeline. We reproduce the exact benchmark scenario from the
+study design:
+
+- Simulate a realistic viral evolutionary timeline with four competing variants
+  (2020–2021).
+- Partition the data into non-overlapping 2-month time windows.
+- Calculate Hellinger distance matrices to quantify distributional shifts.
+- Detect evolutionary change points using three complementary ECP approaches.
+
+# Setup
+
+```{r}
+library(ViralEntropR)
+library(dplyr)
+library(lubridate)
+library(ecp)
+library(knitr)
+library(kableExtra)
+```
+
+# Reference Sequence
+
+```{r}
+ref_sequence <- "MKTIIALSYIFCLVFADYKDDDDK"
+sprintf("There are %d sites in the reference sequence", nchar(ref_sequence))
+```
+
+# Simulation Function: `simulate_variant_evolution`
+
+|       **Parameter**         |                                 **Description**                                  | **Default** |
+|-----------------------------|----------------------------------------------------------------------------------|-------------|
+| `ref_sequences`             | data.frame which must include a `Date` column; OR a single sequence string.      | —           |
+| `n_ref_months`              | number of months for the reference phase                                         | 3           |
+| `start_date`                | simulation start (character or Date)                                             | —           |
+| `end_date`                  | simulation end (character or Date)                                               | —           |
+| `variants_config`           | numeric vector, e.g., `c(2,6)`: Variant1 gets 2 mutations; Variant2 gets 6.     | —           |
+| `variant_intervals`         | gap (in months) between the emergence of variants                                | —           |
+| `n_new_mutations`           | number of de novo sequences produced at a variant's emergence                    | 1           |
+| `mutation_rate`             | multiplier for production in subsequent months (may be specified as a vector)    | 2           |
+| `mutation_rate_variability` | variability (±fraction) around `mutation_rate`                                   | 0.25        |
+| `deleterious_rate`          | probability that any new mutation is deleterious                                 | 0           |
+| `n_deleterious_limit`       | max sequences allowed to carry a deleterious mutation                            | 1           |
+| `n_sequences_total`         | total sequences to generate over the mutation phase (spread evenly)              | 140         |
+| `ref_variability`           | if `TRUE`, add variability to the reference sequences at sites 1 and 2          | FALSE       |
+| `n_ref_sequences`           | if `ref_sequences` is a single string, number of rows to create                  | 100         |
+| `prob_deletion_event`       | probability each period contains a block of deleterious mutations                | 0           |
+| `n_rows_to_delete`          | number of sequences affected if `prob_deletion_event` fires                      | 0           |
+| `seed`                      | optional random seed                                                             | NULL        |
+
+## Simulate Data
+
+In this simulation, `simulate_variant_evolution()` models the stepwise 
+emergence and competition of four viral variants over a two-year period from 
+`2020-01-01` through `2021-12-01`. We begin with a 4-month reference phase
+(`n_ref_months = 4`) in which 200 total reference sequences are sampled 
+(50 per month, `n_ref_sequences = 200`), with variability introduced at
+sites 1 and 2 (`ref_variability = TRUE`). The mutation phase generates 1,000 
+sequences (`n_sequences_total = 1000`) at 50 per month. Four variants emerge at
+months 5, 9, 14, and 19, carrying 2, 3, 4, and 2 mutations respectively 
+(`variants_config = c(2,3,4,2)`), with 2 de novo sequences at each emergence 
+(`n_new_mutations = 2`) and growth multipliers of 1.25 each. Although 
+`deleterious_rate = 0`, each month has a 20% chance (`prob_deletion_event = 0.2`)
+of injecting a block of 3 deleterious sequences at a random site
+(`n_rows_to_delete = 3`). `seed = 2025` ensures reproducibility.
+
+Variants compete in a "pairwise" fashion, always pitting the newest active 
+variant against the prior dominant strain (or the original reference). During 
+months before any variant appears, all sequences are drawn from the reference 
+pool. Once Variant 1 emerges, each month's batch is composed of its de novo 
+copies plus sampled reference sequences; when Variant 2 appears it competes 
+directly with Variant 1, and so on. Sampling weights ensure that more recently 
+emerged variants have higher selection probability: reference rows carry weight 1,
+while Variant _i_ rows carry weight `2^(i+1)`.
+
+```{r}
+sim_result <- simulate_variant_evolution(
+  ref_sequences             = ref_sequence,
+  n_ref_months              = 4,
+  start_date                = "2020-01-01",
+  end_date                  = "2021-12-01",
+  variants_config           = c(2, 3, 4, 2),
+  variant_intervals         = c(4, 5, 5),
+  n_new_mutations           = 2,
+  mutation_rate             = c(1.25, 1.25, 1.25, 1.25),
+  mutation_rate_variability = 0,
+  deleterious_rate          = 0,
+  n_deleterious_limit       = 0,
+  n_sequences_total         = 1000,
+  ref_variability           = TRUE,
+  n_ref_sequences           = 200,
+  prob_deletion_event       = 0.2,
+  n_rows_to_delete          = 3,
+  seed                      = 2025
+)
+```
+
+## Check the Pool
+
+```{r}
+sim_result$Pool[, c(25, 26, 30)]   # Variant, Phase, and weights
+```
+
+## Emergence Periods and Sites
+
+```{r}
+print("Variant 1 emergence period:")
+sim_result$Variant_Details[[1]]$em
+```
+
+```{r}
+print("Variant 1 sites:")
+sim_result$Variant_Details[[1]]$pos %>% sort()
+```
+
+```{r}
+# Month 9 translates into partition 5.
+print("Variant 2 emergence period:")
+sim_result$Variant_Details[[2]]$em
+```
+
+```{r}
+print("Variant 2 sites:")
+sim_result$Variant_Details[[2]]$pos %>% sort()
+```
+
+```{r}
+# Month 14 translates into partition 7.
+print("Variant 3 emergence period:")
+sim_result$Variant_Details[[3]]$em
+```
+
+```{r}
+print("Variant 3 sites:")
+sim_result$Variant_Details[[3]]$pos %>% sort()
+```
+
+```{r}
+# Month 19 translates into partition 10.
+print("Variant 4 emergence period:")
+sim_result$Variant_Details[[4]]$em
+```
+
+```{r}
+print("Variant 4 sites:")
+sim_result$Variant_Details[[4]]$pos %>% sort()
+```
+
+## Deleterious Periods and Sites
+
+```{r}
+sprintf("The number of deleterious periods is %d",
+        length(sim_result$Delet_Records))
+
+print("Deleterious Period 1:")
+sim_result$Delet_Records[[1]]$period
+```
+
+## Reference Phase 1 (month 1)
+
+Phase `RV` means reference sequences with added variability.
+
+```{r}
+sim_result$Simulation_Output[1:10, ]
+```
+
+## Reference Phase 4 (month 4)
+
+```{r}
+sim_result$Simulation_Output[sim_result$Simulation_Output$Period == 4, ][1:10, ]
+```
+
+## `Variant 1` Phase 1 (month 5): sites `r sim_result$Variant_Details[[1]]$pos %>% sort()`
+
+`Reference` can be either `R` or `RV`.
+
+```{r}
+sim_result$Simulation_Output[
+  sim_result$Simulation_Output$Period == 5,
+  c(sim_result$Variant_Details[[1]]$pos %>% sort(), 25:29)
+][1:10, ]
+```
+
+## `Variant 1` Phase 2 (month 6): sites `r sim_result$Variant_Details[[1]]$pos %>% sort()`
+
+Number of Variant 1 sequences here is `r ceiling(2 * 1.25)`.
+
+```{r}
+sim_result$Simulation_Output[
+  sim_result$Simulation_Output$Period == 6,
+  c(sim_result$Variant_Details[[1]]$pos %>% sort(), 25:29)
+][1:10, ]
+```
+
+## `Variant 1` Phase 4 (month 8): sites `r sim_result$Variant_Details[[1]]$pos %>% sort()`
+
+Number of Variant 1 sequences here is `r ceiling(ceiling(ceiling(2 * 1.25) * 1.25) * 1.25)`.
+
+```{r}
+sim_result$Simulation_Output[
+  sim_result$Simulation_Output$Period == 8,
+  c(sim_result$Variant_Details[[1]]$pos %>% sort(), 25:29)
+][1:10, ]
+```
+
+## `Variant 2` Phase 1 (month 9): sites `r sim_result$Variant_Details[[2]]$pos %>% sort()`
+
+Number of Variant 2 sequences here is 2. Number of Variant 1 sequences here is
+`r ceiling(ceiling(ceiling(ceiling(2 * 1.25) * 1.25) * 1.25) * 1.25)` as they 
+continue to multiply. Now Variants 1 and 2 are in competition. The rest of the 
+sequences are sampled from the reference pool. There is also a deleterious 
+mutation here at site `r sim_result$Delet_Records[[1]]$site`.
+
+```{r}
+sim_result$Simulation_Output[sim_result$Simulation_Output$Period == 9, ]
+```
+
+## `Variant 2` Phase 5 (month 13): sites `r sim_result$Variant_Details[[2]]$pos %>% sort()`
+
+```{r}
+sim_result$Simulation_Output[sim_result$Simulation_Output$Period == 13, ]
+```
+
+## `Variant 3` Phase 1 (month 14): sites `r sim_result$Variant_Details[[3]]$pos %>% sort()`
+
+```{r}
+sim_result$Simulation_Output[sim_result$Simulation_Output$Period == 14, ]
+```
+
+# Sites Detection and Change Point Detection
+
+## Encoding
+
+```{r}
+toy_example <- sim_result$Simulation_Output
+n_col       <- nchar(ref_sequence)
+
+colnames(toy_example)[seq_len(n_col)] <- as.character(seq_len(n_col))
+
+# Encode character sequences to integers
+char_mat    <- as.matrix(toy_example[, seq_len(n_col)])
+AL_Cat_mix  <- as.data.frame(encode_aa_sequence(char_mat))
+AL_Cat_mix[] <- lapply(AL_Cat_mix, as.integer)
+
+# Standardised Date column (first day of the month)
+AL_Cat_mix$Date <- as.Date(format(as.Date(toy_example$Date), "%Y-%m-01"))
+```
+
+### View Post-Processed Matrix
+
+```{r}
+AL_Cat_mix[1:10, ]
+```
+
+## Partitioning
+
+Twelve months of mutation phase (24 months total, 4 reference) with 2-month
+non-overlapping windows give 12 partitions.
+
+```{r}
+part_data <- partition_time_windows(
+  data          = AL_Cat_mix,
+  n_sites       = n_col,
+  window_length = 2,
+  window_type   = 3,
+  start_date    = "2020-01-01",
+  end_date      = "2022-01-01"
+)
+```
+
+### Dates Included in the First Partition
+
+```{r}
+part_data$Partitions[[1]]$Date %>% unique() %>% sort()
+```
+
+### Dates Included in the Last Partition
+
+```{r}
+part_data$Partitions[[length(part_data$Partitions)]]$Date %>% unique() %>% sort()
+```
+
+### Sites and Classes Detected in Partition 1
+
+```{r}
+part_data$Clusters[[1]]$DataFrame
+```
+
+### Sites and Classes Detected in Partition 2
+
+```{r}
+part_data$Clusters[[2]]$DataFrame
+```
+
+### Sites and Classes Detected in Partition 3 vs. `r sim_result$Variant_Details[[1]]$pos %>% sort()`
+
+```{r}
+part_data$Clusters[[3]]$DataFrame
+```
+
+### Sites and Classes Detected in Partition 4
+
+```{r}
+part_data$Clusters[[4]]$DataFrame
+```
+
+### Sites and Classes Detected in Partition 5 vs. `r sim_result$Variant_Details[[1]]$pos %>% sort()` and `r sim_result$Variant_Details[[2]]$pos %>% sort()`
+
+```{r}
+part_data$Clusters[[5]]$DataFrame
+```
+
+### Sites and Classes Detected in Partition 6 vs. `r sim_result$Variant_Details[[1]]$pos %>% sort()` and `r sim_result$Variant_Details[[2]]$pos %>% sort()`
+
+```{r}
+part_data$Clusters[[6]]$DataFrame
+```
+
+### Sites and Classes Detected in Partition 7 vs. `r sim_result$Variant_Details[[1]]$pos %>% sort()`, `r sim_result$Variant_Details[[2]]$pos %>% sort()` and `r sim_result$Variant_Details[[3]]$pos %>% sort()`
+
+```{r}
+part_data$Clusters[[7]]$DataFrame
+```
+
+### Sites and Classes Detected in Partition 8
+
+```{r}
+part_data$Clusters[[8]]$DataFrame
+```
+
+### Sites and Classes Detected in Partition 9
+
+```{r}
+part_data$Clusters[[9]]$DataFrame
+```
+
+### Sites and Classes Detected in Partition 10 vs. `r sim_result$Variant_Details[[1]]$pos %>% sort()`, `r sim_result$Variant_Details[[2]]$pos %>% sort()`, `r sim_result$Variant_Details[[3]]$pos %>% sort()` and `r sim_result$Variant_Details[[4]]$pos %>% sort()`
+
+```{r}
+part_data$Clusters[[10]]$DataFrame
+```
+
+### Sites and Classes Detected in Partition 11
+
+```{r}
+part_data$Clusters[[11]]$DataFrame
+```
+
+### Sites and Classes Detected in Partition 12
+
+```{r}
+part_data$Clusters[[12]]$DataFrame
+```
+
+## Hellinger Distance (HD)
+
+### Calculate HD
+
+```{r}
+all_sites <- seq_len(n_col)
+
+hellinger_mat <- calculate_hellinger_matrix(
+  partitions = part_data$Partitions,
+  sites      = all_sites,
+  aa_levels  = 20L   # 20 standard amino acids
+)
+```
+
+### Examine HD Structure: `r n_col` sites × (N partitions − 1) comparisons
+
+```{r}
+# Rows = sites, Columns = partition differences (T2 vs T1, T3 vs T1, ...)
+dim(hellinger_mat)
+hellinger_mat
+```
+
+### Transpose for Change Point Detection
+
+Now we have multivariate (24-dimensional) observations at each partition
+difference — ready for ECP.
+
+```{r}
+dat_mat_t <- t(hellinger_mat)
+dat_mat_t
+```
+
+## Change Point Detection
+
+### Method 1: Dynamic Programming via `ks.cp3o`
+
+| **Parameter** | **Description**                                              | **Default** |
+|---------------|--------------------------------------------------------------|-------------|
+| `Z`           | A `T × d` matrix of the time series.                        | —           |
+| `K`           | Maximum number of change points.                             | 1           |
+| `minsize`     | Minimum segment size.                                        | 30          |
+| `verbose`     | Print status updates.                                        | FALSE       |
+
+```{r}
+cp_m1 <- ks.cp3o(
+  Z       = dat_mat_t,
+  K       = 11,
+  minsize = 2,
+  verbose = FALSE
+)
+
+print("Change points estimated by Method 1:")
+cp_m1$estimates
+
+print("Other change point locations:")
+cp_m1$cpLoc
+```
+
+### Method 2: Rolling ECP via `detect_changepoints_ecp`
+
+Starting with the first 3 partitions, then expanding one step at a time.
+
+```{r}
+lower     <- 1
+upper     <- 3
+timesteps <- nrow(dat_mat_t) - upper
+
+ECP_res <- detect_changepoints_ecp(
+  data_matrix = dat_mat_t,
+  min_window  = lower,
+  max_window  = upper,
+  n_timesteps = timesteps,
+  rolling_window = FALSE,
+  dynamic_k   = TRUE,
+  n_cores     = 1L,
+  minsize     = 2,
+  verbose     = FALSE
+)
+
+ecp_indices <- ECP_res$ECP_est_list %>%
+  unlist() %>%
+  .[. >= 1] %>%
+  unique() %>%
+  sort()
+
+print("Change points estimated by Method 2:")
+ecp_indices
+```
+
+### Method 3: Agglomerative ECP via `e.agglo` (preferred)
+
+| **Parameter** | **Description**                                              | **Default** |
+|---------------|--------------------------------------------------------------|-------------|
+| `X`           | A `T × d` matrix of the time series.                        | —           |
+| `member`      | Initial membership vector.                                   | `1:nrow(X)` |
+| `alpha`       | Moment index for cluster distance.                           | 1           |
+| `penalty`     | Goodness-of-fit penalty function.                            | —           |
+
+```{r}
+cp_m3 <- e.agglo(
+  X       = dat_mat_t,
+  member  = seq_len(nrow(dat_mat_t)),
+  alpha   = 1,
+  penalty = function(cps) { 0 }
+)
+
+print("Change points estimated by Method 3 (naive):")
+cp_m3$estimates
+
+print("Cluster membership per time point:")
+cp_m3$cluster
+```
