@@ -156,12 +156,16 @@ partition_time_windows <- function(data,
                                             nr     = nrow(chunk),
                                             nsites = n_sites, ...)
       
-      if (nrow(all_clust$DataFrame) > 0) {
-        all_clust$DataFrame <- relabel_entropy_classes(all_clust$DataFrame)
-        max_ent <- max(as.numeric(all_clust$DataFrame$class), na.rm = TRUE)
-      } else {
-        max_ent <- NA_integer_
-      }
+      # max_ent = number of Mclust clusters found (= max raw class label).
+      # Computed from raw labels BEFORE any downstream relabeling so that
+      # Max_Entropy correctly reflects G (number of components), matching the
+      # behaviour of the original get_partitions_custom_modified.
+      # relabel_entropy_classes is NOT called here — it belongs in the
+      # downstream consumer (run_detection_study).
+      max_ent <- if (nrow(all_clust$DataFrame) > 0 && "class" %in% names(all_clust$DataFrame))
+        max(as.numeric(all_clust$DataFrame$class), na.rm = TRUE)
+      else
+        NA_integer_
       
       list(chunk     = chunk,
            entrp     = entrp_all,

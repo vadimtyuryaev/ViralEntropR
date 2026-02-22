@@ -1,5 +1,5 @@
 Package: ViralEntropR
-Title: Entrpopy-Informed Computational Analysis of Viral Evolution
+Title: Entropy-Informed Computational Analysis of Viral Evolution
 Version: 0.1.2
 Authors@R: c(
               person("Vadim", "Tyuryaev", ,"vadim.tyuryaev@gmail.com", 

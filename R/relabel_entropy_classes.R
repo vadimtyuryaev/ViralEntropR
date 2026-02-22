@@ -48,9 +48,12 @@ relabel_entropy_classes = function(df) {
   # Apply mapping
   df$class = factor(mapping[as.character(df$class)])
   
-  # Add metadata columns if they existed in the previous version
-  df$maxclass = 1 # By definition, the highest entropy class is now 1
-  df$num_classes = length(unique(df$class))
+  # num_classes: how many distinct entropy groups Mclust identified.
+  # Note: maxclass is intentionally NOT added here. After relabeling, class 1
+  # is always the highest-entropy group by definition, so a maxclass column
+  # would always equal 1 and carry no information. Downstream code should
+  # use num_classes to know how many clusters were found.
+  df$num_classes <- length(unique(df$class))
   
   return(df)
 }
