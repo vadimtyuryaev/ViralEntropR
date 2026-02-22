@@ -112,6 +112,13 @@ partition_time_windows <- function(data,
   }
   
   # --- 3. Per-window worker --------------------------------------------------
+  # Capture ... into a concrete list BEFORE process_window is defined.
+  # This is essential for correct parallel execution: R's ... does not
+  # serialize correctly when a closure is sent to parLapply workers on
+  # Windows. By capturing extra arguments as a plain named list they become
+  # ordinary closed-over variables that serialize and deserialize reliably.
+  extra_args <- list(...)
+  
   # Closes over all fixed variables; receives only i, making it trivially
   # parallelisable.
   process_window <- function(i) {
@@ -152,9 +159,11 @@ partition_time_windows <- function(data,
     if (nrow(chunk) > 0) {
       entrp_all <- apply(chunk[, seq_len(n_sites), drop = FALSE], 2,
                          calculate_entropy)
-      all_clust <- cluster_sites_by_entropy(entrp_all,
-                                            nr     = nrow(chunk),
-                                            nsites = n_sites, ...)
+      all_clust <- do.call(cluster_sites_by_entropy,
+                           c(list(entrp_all,
+                                  nr     = nrow(chunk),
+                                  nsites = n_sites),
+                             extra_args))
       
       # max_ent = number of Mclust clusters found (= max raw class label).
       # Computed from raw labels BEFORE any downstream relabeling so that
