@@ -40,7 +40,7 @@
 #'   \code{NA} if all extractions succeeded.}
 #'
 #' @importFrom stringr str_extract
-#' @importFrom zoo as.yearmon
+#' @importFrom zoo as.Date as.yearmon
 #'
 #' @examples
 #' \dontrun{
@@ -56,9 +56,9 @@
 #'
 #' @export
 extract_fasta_dates <- function(sequence,
-                                   option         = 1,
-                                   date_format    = "%Y-%m-%d",
-                                   custom_pattern = NULL) {
+                                option         = 1,
+                                date_format    = "%Y-%m-%d",
+                                custom_pattern = NULL) {
   
   if (!requireNamespace("Biostrings", quietly = TRUE)) {
     stop("Package 'Biostrings' is required. Install it with:\n",
@@ -66,25 +66,25 @@ extract_fasta_dates <- function(sequence,
          "  BiocManager::install('Biostrings')",
          call. = FALSE)
   }
-
+  
   # Use names() — public accessor — instead of internal slot access
   seq_names <- names(sequence)
-
+  
   # Select regex pattern
   if (!is.null(custom_pattern)) {
     pattern <- custom_pattern
   } else {
     pattern <- switch(as.character(option),
-      "1" = "(?<=\\|)[0-9]{4}-(0?[1-9]|1[0-2])-(0?[1-9]|[12][0-9]|3[01]|00)(?=\\|)",
-      "2" = "(?<=\\|)[0-9]{4}-(0?[1-9]|[12][0-9]|3[01]|00)-(0?[1-9]|1[0-2])(?=\\|)",
-      "3" = "(?<=\\|)[0-9]{4}-(0?[1-9]|1[0-2])(?=\\|)",
-      stop("`option` must be 1, 2, or 3.")
+                      "1" = "(?<=\\|)[0-9]{4}-(0?[1-9]|1[0-2])-(0?[1-9]|[12][0-9]|3[01]|00)(?=\\|)",
+                      "2" = "(?<=\\|)[0-9]{4}-(0?[1-9]|[12][0-9]|3[01]|00)-(0?[1-9]|1[0-2])(?=\\|)",
+                      "3" = "(?<=\\|)[0-9]{4}-(0?[1-9]|1[0-2])(?=\\|)",
+                      stop("`option` must be 1, 2, or 3.")
     )
   }
-
+  
   date_strings <- stringr::str_extract(seq_names, pattern)
   is_missing   <- is.na(date_strings)
-
+  
   if (!any(is_missing)) {
     msg      <- "All date strings have been successfully extracted"
     miss_id  <- NA
@@ -92,21 +92,21 @@ extract_fasta_dates <- function(sequence,
     msg      <- "There are date strings that have not been recognized"
     miss_id  <- which(is_missing)
   }
-
+  
   raw_date_strings       <- date_strings
   corrected_date_strings <- gsub("-00", "-01", raw_date_strings)
-
+  
   # Coerce to Date — yearmon path for yyyy-mm format
   case_yyyy_mm <- identical(date_format, "%Y-%m")
-
+  
   if (case_yyyy_mm) {
-    raw_dates       <- as.Date(zoo::as.yearmon(raw_date_strings,       format = "%Y-%m"))
-    corrected_dates <- as.Date(zoo::as.yearmon(corrected_date_strings, format = "%Y-%m"))
+    raw_dates       <- zoo::as.Date(zoo::as.yearmon(raw_date_strings,       format = "%Y-%m"))
+    corrected_dates <- zoo::as.Date(zoo::as.yearmon(corrected_date_strings, format = "%Y-%m"))
   } else {
     raw_dates       <- as.Date(raw_date_strings,       format = date_format)
     corrected_dates <- as.Date(corrected_date_strings, format = date_format)
   }
-
+  
   list(raw_date_strings       = raw_date_strings,
        corrected_date_strings = corrected_date_strings,
        raw_dates              = raw_dates,
