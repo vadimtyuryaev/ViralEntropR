@@ -14,9 +14,10 @@
 #' If \code{FALSE} (default), the start remains fixed and the window expands.
 #' @param dynamic_k Logical. If \code{TRUE}, sets the maximum number of change points \code{K}
 #' to \code{window_length - 1} dynamically for each iteration.
-#' @param n_cores Integer. Number of cores for parallel execution. Default is
-#'   \code{1L} (sequential). Uses \code{mclapply} on Unix/macOS and
-#'   \code{parLapply} on Windows.
+#' @param n_cores Integer. Number of cores for parallel execution via
+#'   \code{future.apply::future_lapply}. Default is \code{1L} (sequential).
+#'   Sets \code{future::multisession} internally when \code{n_cores > 1} and
+#'   restores \code{future::sequential} on exit.
 #' @param ... Additional arguments passed to \code{\link[ecp]{ks.cp3o}}.
 #'
 #' @return A named list matching the original \code{generate_ECP_list_modified}
@@ -27,7 +28,8 @@
 #' \item{ECP_est_list}{List of change point estimate vectors, one per step.}
 #'
 #' @importFrom ecp ks.cp3o
-#' @importFrom parallel mclapply parLapply makeCluster stopCluster clusterExport
+#' @importFrom future plan multisession sequential
+#' @importFrom future.apply future_lapply
 #'
 #' @examples
 #' set.seed(123)
@@ -45,13 +47,13 @@
 #' )
 #' print(res$ECP_est_list[[1]])
 detect_changepoints_ecp = function(data_matrix,
-                                    min_window,
-                                    max_window,
-                                    n_timesteps,
-                                    rolling_window = FALSE,
-                                    dynamic_k      = FALSE,
-                                    n_cores        = 1L,
-                                    ...) {
+                                   min_window,
+                                   max_window,
+                                   n_timesteps,
+                                   rolling_window = FALSE,
+                                   dynamic_k      = FALSE,
+                                   n_cores        = 1L,
+                                   ...) {
   
   # --- 1. Validation ---------------------------------------------------------
   if (!is.matrix(data_matrix)) stop("`data_matrix` must be a matrix.")
@@ -60,6 +62,10 @@ detect_changepoints_ecp = function(data_matrix,
   }
   
   # --- 2. Per-step worker ----------------------------------------------------
+  # Capture ... before defining run_step so it is a concrete closed-over list
+  # rather than an unserializable promise — required for future_lapply workers.
+  extra_args <- list(...)
+  
   # Rolling: both start and end advance by 1 each step (j tracks start offset,
   # matching the original loop where j increments after each iteration).
   # Expanding (non-rolling): start is fixed, end grows by 1 each step.
@@ -74,7 +80,7 @@ detect_changepoints_ecp = function(data_matrix,
     if (end_idx > nrow(data_matrix)) {
       warning("Step ", i, ": end_idx (", end_idx,
               ") exceeds matrix rows; skipping.")
-      return(list(window = c(start_idx, end_idx),
+      return(list(window   = c(start_idx, end_idx),
                   estimate = NULL,
                   full     = NULL))
     }
@@ -83,7 +89,7 @@ detect_changepoints_ecp = function(data_matrix,
     
     # Build ks.cp3o argument list; only inject K when dynamic_k is TRUE,
     # preserving the ability to pass K manually via ... when it is FALSE.
-    args = list(Z = subset_mat, ...)
+    args = c(list(Z = subset_mat), extra_args)
     if (dynamic_k) {
       # Original formula: upper - lower - 1 + i = nrow(subset) - 2
       args$K = nrow(subset_mat) - 2L
@@ -103,20 +109,14 @@ detect_changepoints_ecp = function(data_matrix,
   use_parallel = n_cores > 1L && length(indices) > 1L
   
   if (use_parallel) {
-    if (.Platform$OS.type == "windows") {
-      cl = parallel::makeCluster(n_cores)
-      on.exit(parallel::stopCluster(cl), add = TRUE)
-      parallel::clusterExport(
-        cl,
-        varlist = c("data_matrix", "min_window", "max_window",
-                    "rolling_window", "dynamic_k"),
-        envir = environment()
-      )
-      results_list = parallel::parLapply(cl, indices, run_step)
-    } else {
-      results_list = parallel::mclapply(indices, run_step,
-                                         mc.cores = n_cores)
-    }
+    future::plan(future::multisession, workers = n_cores)
+    on.exit(future::plan(future::sequential), add = TRUE)
+    
+    results_list = future.apply::future_lapply(
+      indices,
+      run_step,
+      future.seed = TRUE
+    )
   } else {
     results_list = lapply(indices, run_step)
   }

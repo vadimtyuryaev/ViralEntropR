@@ -82,7 +82,10 @@ Default \code{TRUE}.}
 \code{"variants_detection_study.html"}.}
 
 \item{n_cores}{Integer. Cores for parallel execution over
-\code{n_new_mut_seq_vec} within each scenario. Default \code{1L}.}
+\code{n_new_mut_seq_vec} within each scenario via
+\code{future.apply::future_lapply}. Default \code{1L}. Sets
+\code{future::multisession} internally when \code{n_cores > 1} and
+restores \code{future::sequential} on exit.}
 
 \item{...}{Additional arguments passed to
 \code{\link{partition_time_windows}} (and on to

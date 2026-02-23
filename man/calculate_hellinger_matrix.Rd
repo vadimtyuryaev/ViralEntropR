@@ -37,21 +37,19 @@ includes raw count tables and proportion tables for each site. Default is
 \code{FALSE}.}
 
 \item{n_cores}{Integer. Number of cores for parallel processing of sites via
-\code{\link[parallel]{mclapply}} (Unix/macOS) or
-\code{\link[parallel]{parLapply}} (Windows). Default is \code{1L}
-(no parallelism). Set to \code{parallel::detectCores() - 1} to use all
-available cores.}
+\code{future.apply::future_lapply}. Default is \code{1L} (sequential).
+Sets \code{future::multisession} internally when \code{n_cores > 1} and
+restores \code{future::sequential} on exit.}
 }
 \value{
-A named list with:
-\item{Sites}{Integer vector of analysed site indices.}
-\item{Hellinger_Distances}{A numeric matrix with rows = sites and
-columns = time steps T2, T3, … (distances relative to T1). Row names are
-the site indices; column names are taken from \code{labels[-1]}.}
-\item{Frequency_Tables}{(Only when \code{save_freq_tables = TRUE}) A list of
-raw count matrices, one per site.}
-\item{Proportions_Tables}{(Only when \code{save_freq_tables = TRUE}) A list
-of column-wise proportion matrices, one per site.}
+When \code{save_freq_tables = FALSE} (default): a numeric matrix with
+rows = sites and columns = time steps T2, T3, … (distances relative to T1).
+Row names are the site indices; column names are taken from
+\code{labels[-1]}.
+
+When \code{save_freq_tables = TRUE}: a named list with elements
+\code{Sites}, \code{Hellinger_Distances}, \code{Frequency_Tables}, and
+\code{Proportions_Tables}.
 }
 \description{
 Computes the Hellinger distance between the amino acid distribution
@@ -80,9 +78,8 @@ parts = list(T1 = p1, T2 = p2, T3 = p3)
 result = calculate_hellinger_matrix(parts, sites = 1:2)
 print(result)
 
-# With freq tables saved, parallel over 2 cores
+# With freq tables saved
 result2 = calculate_hellinger_matrix(parts, sites = 1:2,
-                                      save_freq_tables = TRUE,
-                                      n_cores = 2L)
+                                      save_freq_tables = TRUE)
 print(result2$Hellinger_Distances)
 }

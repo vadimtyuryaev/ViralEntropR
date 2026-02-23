@@ -34,9 +34,10 @@ the end advances).}
 \code{\link[HDcpDetect]{wild.binary.segmentation}}. If \code{FALSE}
 (default), uses \code{\link[HDcpDetect]{binary.segmentation}}.}
 
-\item{n_cores}{Integer. Number of cores for parallel execution. Default is
-\code{1L} (sequential). Uses \code{mclapply} on Unix/macOS and
-\code{parLapply} on Windows.}
+\item{n_cores}{Integer. Number of cores for parallel execution via
+\code{future.apply::future_lapply}. Default is \code{1L} (sequential).
+Sets \code{future::multisession} internally when \code{n_cores > 1} and
+restores \code{future::sequential} on exit.}
 
 \item{...}{Additional arguments passed to the chosen segmentation function.}
 }

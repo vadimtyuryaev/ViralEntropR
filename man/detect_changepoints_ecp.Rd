@@ -30,9 +30,10 @@ If \code{FALSE} (default), the start remains fixed and the window expands.}
 \item{dynamic_k}{Logical. If \code{TRUE}, sets the maximum number of change points \code{K}
 to \code{window_length - 1} dynamically for each iteration.}
 
-\item{n_cores}{Integer. Number of cores for parallel execution. Default is
-\code{1L} (sequential). Uses \code{mclapply} on Unix/macOS and
-\code{parLapply} on Windows.}
+\item{n_cores}{Integer. Number of cores for parallel execution via
+\code{future.apply::future_lapply}. Default is \code{1L} (sequential).
+Sets \code{future::multisession} internally when \code{n_cores > 1} and
+restores \code{future::sequential} on exit.}
 
 \item{...}{Additional arguments passed to \code{\link[ecp]{ks.cp3o}}.}
 }

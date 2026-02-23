@@ -31,23 +31,21 @@
 #'   includes raw count tables and proportion tables for each site. Default is
 #'   \code{FALSE}.
 #' @param n_cores Integer. Number of cores for parallel processing of sites via
-#'   \code{\link[parallel]{mclapply}} (Unix/macOS) or
-#'   \code{\link[parallel]{parLapply}} (Windows). Default is \code{1L}
-#'   (no parallelism). Set to \code{parallel::detectCores() - 1} to use all
-#'   available cores.
+#'   \code{future.apply::future_lapply}. Default is \code{1L} (sequential).
+#'   Sets \code{future::multisession} internally when \code{n_cores > 1} and
+#'   restores \code{future::sequential} on exit.
 #'
-#' @return A named list with:
-#' \item{Sites}{Integer vector of analysed site indices.}
-#' \item{Hellinger_Distances}{A numeric matrix with rows = sites and
-#'   columns = time steps T2, T3, … (distances relative to T1). Row names are
-#'   the site indices; column names are taken from \code{labels[-1]}.}
-#' \item{Frequency_Tables}{(Only when \code{save_freq_tables = TRUE}) A list of
-#'   raw count matrices, one per site.}
-#' \item{Proportions_Tables}{(Only when \code{save_freq_tables = TRUE}) A list
-#'   of column-wise proportion matrices, one per site.}
+#' @return When \code{save_freq_tables = FALSE} (default): a numeric matrix with
+#'   rows = sites and columns = time steps T2, T3, … (distances relative to T1).
+#'   Row names are the site indices; column names are taken from
+#'   \code{labels[-1]}.
 #'
-#' @importFrom parallel detectCores mclapply parLapply makeCluster stopCluster
-#'   clusterExport
+#'   When \code{save_freq_tables = TRUE}: a named list with elements
+#'   \code{Sites}, \code{Hellinger_Distances}, \code{Frequency_Tables}, and
+#'   \code{Proportions_Tables}.
+#'
+#' @importFrom future plan multisession sequential
+#' @importFrom future.apply future_lapply
 #'
 #' @examples
 #' p1 = data.frame(s1 = c(1, 1, 1, 1, 1), s2 = c(20, 20, 20, 20, 20))
@@ -59,10 +57,9 @@
 #' result = calculate_hellinger_matrix(parts, sites = 1:2)
 #' print(result)
 #'
-#' # With freq tables saved, parallel over 2 cores
+#' # With freq tables saved
 #' result2 = calculate_hellinger_matrix(parts, sites = 1:2,
-#'                                       save_freq_tables = TRUE,
-#'                                       n_cores = 2L)
+#'                                       save_freq_tables = TRUE)
 #' print(result2$Hellinger_Distances)
 #' @export
 calculate_hellinger_matrix = function(partitions,
@@ -80,22 +77,22 @@ calculate_hellinger_matrix = function(partitions,
     stop("`labels` must have the same length as `partitions`.")
   }
   
-  n_sites      = length(sites)
-  norm_factor  = if (normalized) (1 / sqrt(2)) else 1
+  n_sites     = length(sites)
+  norm_factor = if (normalized) (1 / sqrt(2)) else 1
   
   # --- 2. Per-site worker ----------------------------------------------------
   compute_site = function(site_idx) {
-    counts  = get_site_counts(partitions, site_idx, aa_levels)     # aa_levels x n_partitions
+    counts = get_site_counts(partitions, site_idx, aa_levels)  # aa_levels x n_partitions
     
     # Column-wise proportions; guard against all-zero columns (empty partitions)
-    cs      = colSums(counts)
+    cs           = colSums(counts)
     cs[cs == 0L] = 1L
-    props   = sweep(counts, 2L, cs, "/")
+    props        = sweep(counts, 2L, cs, "/")
     
-    p0      = props[, 1L]
-    others  = props[, -1L, drop = FALSE]
+    p0     = props[, 1L]
+    others = props[, -1L, drop = FALSE]
     
-    dists   = norm_factor * sqrt(colSums((sqrt(others) - sqrt(p0))^2))
+    dists = norm_factor * sqrt(colSums((sqrt(others) - sqrt(p0))^2))
     
     list(dists  = dists,
          counts = counts,
@@ -106,19 +103,14 @@ calculate_hellinger_matrix = function(partitions,
   use_parallel = n_cores > 1L && n_sites > 1L
   
   if (use_parallel) {
-    is_windows = .Platform$OS.type == "windows"
+    future::plan(future::multisession, workers = n_cores)
+    on.exit(future::plan(future::sequential), add = TRUE)
     
-    if (is_windows) {
-      cl = parallel::makeCluster(n_cores)
-      on.exit(parallel::stopCluster(cl), add = TRUE)
-      parallel::clusterExport(cl, varlist = c("partitions", "aa_levels",
-                                              "norm_factor", "get_site_counts"),
-                              envir = environment())
-      site_results = parallel::parLapply(cl, sites, compute_site)
-    } else {
-      site_results = parallel::mclapply(sites, compute_site,
-                                        mc.cores = n_cores)
-    }
+    site_results = future.apply::future_lapply(
+      sites,
+      compute_site,
+      future.seed = TRUE
+    )
   } else {
     site_results = lapply(sites, compute_site)
   }
@@ -126,14 +118,13 @@ calculate_hellinger_matrix = function(partitions,
   # --- 4. Assemble output matrix ---------------------------------------------
   dist_matrix           <- do.call(rbind, lapply(site_results, `[[`, "dists"))
   rownames(dist_matrix) <- as.character(sites)
-  colnames(dist_matrix) <- labels[-1]           # T2, T3, ...
-  storage.mode(dist_matrix) <- "double"         # ensure pure numeric for ecp/ks.cp3o
+  colnames(dist_matrix) <- labels[-1]          # T2, T3, ...
+  storage.mode(dist_matrix) <- "double"        # ensure pure numeric for ecp/ks.cp3o
   
   # --- 5. Return -------------------------------------------------------------
-  # Modern usage: return the matrix directly so callers can do t(hell_mat)
-  # immediately without unpacking a list.
-  # When freq tables are requested, return the full named list for backward
-  # compatibility with build_distance_matrix / legacy code.
+  # Default: return the matrix directly so callers can do t(hell_mat) without
+  # unpacking a list. When freq tables are requested, return the full named
+  # list for backward compatibility with build_distance_matrix / legacy code.
   if (save_freq_tables) {
     list(
       Sites               = sites,

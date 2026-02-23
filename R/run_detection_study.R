@@ -63,7 +63,10 @@
 #' @param output_file Character. Filename for the HTML report. Default
 #'   \code{"variants_detection_study.html"}.
 #' @param n_cores Integer. Cores for parallel execution over
-#'   \code{n_new_mut_seq_vec} within each scenario. Default \code{1L}.
+#'   \code{n_new_mut_seq_vec} within each scenario via
+#'   \code{future.apply::future_lapply}. Default \code{1L}. Sets
+#'   \code{future::multisession} internally when \code{n_cores > 1} and
+#'   restores \code{future::sequential} on exit.
 #' @param ... Additional arguments passed to
 #'   \code{\link{partition_time_windows}} (and on to
 #'   \code{\link{cluster_sites_by_entropy}}).
@@ -110,7 +113,8 @@
 #' @importFrom ecp e.agglo
 #' @importFrom knitr kable
 #' @importFrom kableExtra kable_styling save_kable
-#' @importFrom parallel mclapply parLapply makeCluster stopCluster clusterExport
+#' @importFrom future plan multisession sequential
+#' @importFrom future.apply future_lapply
 #' @importFrom utils tail
 #' @importFrom magrittr %>%
 #'
@@ -203,12 +207,17 @@ run_detection_study <- function(
       character(1L)), collapse = "<br/>")
   )
   
-  # --- 3. Optionally create Windows cluster (once, reused across scenarios) --
-  cl <- NULL
+  # --- 3. Parallel setup ----------------------------------------------------
   use_parallel <- n_cores > 1L && length(n_new_mut_seq_vec) > 1L
-  if (use_parallel && .Platform$OS.type == "windows") {
-    cl <- parallel::makeCluster(n_cores)
-    on.exit(parallel::stopCluster(cl), add = TRUE)
+  
+  # Capture ... before defining run_one_n_new so it becomes a concrete
+  # closed-over list — R's ... is an unserializable promise that would
+  # silently fail when future_lapply ships the closure to workers.
+  extra_args <- list(...)
+  
+  if (use_parallel) {
+    future::plan(future::multisession, workers = n_cores)
+    on.exit(future::plan(future::sequential), add = TRUE)
   }
   
   # --- 4. Scenario loop (sequential — scenarios are typically few) -----------
@@ -253,15 +262,14 @@ run_detection_study <- function(
       AL_df[]  <- lapply(AL_df, as.integer)
       AL_df$Date <- as.Date(format(as.Date(mat_sim$Date), "%Y-%m-01"))
       
-      part_data <- partition_time_windows(
-        data          = AL_df,
-        n_sites       = n_col,
-        window_length = sliding_window_length,
-        window_type   = window_option,
-        start_date    = start_date,
-        end_date      = end_date,
-        ...
-      )
+      part_data <- do.call(partition_time_windows,
+                           c(list(data          = AL_df,
+                                  n_sites       = n_col,
+                                  window_length = sliding_window_length,
+                                  window_type   = window_option,
+                                  start_date    = start_date,
+                                  end_date      = end_date),
+                             extra_args))
       
       # 3. Hellinger matrix + transpose for e.agglo --------------------------
       # aa_levels = 25 matches the encode_aa_sequence alphabet
@@ -393,31 +401,11 @@ run_detection_study <- function(
     
     # ── Dispatch (parallel or sequential) ────────────────────────────────
     if (use_parallel) {
-      if (!is.null(cl)) {
-        # Windows: export all variables the worker closes over
-        parallel::clusterExport(
-          cl,
-          varlist = c(
-            "ref_seq", "num_months_ref_seq", "start_date", "end_date",
-            "number_of_variants", "vi", "mutation_rates",
-            "mutation_rate_variability", "deleterious_rate",
-            "n_delet", "total_seqs", "ref_variability", "n_ref",
-            "prob_delet", "n_col", "sliding_window_length",
-            "window_option", "scenario_idx", "max_cp",
-            "simulate_variant_evolution", "encode_aa_sequence",
-            "partition_time_windows", "calculate_hellinger_matrix",
-            "relabel_entropy_classes", "cluster_sites_by_entropy",
-            "get_site_counts", "calculate_entropy"
-          ),
-          envir = environment()
-        )
-        iter_results <- parallel::parLapply(cl, n_new_mut_seq_vec, run_one_n_new)
-      } else {
-        # Unix/macOS: fork inherits environment
-        iter_results <- parallel::mclapply(
-          n_new_mut_seq_vec, run_one_n_new, mc.cores = n_cores
-        )
-      }
+      iter_results <- future.apply::future_lapply(
+        n_new_mut_seq_vec,
+        run_one_n_new,
+        future.seed = TRUE
+      )
     } else {
       iter_results <- lapply(n_new_mut_seq_vec, run_one_n_new)
     }

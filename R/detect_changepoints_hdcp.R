@@ -29,9 +29,10 @@
 #' @param wild Logical. If \code{TRUE}, uses
 #'   \code{\link[HDcpDetect]{wild.binary.segmentation}}. If \code{FALSE}
 #'   (default), uses \code{\link[HDcpDetect]{binary.segmentation}}.
-#' @param n_cores Integer. Number of cores for parallel execution. Default is
-#'   \code{1L} (sequential). Uses \code{mclapply} on Unix/macOS and
-#'   \code{parLapply} on Windows.
+#' @param n_cores Integer. Number of cores for parallel execution via
+#'   \code{future.apply::future_lapply}. Default is \code{1L} (sequential).
+#'   Sets \code{future::multisession} internally when \code{n_cores > 1} and
+#'   restores \code{future::sequential} on exit.
 #' @param ... Additional arguments passed to the chosen segmentation function.
 #'
 #' @return A named list matching the original \code{generate_HDcp_list}
@@ -43,7 +44,8 @@
 #'   with a warning.}
 #'
 #' @importFrom HDcpDetect binary.segmentation wild.binary.segmentation
-#' @importFrom parallel mclapply parLapply makeCluster stopCluster clusterExport
+#' @importFrom future plan multisession sequential
+#' @importFrom future.apply future_lapply
 #'
 #' @examples
 #' set.seed(42)
@@ -71,13 +73,13 @@
 #' )
 #' print(res_wild$Points_List)
 detect_changepoints_hdcp = function(data_matrix,
-                                     min_window,
-                                     max_window,
-                                     n_timesteps,
-                                     rolling_window = FALSE,
-                                     wild           = FALSE,
-                                     n_cores        = 1L,
-                                     ...) {
+                                    min_window,
+                                    max_window,
+                                    n_timesteps,
+                                    rolling_window = FALSE,
+                                    wild           = FALSE,
+                                    n_cores        = 1L,
+                                    ...) {
   
   # --- 1. Validation ---------------------------------------------------------
   if (!is.matrix(data_matrix)) stop("`data_matrix` must be a matrix.")
@@ -86,6 +88,10 @@ detect_changepoints_hdcp = function(data_matrix,
   }
   
   # --- 2. Per-step worker ----------------------------------------------------
+  # Capture ... before defining run_step so it is a concrete closed-over list
+  # rather than an unserializable promise — required for future_lapply workers.
+  extra_args <- list(...)
+  
   run_step = function(i) {
     start_idx = if (rolling_window) (min_window + i) else min_window
     end_idx   = max_window + i
@@ -100,9 +106,11 @@ detect_changepoints_hdcp = function(data_matrix,
     subset_mat = data_matrix[start_idx:end_idx, , drop = FALSE]
     
     hdcp_res = if (wild) {
-      HDcpDetect::wild.binary.segmentation(subset_mat, ...)
+      do.call(HDcpDetect::wild.binary.segmentation,
+              c(list(subset_mat), extra_args))
     } else {
-      HDcpDetect::binary.segmentation(subset_mat, ...)
+      do.call(HDcpDetect::binary.segmentation,
+              c(list(subset_mat), extra_args))
     }
     
     list(
@@ -116,20 +124,14 @@ detect_changepoints_hdcp = function(data_matrix,
   use_parallel = n_cores > 1L && length(indices) > 1L
   
   if (use_parallel) {
-    if (.Platform$OS.type == "windows") {
-      cl = parallel::makeCluster(n_cores)
-      on.exit(parallel::stopCluster(cl), add = TRUE)
-      parallel::clusterExport(
-        cl,
-        varlist = c("data_matrix", "min_window", "max_window",
-                    "rolling_window", "wild"),
-        envir = environment()
-      )
-      results_list = parallel::parLapply(cl, indices, run_step)
-    } else {
-      results_list = parallel::mclapply(indices, run_step,
-                                         mc.cores = n_cores)
-    }
+    future::plan(future::multisession, workers = n_cores)
+    on.exit(future::plan(future::sequential), add = TRUE)
+    
+    results_list = future.apply::future_lapply(
+      indices,
+      run_step,
+      future.seed = TRUE
+    )
   } else {
     results_list = lapply(indices, run_step)
   }

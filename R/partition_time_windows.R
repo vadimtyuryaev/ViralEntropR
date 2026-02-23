@@ -27,10 +27,11 @@
 #'   date in \code{data}.
 #' @param date_format Character. Format string for date labels. Default is
 #'   \code{"\%b-\%Y"}.
-#' @param n_cores Integer. Number of cores for parallel processing of windows.
-#'   Default is \code{1L} (sequential). Set to
-#'   \code{parallel::detectCores() - 1} to use all available cores. Uses
-#'   \code{mclapply} on Unix/macOS and \code{parLapply} on Windows.
+#' @param n_cores Integer. Number of cores for parallel processing of windows
+#'   via \code{future.apply::future_lapply}. Default is \code{1L} (sequential).
+#'   The caller is responsible for setting a \code{future} plan if desired;
+#'   this function sets \code{future::multisession} internally when
+#'   \code{n_cores > 1} and restores \code{future::sequential} on exit.
 #' @param verbose Logical. If \code{TRUE}, prints processing mode, a progress
 #'   bar (sequential mode only), and a completion summary. Default is
 #'   \code{FALSE}.
@@ -48,7 +49,8 @@
 #' \item{N_partitions}{Integer. Total number of windows.}
 #'
 #' @importFrom lubridate %m+% interval period
-#' @importFrom parallel mclapply parLapply makeCluster stopCluster clusterExport
+#' @importFrom future plan multisession sequential
+#' @importFrom future.apply future_lapply
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @examples
@@ -112,29 +114,34 @@ partition_time_windows <- function(data,
   }
   
   # --- 3. Per-window worker --------------------------------------------------
-  # Capture ... into a concrete list BEFORE process_window is defined.
-  # This is essential for correct parallel execution: R's ... does not
-  # serialize correctly when a closure is sent to parLapply workers on
-  # Windows. By capturing extra arguments as a plain named list they become
-  # ordinary closed-over variables that serialize and deserialize reliably.
+  # Capture ... into a concrete list before defining process_window.
+  # R's ... is a promise that only exists in the calling frame — capturing it
+  # as a plain named list makes it a serializable closed-over variable,
+  # which is required for correct behaviour under future_lapply.
   extra_args <- list(...)
   
-  # Closes over all fixed variables; receives only i, making it trivially
-  # parallelisable.
+  # process_window closes over all fixed variables; receives only i.
+  # All package function calls use lubridate:: prefix so they resolve
+  # correctly in worker processes regardless of search path state.
   process_window <- function(i) {
     
     # Window bounds
     if (window_type == 1) {
       win_start <- start_date
-      win_end   <- lubridate::`%m+%`(start_date, lubridate::period(window_length * i, "months"))
+      win_end   <- lubridate::`%m+%`(start_date,
+                                     lubridate::period(window_length * i, "months"))
       
     } else if (window_type == 2) {
-      win_start <- lubridate::`%m+%`(start_date, lubridate::period(i - 1, "months"))
-      win_end   <- lubridate::`%m+%`(win_start,  lubridate::period(window_length, "months"))
+      win_start <- lubridate::`%m+%`(start_date,
+                                     lubridate::period(i - 1, "months"))
+      win_end   <- lubridate::`%m+%`(win_start,
+                                     lubridate::period(window_length, "months"))
       
     } else {
-      win_start <- lubridate::`%m+%`(start_date, lubridate::period(window_length * (i - 1), "months"))
-      win_end   <- lubridate::`%m+%`(win_start,  lubridate::period(window_length, "months"))
+      win_start <- lubridate::`%m+%`(start_date,
+                                     lubridate::period(window_length * (i - 1), "months"))
+      win_end   <- lubridate::`%m+%`(win_start,
+                                     lubridate::period(window_length, "months"))
     }
     
     # Inclusive start, exclusive end; capped at end_date
@@ -149,10 +156,12 @@ partition_time_windows <- function(data,
         format(win_end, format = date_format)
       label <- paste(start_date_dspl, dates_disp, sep = " - ")
     } else {
-      label <- paste(format(win_start, format = date_format),
-                     format(lubridate::`%m+%`(win_end, lubridate::period(-1, "months")),
-                            format = date_format),
-                     sep = " - ")
+      label <- paste(
+        format(win_start, format = date_format),
+        format(lubridate::`%m+%`(win_end, lubridate::period(-1, "months")),
+               format = date_format),
+        sep = " - "
+      )
     }
     
     # Entropy + clustering; guard against empty windows
@@ -167,27 +176,27 @@ partition_time_windows <- function(data,
       
       # max_ent = number of Mclust clusters found (= max raw class label).
       # Computed from raw labels BEFORE any downstream relabeling so that
-      # Max_Entropy correctly reflects G (number of components), matching the
-      # behaviour of the original get_partitions_custom_modified.
+      # Max_Entropy correctly reflects G (number of components).
       # relabel_entropy_classes is NOT called here — it belongs in the
       # downstream consumer (run_detection_study).
-      max_ent <- if (nrow(all_clust$DataFrame) > 0 && "class" %in% names(all_clust$DataFrame))
+      max_ent <- if (nrow(all_clust$DataFrame) > 0 &&
+                     "class" %in% names(all_clust$DataFrame))
         max(as.numeric(all_clust$DataFrame$class), na.rm = TRUE)
       else
         NA_integer_
       
-      list(chunk     = chunk,
-           entrp     = entrp_all,
-           clust     = all_clust,
-           max_ent   = max_ent,
-           label     = label)
+      list(chunk   = chunk,
+           entrp   = entrp_all,
+           clust   = all_clust,
+           max_ent = max_ent,
+           label   = label)
     } else {
-      list(chunk     = chunk,
-           entrp     = rep(0, n_sites),
-           clust     = list(FitObject = list(classification = numeric(0)),
-                            DataFrame = data.frame()),
-           max_ent   = NA_integer_,
-           label     = label)
+      list(chunk   = chunk,
+           entrp   = rep(0, n_sites),
+           clust   = list(FitObject = list(classification = numeric(0)),
+                          DataFrame = data.frame()),
+           max_ent = NA_integer_,
+           label   = label)
     }
   }
   
@@ -218,41 +227,24 @@ partition_time_windows <- function(data,
   }
   
   if (use_parallel) {
+    # future::multisession replicates the calling session's loaded packages
+    # (including ViralEntropR) on each worker automatically. The plan is
+    # restored to sequential on exit
+    # so this function does not permanently alter the caller's future state.
+    future::plan(future::multisession, workers = n_cores)
+    on.exit(future::plan(future::sequential), add = TRUE)
     
-    if (.Platform$OS.type == "windows") {
-      cl <- parallel::makeCluster(n_cores)
-      on.exit(parallel::stopCluster(cl), add = TRUE)
-      parallel::clusterExport(
-        cl,
-        # Export the worker function itself plus every variable and package
-        # function it needs. Critically this includes extra_args (the captured
-        # ... list) — without it workers call cluster_sites_by_entropy without
-        # nr, triggering a stop() that tryCatch catches silently, falling back
-        # to class = 1 for every site.
-        # Data variables closed over by process_window (data, n_sites, etc.)
-        # are included as a safety net since closure serialization behaviour
-        # varies across R versions on Windows.
-        # relabel_entropy_classes is intentionally excluded — it is not called
-        # inside process_window.
-        varlist = c("process_window",
-                    "extra_args",
-                    "data", "n_sites", "window_type", "window_length",
-                    "start_date", "end_date", "date_format", "start_date_dspl",
-                    "calculate_entropy", "cluster_sites_by_entropy"),
-        envir = environment()
-      )
-      raw <- parallel::parLapply(cl, seq_len(n_chunks), process_window)
-    } else {
-      raw <- parallel::mclapply(seq_len(n_chunks), process_window,
-                                mc.cores = n_cores)
-    }
+    raw <- future.apply::future_lapply(
+      seq_len(n_chunks),
+      process_window,
+      future.seed = TRUE
+    )
     
   } else {
-    
-    # Sequential mode: drive the loop manually so a progress bar can be updated
-    # after each window completes.
-    # utils::txtProgressBar (style = 3) renders a percentage bar with no
-    # external dependencies and works in both the R console and RStudio.
+    # Sequential mode: drive the loop manually when verbose so the progress
+    # bar can be updated after each window completes.
+    # utils::txtProgressBar (style = 3) renders a clean percentage bar with
+    # no extra dependencies, compatible with both console and RStudio.
     if (verbose) {
       pb  <- utils::txtProgressBar(min = 0, max = n_chunks,
                                    style = 3, width = 50)
@@ -265,7 +257,6 @@ partition_time_windows <- function(data,
     } else {
       raw <- lapply(seq_len(n_chunks), process_window)
     }
-    
   }
   
   # Completion summary
