@@ -1,6 +1,6 @@
 Package: ViralEntropR
 Title: Entropy-Informed Computational Analysis of Viral Evolution
-Version: 0.2.1
+Version: 0.2.2
 Authors@R: c(
               person("Vadim", "Tyuryaev", ,"vadim.tyuryaev@gmail.com", 
                       role = c("aut", "cre"), 
@@ -29,11 +29,15 @@ Imports:
     magrittr,
     mclust,
     stats,
-    utils
+    stringr,
+    utils,
+    zoo
 Suggests: 
+    Biostrings,
     dplyr,
     ggplot2,
     rmarkdown,
     testthat (>= 3.0.0)
+Additional_repositories: https://bioconductor.org/packages/release/bioc
 Config/testthat/edition: 3
 VignetteBuilder: knitr
