@@ -11,29 +11,25 @@ detect_changepoints_ecp(
   n_timesteps,
   rolling_window = FALSE,
   dynamic_k = FALSE,
-  n_cores = 1L,
   ...
 )
 }
 \arguments{
-\item{data_matrix}{A numeric matrix (Time x Features). Usually a transposed Hellinger distance matrix.}
+\item{data_matrix}{A numeric matrix (Time x Features). Usually a transposed
+Hellinger distance matrix.}
 
-\item{min_window}{Integer. The starting window size (lower bound index).}
+\item{min_window}{Integer. Starting row index of the initial window.}
 
-\item{max_window}{Integer. The ending window size offset.}
+\item{max_window}{Integer. Ending row index of the initial window.}
 
-\item{n_timesteps}{Integer. Number of steps to iterate forward.}
+\item{n_timesteps}{Integer. Number of additional steps to iterate forward.}
 
-\item{rolling_window}{Logical. If \code{TRUE}, both the start and end of the window move forward (sliding).
-If \code{FALSE} (default), the start remains fixed and the window expands.}
+\item{rolling_window}{Logical. If \code{TRUE}, both start and end advance by
+1 each step (sliding). If \code{FALSE} (default), start is fixed and end
+expands.}
 
-\item{dynamic_k}{Logical. If \code{TRUE}, sets the maximum number of change points \code{K}
-to \code{window_length - 1} dynamically for each iteration.}
-
-\item{n_cores}{Integer. Number of cores for parallel execution via
-\code{future.apply::future_lapply}. Default is \code{1L} (sequential).
-Sets \code{future::multisession} internally when \code{n_cores > 1} and
-restores \code{future::sequential} on exit.}
+\item{dynamic_k}{Logical. If \code{TRUE}, sets \code{K} to
+\code{nrow(subset) - 2} dynamically for each step.}
 
 \item{...}{Additional arguments passed to \code{\link[ecp]{ks.cp3o}}.}
 }
@@ -46,11 +42,12 @@ row index window used at each step.}
 \item{ECP_est_list}{List of change point estimate vectors, one per step.}
 }
 \description{
-Runs Energy Change Point detection on time-series matrices (typically distance matrices).
+Runs Energy Change Point detection on time-series matrices
+(typically Hellinger distance matrices).
 }
 \details{
-This function iterates through time steps (expanding or rolling window) and applies
-the \code{\link[ecp]{ks.cp3o}} algorithm to detect distributional changes in the data matrix.
+Iterates through time steps using an expanding or rolling window and applies
+the \code{\link[ecp]{ks.cp3o}} algorithm to detect distributional changes.
 }
 \examples{
 set.seed(123)
@@ -58,7 +55,6 @@ baseline = matrix(rnorm(50, mean = 0, sd = 0.1), nrow = 10, ncol = 5)
 variant  = matrix(rnorm(50, mean = 3, sd = 0.1), nrow = 10, ncol = 5)
 data_mat = rbind(baseline, variant)
 
-# Single step over the full window; expect a change point near row 11
 res = detect_changepoints_ecp(
   data_matrix = data_mat,
   min_window  = 1,

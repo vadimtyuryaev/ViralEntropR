@@ -10,8 +10,7 @@ calculate_hellinger_matrix(
   aa_levels = 25L,
   normalized = FALSE,
   labels = paste0("T", seq_along(partitions)),
-  save_freq_tables = FALSE,
-  n_cores = 1L
+  save_freq_tables = FALSE
 )
 }
 \arguments{
@@ -35,11 +34,6 @@ encoding). Default is 25.}
 \item{save_freq_tables}{Logical. If \code{TRUE}, the return value also
 includes raw count tables and proportion tables for each site. Default is
 \code{FALSE}.}
-
-\item{n_cores}{Integer. Number of cores for parallel processing of sites via
-\code{future.apply::future_lapply}. Default is \code{1L} (sequential).
-Sets \code{future::multisession} internally when \code{n_cores > 1} and
-restores \code{future::sequential} on exit.}
 }
 \value{
 When \code{save_freq_tables = FALSE} (default): a numeric matrix with
@@ -74,11 +68,9 @@ p2 = data.frame(s1 = c(20, 20, 20, 20, 20), s2 = c(20, 20, 20, 20, 20))
 p3 = data.frame(s1 = c(1, 1, 20, 20, 20), s2 = c(20, 20, 20, 20, 20))
 parts = list(T1 = p1, T2 = p2, T3 = p3)
 
-# All sites, unnormalized
 result = calculate_hellinger_matrix(parts, sites = 1:2)
 print(result)
 
-# With freq tables saved
 result2 = calculate_hellinger_matrix(parts, sites = 1:2,
                                       save_freq_tables = TRUE)
 print(result2$Hellinger_Distances)

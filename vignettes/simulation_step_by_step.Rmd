@@ -60,7 +60,7 @@ sprintf("There are %d sites in the reference sequence", nchar(ref_sequence))
 | `n_ref_months`              | number of months for the reference phase                                         | 3           |
 | `start_date`                | simulation start (character or Date)                                             | —           |
 | `end_date`                  | simulation end (character or Date)                                               | —           |
-| `variants_config`           | numeric vector, e.g., `c(2,6)`: Variant1 gets 2 mutations; Variant2 gets 6.     | —           |
+| `variants_config`           | numeric vector, e.g., `c(2,6)`: Variant1 gets 2 mutations; Variant2 gets 6.      | —           |
 | `variant_intervals`         | gap (in months) between the emergence of variants                                | —           |
 | `n_new_mutations`           | number of de novo sequences produced at a variant's emergence                    | 1           |
 | `mutation_rate`             | multiplier for production in subsequent months (may be specified as a vector)    | 2           |
@@ -68,7 +68,7 @@ sprintf("There are %d sites in the reference sequence", nchar(ref_sequence))
 | `deleterious_rate`          | probability that any new mutation is deleterious                                 | 0           |
 | `n_deleterious_limit`       | max sequences allowed to carry a deleterious mutation                            | 1           |
 | `n_sequences_total`         | total sequences to generate over the mutation phase (spread evenly)              | 140         |
-| `ref_variability`           | if `TRUE`, add variability to the reference sequences at sites 1 and 2          | FALSE       |
+| `ref_variability`           | if `TRUE`, add variability to the reference sequences at sites 1 and 2           | FALSE       |
 | `n_ref_sequences`           | if `ref_sequences` is a single string, number of rows to create                  | 100         |
 | `prob_deletion_event`       | probability each period contains a block of deleterious mutations                | 0           |
 | `n_rows_to_delete`          | number of sequences affected if `prob_deletion_event` fires                      | 0           |
@@ -416,7 +416,7 @@ dat_mat_t
 
 | **Parameter** | **Description**                                              | **Default** |
 |---------------|--------------------------------------------------------------|-------------|
-| `Z`           | A `T × d` matrix of the time series.                        | —           |
+| `Z`           | A `T × d` matrix of the time series.                         | —           |
 | `K`           | Maximum number of change points.                             | 1           |
 | `minsize`     | Minimum segment size.                                        | 30          |
 | `verbose`     | Print status updates.                                        | FALSE       |
@@ -452,7 +452,6 @@ ECP_res <- detect_changepoints_ecp(
   n_timesteps = timesteps,
   rolling_window = FALSE,
   dynamic_k   = TRUE,
-  n_cores     = 1L,
   minsize     = 2,
   verbose     = FALSE
 )
@@ -471,7 +470,7 @@ ecp_indices
 
 | **Parameter** | **Description**                                              | **Default** |
 |---------------|--------------------------------------------------------------|-------------|
-| `X`           | A `T × d` matrix of the time series.                        | —           |
+| `X`           | A `T × d` matrix of the time series.                         | —           |
 | `member`      | Initial membership vector.                                   | `1:nrow(X)` |
 | `alpha`       | Moment index for cluster distance.                           | 1           |
 | `penalty`     | Goodness-of-fit penalty function.                            | —           |

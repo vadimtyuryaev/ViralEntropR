@@ -12,7 +12,6 @@ partition_time_windows(
   start_date = NULL,
   end_date = NULL,
   date_format = "\%b-\%Y",
-  n_cores = 1L,
   verbose = FALSE,
   ...
 )
@@ -38,15 +37,8 @@ date in \code{data}.}
 \item{date_format}{Character. Format string for date labels. Default is
 \code{"\%b-\%Y"}.}
 
-\item{n_cores}{Integer. Number of cores for parallel processing of windows
-via \code{future.apply::future_lapply}. Default is \code{1L} (sequential).
-The caller is responsible for setting a \code{future} plan if desired;
-this function sets \code{future::multisession} internally when
-\code{n_cores > 1} and restores \code{future::sequential} on exit.}
-
-\item{verbose}{Logical. If \code{TRUE}, prints processing mode, a progress
-bar (sequential mode only), and a completion summary. Default is
-\code{FALSE}.}
+\item{verbose}{Logical. If \code{TRUE}, prints a progress bar and completion
+summary. Default is \code{FALSE}.}
 
 \item{...}{Additional arguments passed to
 \code{\link{cluster_sites_by_entropy}}.}

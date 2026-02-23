@@ -11,7 +11,6 @@ detect_changepoints_hdcp(
   n_timesteps,
   rolling_window = FALSE,
   wild = FALSE,
-  n_cores = 1L,
   ...
 )
 }
@@ -23,21 +22,14 @@ columns are features (e.g. Hellinger distances per site).}
 
 \item{max_window}{Integer. Ending row index of the initial window.}
 
-\item{n_timesteps}{Integer. Number of additional steps to iterate forward
-from the initial window.}
+\item{n_timesteps}{Integer. Number of additional steps to iterate forward.}
 
-\item{rolling_window}{Logical. If \code{TRUE}, the window slides (both
-endpoints advance). If \code{FALSE} (default), the window expands (only
-the end advances).}
+\item{rolling_window}{Logical. If \code{TRUE}, the window slides. If
+\code{FALSE} (default), the window expands.}
 
 \item{wild}{Logical. If \code{TRUE}, uses
 \code{\link[HDcpDetect]{wild.binary.segmentation}}. If \code{FALSE}
 (default), uses \code{\link[HDcpDetect]{binary.segmentation}}.}
-
-\item{n_cores}{Integer. Number of cores for parallel execution via
-\code{future.apply::future_lapply}. Default is \code{1L} (sequential).
-Sets \code{future::multisession} internally when \code{n_cores > 1} and
-restores \code{future::sequential} on exit.}
 
 \item{...}{Additional arguments passed to the chosen segmentation function.}
 }
@@ -55,10 +47,9 @@ Runs high-dimensional change point detection on time-series
 matrices using either Binary Segmentation or Wild Binary Segmentation.
 }
 \details{
-This function iterates through time steps using an expanding or rolling
-window and applies either \code{\link[HDcpDetect]{binary.segmentation}} or
-\code{\link[HDcpDetect]{wild.binary.segmentation}} to detect distributional
-changes in the data matrix.
+Iterates through time steps using an expanding or rolling window and applies
+either \code{\link[HDcpDetect]{binary.segmentation}} or
+\code{\link[HDcpDetect]{wild.binary.segmentation}}.
 
 Window behaviour mirrors \code{\link{detect_changepoints_ecp}}:
 \itemize{
@@ -74,7 +65,6 @@ baseline = matrix(rnorm(50, mean = 0, sd = 0.1), nrow = 10, ncol = 5)
 variant  = matrix(rnorm(50, mean = 3, sd = 0.1), nrow = 10, ncol = 5)
 data_mat = rbind(baseline, variant)
 
-# Expanding window, standard binary segmentation, single step
 res = detect_changepoints_hdcp(
   data_matrix = data_mat,
   min_window  = 1,
@@ -82,15 +72,4 @@ res = detect_changepoints_hdcp(
   n_timesteps = 0
 )
 print(res$HDcp_list[[1]])
-
-# Wild binary segmentation, parallel over 2 cores
-res_wild = detect_changepoints_hdcp(
-  data_matrix = data_mat,
-  min_window  = 1,
-  max_window  = 15,
-  n_timesteps = 4,
-  wild        = TRUE,
-  n_cores     = 2L
-)
-print(res_wild$Points_List)
 }

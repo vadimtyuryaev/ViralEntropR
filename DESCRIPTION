@@ -1,6 +1,6 @@
 Package: ViralEntropR
 Title: Entropy-Informed Computational Analysis of Viral Evolution
-Version: 0.1.6
+Version: 0.2.1
 Authors@R: c(
               person("Vadim", "Tyuryaev", ,"vadim.tyuryaev@gmail.com", 
                       role = c("aut", "cre"), 
@@ -24,8 +24,6 @@ Imports:
     HDcpDetect,
     ecp,
     kableExtra,
-    future,
-    future.apply,
     knitr,
     lubridate,
     magrittr,
