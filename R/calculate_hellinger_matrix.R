@@ -30,10 +30,6 @@
 #' @param save_freq_tables Logical. If \code{TRUE}, the return value also
 #'   includes raw count tables and proportion tables for each site. Default is
 #'   \code{FALSE}.
-#' @param n_cores Integer. Number of cores for parallel processing of sites via
-#'   \code{future.apply::future_lapply}. Default is \code{1L} (sequential).
-#'   Sets \code{future::multisession} internally when \code{n_cores > 1} and
-#'   restores \code{future::sequential} on exit.
 #'
 #' @return When \code{save_freq_tables = FALSE} (default): a numeric matrix with
 #'   rows = sites and columns = time steps T2, T3, … (distances relative to T1).
@@ -44,43 +40,37 @@
 #'   \code{Sites}, \code{Hellinger_Distances}, \code{Frequency_Tables}, and
 #'   \code{Proportions_Tables}.
 #'
-#' @importFrom future plan multisession sequential
-#' @importFrom future.apply future_lapply
-#'
 #' @examples
 #' p1 = data.frame(s1 = c(1, 1, 1, 1, 1), s2 = c(20, 20, 20, 20, 20))
 #' p2 = data.frame(s1 = c(20, 20, 20, 20, 20), s2 = c(20, 20, 20, 20, 20))
 #' p3 = data.frame(s1 = c(1, 1, 20, 20, 20), s2 = c(20, 20, 20, 20, 20))
 #' parts = list(T1 = p1, T2 = p2, T3 = p3)
 #'
-#' # All sites, unnormalized
 #' result = calculate_hellinger_matrix(parts, sites = 1:2)
 #' print(result)
 #'
-#' # With freq tables saved
 #' result2 = calculate_hellinger_matrix(parts, sites = 1:2,
 #'                                       save_freq_tables = TRUE)
 #' print(result2$Hellinger_Distances)
 #' @export
 calculate_hellinger_matrix = function(partitions,
-                                      sites       = seq_len(ncol(partitions[[1]])),
-                                      aa_levels   = 25L,
-                                      normalized  = FALSE,
-                                      labels      = paste0("T", seq_along(partitions)),
-                                      save_freq_tables = FALSE,
-                                      n_cores     = 1L) {
+                                      sites            = seq_len(ncol(partitions[[1]])),
+                                      aa_levels        = 25L,
+                                      normalized       = FALSE,
+                                      labels           = paste0("T", seq_along(partitions)),
+                                      save_freq_tables = FALSE) {
   
   # --- 1. Input validation ---------------------------------------------------
   n_partitions = length(partitions)
   if (n_partitions < 2L) stop("At least 2 partitions are required.")
-  if (length(labels) != n_partitions) {
+  if (length(labels) != n_partitions)
     stop("`labels` must have the same length as `partitions`.")
-  }
   
-  n_sites     = length(sites)
   norm_factor = if (normalized) (1 / sqrt(2)) else 1
   
-  # --- 2. Per-site worker ----------------------------------------------------
+  # --- 2. Per-site computation -----------------------------------------------
+  # compute_site is fully vectorized over partitions: sweep/colSums operate on
+  # the full aa_levels x n_partitions matrix in one call per site.
   compute_site = function(site_idx) {
     counts = get_site_counts(partitions, site_idx, aa_levels)  # aa_levels x n_partitions
     
@@ -99,32 +89,16 @@ calculate_hellinger_matrix = function(partitions,
          props  = props)
   }
   
-  # --- 3. Execute: parallel or sequential ------------------------------------
-  use_parallel = n_cores > 1L && n_sites > 1L
-  
-  if (use_parallel) {
-    future::plan(future::multisession, workers = n_cores)
-    on.exit(future::plan(future::sequential), add = TRUE)
-    
-    site_results = future.apply::future_lapply(
-      sites,
-      compute_site,
-      future.seed = TRUE
-    )
-  } else {
-    site_results = lapply(sites, compute_site)
-  }
+  # --- 3. Execute over all sites ---------------------------------------------
+  site_results = lapply(sites, compute_site)
   
   # --- 4. Assemble output matrix ---------------------------------------------
-  dist_matrix           <- do.call(rbind, lapply(site_results, `[[`, "dists"))
-  rownames(dist_matrix) <- as.character(sites)
-  colnames(dist_matrix) <- labels[-1]          # T2, T3, ...
-  storage.mode(dist_matrix) <- "double"        # ensure pure numeric for ecp/ks.cp3o
+  dist_matrix              <- do.call(rbind, lapply(site_results, `[[`, "dists"))
+  rownames(dist_matrix)    <- as.character(sites)
+  colnames(dist_matrix)    <- labels[-1]          # T2, T3, ...
+  storage.mode(dist_matrix) <- "double"           # ensure pure numeric for ecp/ks.cp3o
   
   # --- 5. Return -------------------------------------------------------------
-  # Default: return the matrix directly so callers can do t(hell_mat) without
-  # unpacking a list. When freq tables are requested, return the full named
-  # list for backward compatibility with build_distance_matrix / legacy code.
   if (save_freq_tables) {
     list(
       Sites               = sites,

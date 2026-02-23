@@ -27,14 +27,8 @@
 #'   date in \code{data}.
 #' @param date_format Character. Format string for date labels. Default is
 #'   \code{"\%b-\%Y"}.
-#' @param n_cores Integer. Number of cores for parallel processing of windows
-#'   via \code{future.apply::future_lapply}. Default is \code{1L} (sequential).
-#'   The caller is responsible for setting a \code{future} plan if desired;
-#'   this function sets \code{future::multisession} internally when
-#'   \code{n_cores > 1} and restores \code{future::sequential} on exit.
-#' @param verbose Logical. If \code{TRUE}, prints processing mode, a progress
-#'   bar (sequential mode only), and a completion summary. Default is
-#'   \code{FALSE}.
+#' @param verbose Logical. If \code{TRUE}, prints a progress bar and completion
+#'   summary. Default is \code{FALSE}.
 #' @param ... Additional arguments passed to
 #'   \code{\link{cluster_sites_by_entropy}}.
 #'
@@ -49,8 +43,6 @@
 #' \item{N_partitions}{Integer. Total number of windows.}
 #'
 #' @importFrom lubridate %m+% interval period
-#' @importFrom future plan multisession sequential
-#' @importFrom future.apply future_lapply
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @examples
@@ -73,7 +65,6 @@ partition_time_windows <- function(data,
                                    start_date    = NULL,
                                    end_date      = NULL,
                                    date_format   = "%b-%Y",
-                                   n_cores       = 1L,
                                    verbose       = FALSE,
                                    ...) {
   
@@ -92,38 +83,40 @@ partition_time_windows <- function(data,
   start_date_dspl <- format(start_date, format = date_format)
   
   # --- 2. Compute n_chunks per window type -----------------------------------
-  # period() used throughout instead of months() to avoid lubridate namespace
-  # export issues.
   total_months <- lubridate::interval(start_date, end_date) %/%
     lubridate::period(1, "months")
   
   if (window_type == 1) {
     n_months <- total_months
-    if (n_months %% window_length != 0) {
+    if (n_months %% window_length != 0)
       n_months <- n_months - (n_months %% window_length)
-    }
     n_chunks <- n_months / window_length
     
   } else if (window_type == 2) {
-    # Sliding window of fixed length, advancing 1 month per step
     n_chunks <- total_months - window_length + 1
     
   } else {
-    # Non-overlapping (jumping) blocks
     n_chunks <- total_months %/% window_length
   }
   
-  # --- 3. Per-window worker --------------------------------------------------
-  # Capture ... into a concrete list before defining process_window.
-  # R's ... is a promise that only exists in the calling frame — capturing it
-  # as a plain named list makes it a serializable closed-over variable,
-  # which is required for correct behaviour under future_lapply.
+  # --- 3. Per-window processing ----------------------------------------------
   extra_args <- list(...)
   
-  # process_window closes over all fixed variables; receives only i.
-  # All package function calls use lubridate:: prefix so they resolve
-  # correctly in worker processes regardless of search path state.
-  process_window <- function(i) {
+  if (verbose) {
+    window_type_name <- switch(as.character(window_type),
+                               "1" = "cumulative",
+                               "2" = "sliding",
+                               "3" = "non-overlapping",
+                               "unknown")
+    message(sprintf("Partitioning %d %s window%s ...",
+                    n_chunks, window_type_name,
+                    if (n_chunks == 1L) "" else "s"))
+    pb <- utils::txtProgressBar(min = 0, max = n_chunks, style = 3, width = 50)
+  }
+  
+  raw <- vector("list", n_chunks)
+  
+  for (i in seq_len(n_chunks)) {
     
     # Window bounds
     if (window_type == 1) {
@@ -144,9 +137,8 @@ partition_time_windows <- function(data,
                                      lubridate::period(window_length, "months"))
     }
     
-    # Inclusive start, exclusive end; capped at end_date
     chunk <- data[data$Date >= win_start & data$Date < win_end &
-                    data$Date <= end_date, ]
+                    data$Date <= end_date, , drop = FALSE]
     
     # Date label
     if (window_type == 1) {
@@ -164,7 +156,7 @@ partition_time_windows <- function(data,
       )
     }
     
-    # Entropy + clustering; guard against empty windows
+    # Entropy + clustering
     if (nrow(chunk) > 0) {
       entrp_all <- apply(chunk[, seq_len(n_sites), drop = FALSE], 2,
                          calculate_entropy)
@@ -174,103 +166,42 @@ partition_time_windows <- function(data,
                                   nsites = n_sites),
                              extra_args))
       
-      # max_ent = number of Mclust clusters found (= max raw class label).
-      # Computed from raw labels BEFORE any downstream relabeling so that
-      # Max_Entropy correctly reflects G (number of components).
-      # relabel_entropy_classes is NOT called here — it belongs in the
-      # downstream consumer (run_detection_study).
+      # max_ent = max raw Mclust class label = number of clusters found.
+      # Computed before any downstream relabeling.
+      # relabel_entropy_classes belongs in the downstream consumer.
       max_ent <- if (nrow(all_clust$DataFrame) > 0 &&
                      "class" %in% names(all_clust$DataFrame))
         max(as.numeric(all_clust$DataFrame$class), na.rm = TRUE)
       else
         NA_integer_
       
-      list(chunk   = chunk,
-           entrp   = entrp_all,
-           clust   = all_clust,
-           max_ent = max_ent,
-           label   = label)
+      raw[[i]] <- list(chunk   = chunk,
+                       entrp   = entrp_all,
+                       clust   = all_clust,
+                       max_ent = max_ent,
+                       label   = label)
     } else {
-      list(chunk   = chunk,
-           entrp   = rep(0, n_sites),
-           clust   = list(FitObject = list(classification = numeric(0)),
-                          DataFrame = data.frame()),
-           max_ent = NA_integer_,
-           label   = label)
+      raw[[i]] <- list(chunk   = chunk,
+                       entrp   = rep(0, n_sites),
+                       clust   = list(FitObject = list(classification = numeric(0)),
+                                      DataFrame = data.frame()),
+                       max_ent = NA_integer_,
+                       label   = label)
     }
-  }
-  
-  # --- 4. Execute: parallel or sequential ------------------------------------
-  use_parallel <- n_cores > 1L && n_chunks > 1L
-  
-  # Describe processing mode upfront
-  if (verbose) {
-    window_type_name <- switch(as.character(window_type),
-                               "1" = "cumulative",
-                               "2" = "sliding",
-                               "3" = "non-overlapping",
-                               "unknown")
-    if (use_parallel) {
-      message(sprintf(
-        "Partitioning %d %s window%s in parallel mode using %d cores ...",
-        n_chunks, window_type_name,
-        if (n_chunks == 1L) "" else "s",
-        n_cores
-      ))
-    } else {
-      message(sprintf(
-        "Partitioning %d %s window%s in sequential mode ...",
-        n_chunks, window_type_name,
-        if (n_chunks == 1L) "" else "s"
-      ))
-    }
-  }
-  
-  if (use_parallel) {
-    # future::multisession replicates the calling session's loaded packages
-    # (including ViralEntropR) on each worker automatically. The plan is
-    # restored to sequential on exit
-    # so this function does not permanently alter the caller's future state.
-    future::plan(future::multisession, workers = n_cores)
-    on.exit(future::plan(future::sequential), add = TRUE)
     
-    raw <- future.apply::future_lapply(
-      seq_len(n_chunks),
-      process_window,
-      future.seed = TRUE
-    )
-    
-  } else {
-    # Sequential mode: drive the loop manually when verbose so the progress
-    # bar can be updated after each window completes.
-    # utils::txtProgressBar (style = 3) renders a clean percentage bar with
-    # no extra dependencies, compatible with both console and RStudio.
-    if (verbose) {
-      pb  <- utils::txtProgressBar(min = 0, max = n_chunks,
-                                   style = 3, width = 50)
-      raw <- vector("list", n_chunks)
-      for (i in seq_len(n_chunks)) {
-        raw[[i]] <- process_window(i)
-        utils::setTxtProgressBar(pb, i)
-      }
-      close(pb)
-    } else {
-      raw <- lapply(seq_len(n_chunks), process_window)
-    }
+    if (verbose) utils::setTxtProgressBar(pb, i)
   }
   
-  # Completion summary
   if (verbose) {
-    message(sprintf(
-      "Partitioning complete: %d partition%s generated (%s to %s).",
-      n_chunks,
-      if (n_chunks == 1L) "" else "s",
-      format(start_date, date_format),
-      format(end_date, date_format)
-    ))
+    close(pb)
+    message(sprintf("Partitioning complete: %d partition%s generated (%s to %s).",
+                    n_chunks,
+                    if (n_chunks == 1L) "" else "s",
+                    format(start_date, date_format),
+                    format(end_date, date_format)))
   }
   
-  # --- 5. Unpack results -----------------------------------------------------
+  # --- 4. Unpack results -----------------------------------------------------
   list(
     Partitions   = lapply(raw, `[[`, "chunk"),
     Entropies    = lapply(raw, `[[`, "entrp"),

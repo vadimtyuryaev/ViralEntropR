@@ -1,23 +1,22 @@
 #' @title Detect Temporal Change Points (ECP)
-#' @description Runs Energy Change Point detection on time-series matrices (typically distance matrices).
+#' @description Runs Energy Change Point detection on time-series matrices
+#'   (typically Hellinger distance matrices).
 #' @export
 #'
 #' @details
-#' This function iterates through time steps (expanding or rolling window) and applies
-#' the \code{\link[ecp]{ks.cp3o}} algorithm to detect distributional changes in the data matrix.
+#' Iterates through time steps using an expanding or rolling window and applies
+#' the \code{\link[ecp]{ks.cp3o}} algorithm to detect distributional changes.
 #'
-#' @param data_matrix A numeric matrix (Time x Features). Usually a transposed Hellinger distance matrix.
-#' @param min_window Integer. The starting window size (lower bound index).
-#' @param max_window Integer. The ending window size offset.
-#' @param n_timesteps Integer. Number of steps to iterate forward.
-#' @param rolling_window Logical. If \code{TRUE}, both the start and end of the window move forward (sliding).
-#' If \code{FALSE} (default), the start remains fixed and the window expands.
-#' @param dynamic_k Logical. If \code{TRUE}, sets the maximum number of change points \code{K}
-#' to \code{window_length - 1} dynamically for each iteration.
-#' @param n_cores Integer. Number of cores for parallel execution via
-#'   \code{future.apply::future_lapply}. Default is \code{1L} (sequential).
-#'   Sets \code{future::multisession} internally when \code{n_cores > 1} and
-#'   restores \code{future::sequential} on exit.
+#' @param data_matrix A numeric matrix (Time x Features). Usually a transposed
+#'   Hellinger distance matrix.
+#' @param min_window Integer. Starting row index of the initial window.
+#' @param max_window Integer. Ending row index of the initial window.
+#' @param n_timesteps Integer. Number of additional steps to iterate forward.
+#' @param rolling_window Logical. If \code{TRUE}, both start and end advance by
+#'   1 each step (sliding). If \code{FALSE} (default), start is fixed and end
+#'   expands.
+#' @param dynamic_k Logical. If \code{TRUE}, sets \code{K} to
+#'   \code{nrow(subset) - 2} dynamically for each step.
 #' @param ... Additional arguments passed to \code{\link[ecp]{ks.cp3o}}.
 #'
 #' @return A named list matching the original \code{generate_ECP_list_modified}
@@ -28,8 +27,6 @@
 #' \item{ECP_est_list}{List of change point estimate vectors, one per step.}
 #'
 #' @importFrom ecp ks.cp3o
-#' @importFrom future plan multisession sequential
-#' @importFrom future.apply future_lapply
 #'
 #' @examples
 #' set.seed(123)
@@ -37,7 +34,6 @@
 #' variant  = matrix(rnorm(50, mean = 3, sd = 0.1), nrow = 10, ncol = 5)
 #' data_mat = rbind(baseline, variant)
 #'
-#' # Single step over the full window; expect a change point near row 11
 #' res = detect_changepoints_ecp(
 #'   data_matrix = data_mat,
 #'   min_window  = 1,
@@ -52,27 +48,18 @@ detect_changepoints_ecp = function(data_matrix,
                                    n_timesteps,
                                    rolling_window = FALSE,
                                    dynamic_k      = FALSE,
-                                   n_cores        = 1L,
                                    ...) {
   
   # --- 1. Validation ---------------------------------------------------------
   if (!is.matrix(data_matrix)) stop("`data_matrix` must be a matrix.")
-  if (nrow(data_matrix) < (max_window + n_timesteps)) {
+  if (nrow(data_matrix) < (max_window + n_timesteps))
     warning("`data_matrix` has fewer rows than the requested window extent.")
-  }
   
   # --- 2. Per-step worker ----------------------------------------------------
-  # Capture ... before defining run_step so it is a concrete closed-over list
-  # rather than an unserializable promise — required for future_lapply workers.
-  extra_args <- list(...)
+  # Capture ... once so it does not need to be re-evaluated on every iteration.
+  # dynamic_k mirrors the original adj_K formula: nrow(subset) - 2.
+  extra_args = list(...)
   
-  # Rolling: both start and end advance by 1 each step (j tracks start offset,
-  # matching the original loop where j increments after each iteration).
-  # Expanding (non-rolling): start is fixed, end grows by 1 each step.
-  #
-  # dynamic_k mirrors the original adj_K formula:
-  #   K = (max_window - min_window - 1) + i  =  nrow(subset) - 2
-  # This is deliberately one less than nrow-1 to stay conservative.
   run_step = function(i) {
     start_idx = if (rolling_window) (min_window + i) else min_window
     end_idx   = max_window + i
@@ -87,39 +74,18 @@ detect_changepoints_ecp = function(data_matrix,
     
     subset_mat = data_matrix[start_idx:end_idx, , drop = FALSE]
     
-    # Build ks.cp3o argument list; only inject K when dynamic_k is TRUE,
-    # preserving the ability to pass K manually via ... when it is FALSE.
     args = c(list(Z = subset_mat), extra_args)
-    if (dynamic_k) {
-      # Original formula: upper - lower - 1 + i = nrow(subset) - 2
-      args$K = nrow(subset_mat) - 2L
-    }
+    if (dynamic_k) args$K = nrow(subset_mat) - 2L
     
     ecp_res = do.call(ecp::ks.cp3o, args)
     
-    list(
-      window   = c(start_idx, end_idx),
-      estimate = ecp_res$estimates,
-      full     = ecp_res
-    )
+    list(window   = c(start_idx, end_idx),
+         estimate = ecp_res$estimates,
+         full     = ecp_res)
   }
   
-  # --- 3. Execute: parallel or sequential ------------------------------------
-  indices      = 0:n_timesteps
-  use_parallel = n_cores > 1L && length(indices) > 1L
-  
-  if (use_parallel) {
-    future::plan(future::multisession, workers = n_cores)
-    on.exit(future::plan(future::sequential), add = TRUE)
-    
-    results_list = future.apply::future_lapply(
-      indices,
-      run_step,
-      future.seed = TRUE
-    )
-  } else {
-    results_list = lapply(indices, run_step)
-  }
+  # --- 3. Execute ------------------------------------------------------------
+  results_list = lapply(0:n_timesteps, run_step)
   
   # --- 4. Return — names match original generate_ECP_list_modified -----------
   list(

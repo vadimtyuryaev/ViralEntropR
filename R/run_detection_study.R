@@ -62,11 +62,7 @@
 #'   Default \code{TRUE}.
 #' @param output_file Character. Filename for the HTML report. Default
 #'   \code{"variants_detection_study.html"}.
-#' @param n_cores Integer. Cores for parallel execution over
-#'   \code{n_new_mut_seq_vec} within each scenario via
-#'   \code{future.apply::future_lapply}. Default \code{1L}. Sets
-#'   \code{future::multisession} internally when \code{n_cores > 1} and
-#'   restores \code{future::sequential} on exit.
+
 #' @param ... Additional arguments passed to
 #'   \code{\link{partition_time_windows}} (and on to
 #'   \code{\link{cluster_sites_by_entropy}}).
@@ -113,8 +109,6 @@
 #' @importFrom ecp e.agglo
 #' @importFrom knitr kable
 #' @importFrom kableExtra kable_styling save_kable
-#' @importFrom future plan multisession sequential
-#' @importFrom future.apply future_lapply
 #' @importFrom utils tail
 #' @importFrom magrittr %>%
 #'
@@ -138,7 +132,6 @@ run_detection_study <- function(
     window_option             = 3,
     save_html                 = TRUE,
     output_file               = "variants_detection_study.html",
-    n_cores                   = 1L,
     ...
 ) {
   
@@ -207,18 +200,8 @@ run_detection_study <- function(
       character(1L)), collapse = "<br/>")
   )
   
-  # --- 3. Parallel setup ----------------------------------------------------
-  use_parallel <- n_cores > 1L && length(n_new_mut_seq_vec) > 1L
-  
-  # Capture ... before defining run_one_n_new so it becomes a concrete
-  # closed-over list — R's ... is an unserializable promise that would
-  # silently fail when future_lapply ships the closure to workers.
+  # --- 3. Setup -------------------------------------------------------------
   extra_args <- list(...)
-  
-  if (use_parallel) {
-    future::plan(future::multisession, workers = n_cores)
-    on.exit(future::plan(future::sequential), add = TRUE)
-  }
   
   # --- 4. Scenario loop (sequential — scenarios are typically few) -----------
   for (scenario_idx in seq_along(variants_list)) {
@@ -399,16 +382,8 @@ run_detection_study <- function(
       )
     } # end run_one_n_new
     
-    # ── Dispatch (parallel or sequential) ────────────────────────────────
-    if (use_parallel) {
-      iter_results <- future.apply::future_lapply(
-        n_new_mut_seq_vec,
-        run_one_n_new,
-        future.seed = TRUE
-      )
-    } else {
-      iter_results <- lapply(n_new_mut_seq_vec, run_one_n_new)
-    }
+    # ── Dispatch ─────────────────────────────────────────────────────────
+    iter_results <- lapply(n_new_mut_seq_vec, run_one_n_new)
     
     # ── Accumulate results ────────────────────────────────────────────────
     sim_res_list[[scenario_idx]]   <- setNames(
