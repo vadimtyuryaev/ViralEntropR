@@ -126,15 +126,15 @@ partition_time_windows <- function(data,
     # Window bounds
     if (window_type == 1) {
       win_start <- start_date
-      win_end   <- start_date %m+% lubridate::period(window_length * i, "months")
+      win_end   <- lubridate::`%m+%`(start_date, lubridate::period(window_length * i, "months"))
       
     } else if (window_type == 2) {
-      win_start <- start_date %m+% lubridate::period(i - 1, "months")
-      win_end   <- win_start  %m+% lubridate::period(window_length, "months")
+      win_start <- lubridate::`%m+%`(start_date, lubridate::period(i - 1, "months"))
+      win_end   <- lubridate::`%m+%`(win_start,  lubridate::period(window_length, "months"))
       
     } else {
-      win_start <- start_date %m+% lubridate::period(window_length * (i - 1), "months")
-      win_end   <- win_start  %m+% lubridate::period(window_length, "months")
+      win_start <- lubridate::`%m+%`(start_date, lubridate::period(window_length * (i - 1), "months"))
+      win_end   <- lubridate::`%m+%`(win_start,  lubridate::period(window_length, "months"))
     }
     
     # Inclusive start, exclusive end; capped at end_date
@@ -150,7 +150,7 @@ partition_time_windows <- function(data,
       label <- paste(start_date_dspl, dates_disp, sep = " - ")
     } else {
       label <- paste(format(win_start, format = date_format),
-                     format(win_end %m+% lubridate::period(-1, "months"),
+                     format(lubridate::`%m+%`(win_end, lubridate::period(-1, "months")),
                             format = date_format),
                      sep = " - ")
     }
@@ -224,10 +224,21 @@ partition_time_windows <- function(data,
       on.exit(parallel::stopCluster(cl), add = TRUE)
       parallel::clusterExport(
         cl,
-        varlist = c("data", "n_sites", "window_type", "window_length",
+        # Export the worker function itself plus every variable and package
+        # function it needs. Critically this includes extra_args (the captured
+        # ... list) — without it workers call cluster_sites_by_entropy without
+        # nr, triggering a stop() that tryCatch catches silently, falling back
+        # to class = 1 for every site.
+        # Data variables closed over by process_window (data, n_sites, etc.)
+        # are included as a safety net since closure serialization behaviour
+        # varies across R versions on Windows.
+        # relabel_entropy_classes is intentionally excluded — it is not called
+        # inside process_window.
+        varlist = c("process_window",
+                    "extra_args",
+                    "data", "n_sites", "window_type", "window_length",
                     "start_date", "end_date", "date_format", "start_date_dspl",
-                    "calculate_entropy", "cluster_sites_by_entropy",
-                    "relabel_entropy_classes"),
+                    "calculate_entropy", "cluster_sites_by_entropy"),
         envir = environment()
       )
       raw <- parallel::parLapply(cl, seq_len(n_chunks), process_window)

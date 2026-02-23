@@ -156,7 +156,7 @@ cluster_sites_by_entropy = function(entropies,
   # suppressWarnings: Mclust emits EM convergence warnings on difficult data.
   # These flood the console at 1000s of calls in simulation studies.
   fit = tryCatch({
-    suppressWarnings(mclust::Mclust(df$entropies, verbose = verbose, ...))
+    suppressWarnings(mclust::Mclust(df$entropies, ...))
   }, error = function(e) {
     if (verbose) warning("Mclust error: ", conditionMessage(e))
     NULL
