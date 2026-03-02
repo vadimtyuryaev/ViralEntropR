@@ -79,7 +79,6 @@
 #'   competition period (includes \code{._weight} column); \code{NULL} if
 #'   only one variant was ever active.}
 #'
-#' @importFrom lubridate interval period
 #' @importFrom stats rbinom runif
 #' @importFrom utils tail
 #'
@@ -188,9 +187,7 @@ simulate_variant_evolution <- function(
 
   # ── 4. Simulation timeline ───────────────────────────────────────────────
 
-  n_months_sim <- lubridate::interval(start_date, end_date) %/%
-    lubridate::period(1L, "months")
-  sim_dates  <- seq(start_date, by = "month", length.out = n_months_sim)
+  sim_dates <- seq(start_date, end_date, by = "month")
   n_periods  <- length(sim_dates)
 
   template_cols <- c(seq_cols, "Variant", "Phase", "Date",
