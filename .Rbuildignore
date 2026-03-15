@@ -5,6 +5,9 @@
 ^cran-comments\.md$
 ^\.github$
 ^_pkgdown\.yml$
+^data-raw$
 ^docs$
 ^Compare$
 ^\.RDataTmp.*$
+^doc$
+^Meta$

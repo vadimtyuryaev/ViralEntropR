@@ -191,8 +191,10 @@ partition_time_windows <- function(data,
     } else {
       Partitions[[i]]  <- chunk
       Entropies[[i]]   <- rep(0, n_sites)
-      Clusters[[i]]    <- list(FitObject = list(classification = numeric(0)),
-                               DataFrame = data.frame())
+      Clusters[[i]] <- list(FitObject = list(classification = integer(0L)),
+                            DataFrame = data.frame(sites     = integer(0L),
+                                                   entropies = numeric(0L),
+                                                   class     = integer(0L)))
       Max_Entropy[i]   <- NA_integer_
       Dates_Labels[i]  <- label
     }

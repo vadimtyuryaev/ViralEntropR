@@ -1,6 +1,6 @@
 Package: ViralEntropR
 Title: Entropy-Informed Computational Analysis of Viral Evolution
-Version: 0.2.4
+Version: 0.3.2
 Authors@R: c(
               person("Vadim", "Tyuryaev", ,"vadim.tyuryaev@gmail.com", 
                       role = c("aut", "cre"), 
@@ -34,8 +34,10 @@ Imports:
     zoo
 Suggests: 
     Biostrings,
+    DT,
     dplyr,
     ggplot2,
+    readxl,
     rmarkdown,
     testthat (>= 3.0.0)
 Additional_repositories: https://bioconductor.org/packages/release/bioc

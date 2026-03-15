@@ -7,32 +7,24 @@
 relabel_entropy_classes(df)
 }
 \arguments{
-\item{df}{A data frame containing clustering results. Must have columns \code{class} and \code{entropy}.}
+\item{df}{A data frame containing clustering results. Must have columns
+\code{class} and \code{entropies}.}
 }
 \value{
-The data frame with a modified \code{class} column (factor).
+The data frame with a relabeled \code{class} column (integer) and a
+\code{num_classes} column. Returned unchanged in four no-op cases: missing
+columns, zero rows, all class \code{999} (sentinel), or a single class.
 }
 \description{
-Standardizes cluster labels so that Class 1 represents the highest entropy group.
-}
-\details{
-Takes a data frame containing \code{class} and \code{entropy} (or similar) columns.
-It calculates the mean entropy for each class, ranks them in descending order,
-and re-assigns class labels: 1 = Highest Entropy, 2 = Second Highest, etc.
+Relabels GMM cluster labels so that class 1 is always the
+highest entropy group, class 2 the second highest, and so on.
 }
 \examples{
-# 1. Create dummy clustering data
 df <- data.frame(
-  sites    = 1:6,
+  sites     = 1:6,
   entropies = c(0.1, 0.1, 0.5, 0.5, 1.2, 1.3),
-  class    = c(1, 1, 2, 2, 3, 3)
+  class     = c(1, 1, 2, 2, 3, 3)
 )
-
-print("Original:")
-print(df)
-
-# 2. Relabel: Class 3 (high entropy) -> Class 1, Class 1 (low entropy) -> Class 3
-df_new <- relabel_entropy_classes(df)
-print("Relabelled:")
-print(df_new)
+# Class 3 (highest entropy) -> 1, Class 1 (lowest entropy) -> 3
+relabel_entropy_classes(df)
 }

@@ -228,7 +228,7 @@ run_detection_study <- function(
         mutation_rate             = mutation_rates,
         mutation_rate_variability = mutation_rate_variability,
         deleterious_rate          = deleterious_rate,
-        n_deleterious_limit       = max(1L, n_delet),
+        n_deleterious_limit       = max(0L, n_delet),
         n_sequences_total         = total_seqs,
         ref_variability           = ref_variability,
         n_ref_sequences           = n_ref,
@@ -254,7 +254,17 @@ run_detection_study <- function(
                                   end_date      = end_date),
                              extra_args))
       
-      # 3. Hellinger matrix + transpose for e.agglo --------------------------
+      # 3. Relabel all cluster DataFrames once upfront -------------------------
+      # relabel_entropy_classes is applied here — before any class access —
+      # so that class 1 = highest entropy group is guaranteed across all
+      # partitions. Doing this once per part_data is cleaner and faster than
+      # relabeling on every individual access inside the variant loop.
+      relabeled_clusters <- lapply(part_data$Clusters, function(cl) {
+        cl$DataFrame <- relabel_entropy_classes(cl$DataFrame)
+        cl
+      })
+
+      # 4. Hellinger matrix + transpose for e.agglo --------------------------
       # aa_levels = 25 matches the encode_aa_sequence alphabet
       # (old code used 20; 25 is correct for the full encoding)
       hell_mat <- calculate_hellinger_matrix(
@@ -264,7 +274,7 @@ run_detection_study <- function(
       )
       dat_t  <- t(hell_mat)   # time_steps × sites — ready for e.agglo
       
-      # 4. Global change point detection (full timeline) ----------------------
+      # 5. Global change point detection (full timeline) ----------------------
       max_cp <- length(part_data$Clusters) - 1L
       if (max_cp >= 2L) {
         cp_all_raw <- ecp::e.agglo(
@@ -279,7 +289,7 @@ run_detection_study <- function(
       }
       detected_cp_all <- paste(sort(unique(cp_all)), collapse = ",")
       
-      # 5. Per-variant evaluation ---------------------------------------------
+      # 6. Per-variant evaluation ---------------------------------------------
       details            <- sim_res$Variant_Details
       delet              <- sim_res$Delet_Records
       n_variants         <- length(details)
@@ -295,11 +305,27 @@ run_detection_study <- function(
         # FIX: was ceiling(em/2) — hardcoded window length.
         # Corrected to use sliding_window_length.
         part_em <- ceiling(em / sliding_window_length)
+
+        # Guard: part_em can exceed length(relabeled_clusters) when end_date
+        # equals (rather than one month beyond) the last simulation month.
+        # interval() counts the distance between two dates, which is one less
+        # than the number of monthly time points, so n_chunks can be one short.
+        # Rather than silently crashing on an out-of-bounds list access, clamp
+        # part_em and warn so the caller knows the convention was violated.
+        if (part_em > length(relabeled_clusters)) {
+          warning(sprintf(
+            "Variant %d: part_em (%d) exceeds number of partitions (%d). ",
+            v_idx, part_em, length(relabeled_clusters),
+            "Check that end_date is set one month beyond the last simulation ",
+            "month. Clamping part_em to the last available partition."
+          ))
+          part_em <- length(relabeled_clusters)
+        }
         
         # Highest entropy cluster is class 1 after relabel_entropy_classes.
         # FIX: old code used max(class label) which is coincidental/wrong
         # when labels are arbitrary Mclust integers.
-        cl_em     <- part_data$Clusters[[part_em]]$DataFrame
+        cl_em     <- relabeled_clusters[[part_em]]$DataFrame
         top_sites <- if (nrow(cl_em) > 0L)
           cl_em[as.numeric(cl_em$class) == 1L, ]$sites
         else integer(0L)
@@ -308,17 +334,24 @@ run_detection_study <- function(
         deleterious_site <- if (date_em %in% names(delet))
           delet[[date_em]]$site else NA
         
-        # Forward search: find first partition where sites appear in top cluster
+        # Forward search: find first partition where sites appear in top cluster.
+        # seq() is NOT used here because seq(n+1, n) returns c(n+1, n) in R
+        # (a descending sequence), not an empty sequence. An explicit range
+        # check ensures the loop body is skipped when part_em is the last
+        # partition, avoiding an out-of-bounds access on relabeled_clusters.
         dp <- part_em
         if (!all(setdiff(sites, deleterious_site) %in% top_sites)) {
           dp <- NA
-          for (i in seq(part_em + 1L, length(part_data$Clusters))) {
-            cl_i   <- part_data$Clusters[[i]]$DataFrame
-            top_i  <- if (nrow(cl_i) > 0L)
-              cl_i[as.numeric(cl_i$class) == 1L, ]$sites
-            else integer(0L)
-            if (all(setdiff(sites, deleterious_site) %in% top_i)) {
-              dp <- i; break
+          n_clusters <- length(relabeled_clusters)
+          if (part_em < n_clusters) {
+            for (i in (part_em + 1L):n_clusters) {
+              cl_i  <- relabeled_clusters[[i]]$DataFrame
+              top_i <- if (nrow(cl_i) > 0L)
+                cl_i[as.numeric(cl_i$class) == 1L, ]$sites
+              else integer(0L)
+              if (all(setdiff(sites, deleterious_site) %in% top_i)) {
+                dp <- i; break
+              }
             }
           }
           if (is.na(dp)) dp <- "-"

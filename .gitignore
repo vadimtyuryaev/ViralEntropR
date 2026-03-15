@@ -1,6 +1,9 @@
+data-raw/sequences.fasta
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
 Compare/
 .RDataTmp*
+/doc/
+/Meta/

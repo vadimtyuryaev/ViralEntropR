@@ -187,8 +187,12 @@ simulate_variant_evolution <- function(
 
   # ── 4. Simulation timeline ───────────────────────────────────────────────
 
+  # Use seq.Date with explicit end so both endpoints are included.
+  # lubridate::interval() %/% period() gives the *distance* between two dates
+  # (23 for Jan-2020 → Dec-2021), which is one short of the 24 monthly
+  # time-points we need.  seq() inclusive matches simulate_variants_new_11.
   sim_dates <- seq(start_date, end_date, by = "month")
-  n_periods  <- length(sim_dates)
+  n_periods <- length(sim_dates)
 
   template_cols <- c(seq_cols, "Variant", "Phase", "Date",
                      "Period", "Delet", "._weight")
@@ -203,7 +207,7 @@ simulate_variant_evolution <- function(
 
   choice    <- sample(unique(ref_df$Month), n_ref_months, replace = TRUE)
   ref_phase <- do.call(rbind, lapply(seq_len(n_ref_months), function(i) {
-    chunk <- ref_df[ref_df$Month == choice[i], ]
+    chunk          <- ref_df[ref_df$Month == choice[i], ]
     chunk$Month    <- NULL
     chunk$Date     <- sim_dates[i]
     chunk$Period   <- i
@@ -272,7 +276,8 @@ simulate_variant_evolution <- function(
 
   for (t in (n_ref_months + 1L):n_periods) {
 
-    today <- sim_dates[t]
+    today     <- sim_dates[t]
+    row_start <- nrow(output) + 1L
 
     # Identify most-recently-emerged non-replaced variant
     active_idx <- 0L
@@ -301,6 +306,7 @@ simulate_variant_evolution <- function(
                            vd$mult * (1 - mutation_rate_variability),
                            vd$mult * (1 + mutation_rate_variability))))
       variant_details[[1L]]$last <- n_cur
+      variant_details[[1L]]$cum  <- variant_details[[1L]]$cum + n_cur
 
       m_cur <- matrix(vd$vseq, nrow = n_cur, ncol = L, byrow = TRUE,
                       dimnames = list(NULL, seq_cols))
@@ -339,12 +345,14 @@ simulate_variant_evolution <- function(
                            vd_cur$mult * (1 - mutation_rate_variability),
                            vd_cur$mult * (1 + mutation_rate_variability))))
       variant_details[[cur]]$last <- n_cur
+      variant_details[[cur]]$cum  <- variant_details[[cur]]$cum + n_cur
 
       n_cmp <- max(1L, ceiling(vd_cmp$last *
               stats::runif(1L,
                            vd_cmp$mult * (1 - mutation_rate_variability),
                            vd_cmp$mult * (1 + mutation_rate_variability))))
       variant_details[[cmp]]$last <- n_cmp
+      variant_details[[cmp]]$cum  <- variant_details[[cmp]]$cum + n_cmp
 
       m_cur <- matrix(vd_cur$vseq, nrow = n_cur, ncol = L, byrow = TRUE,
                       dimnames = list(NULL, seq_cols))
@@ -410,11 +418,12 @@ simulate_variant_evolution <- function(
         tr                              <- tail(seq_len(nrow(df)), n_rows)
         df[tr, as.character(site_idx)]  <- new_aa
         df$Delet[tr]                    <- "Yes"
+        delet_records[[as.character(today)]] <- list(
+          period = t, date = today, site = site_idx,
+          old_aa = old_aa, new_aa = new_aa,
+          rows   = row_start + tr - 1L
+        )
       }
-      delet_records[[as.character(today)]] <- list(
-        period = t, date = today, site = site_idx,
-        old_aa = old_aa, new_aa = new_aa
-      )
     }
 
     output <- rbind(output, ensure_cols(df))
