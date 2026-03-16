@@ -8,7 +8,7 @@
 A named list of length 13. See Details for element descriptions.
 }
 \source{
-Compiled from 20 peer-reviewed and surveillance sources; see
+Compiled from 21 peer-reviewed and surveillance sources; see
 \code{sarscov2_variants$References$data} for the full reference table
 with DOIs and URLs. Built from \code{SARS_CoV_2_VOC_VOI.xlsx} via
 \code{\link{get_variants}}.
@@ -22,7 +22,7 @@ metadata for 12 SARS-CoV-2 Variants of Concern (VOC) and Variants of
 Interest (VOI): Alpha, Beta, Epsilon, Eta, Iota, Kappa, Delta, Lambda,
 Gamma, Zeta, Theta, and Omicron. Includes mutation profiles, nomenclature,
 temporal detection records, defining SNPs, and a fully citable reference
-table with 20 verified references.
+table with 21 verified references.
 }
 \details{
 The object is available automatically after \code{library(ViralEntropR)}
@@ -58,7 +58,7 @@ positions extracted from \code{Spike_Mutations}.}
 \item{\code{Defining_SNP_Sites}}{List of 12. Integer positions extracted
 from \code{Defining_SNPs}.}
 \item{\code{References}}{Named list with three elements:
-\code{$data} -- data frame of 20 verified references (columns: ID,
+\code{$data} -- data frame of 21 verified references (columns: ID,
 Authors, Year, Title, Journal_Source, Volume_Issue_Pages, DOI, URL,
 Type, Variants_Covered, Data_Field, Citation);
 \code{$display(variant = NULL)} -- renders an interactive
@@ -92,7 +92,8 @@ sarscov2_variants$Pango_Lineage[[
 # World detection dates for all variants
 data.frame(
   Variant  = unlist(sarscov2_variants$WHO_Label),
-  Detected = sarscov2_variants$Date_First_Detected
+  Detected = sarscov2_variants$Date_First_Detected,
+  Country  = unlist(sarscov2_variants$Country_First_Detected)
 )
 
 # --- Mutation sites -------------------------------------------------------
@@ -111,13 +112,14 @@ sarscov2_variants$Mutation_Sites[[
 
 data.frame(
   WHO        = unlist(sarscov2_variants$WHO_Label),
+  PANGO      = unlist(sarscov2_variants$Pango_Lineage),
   GISAID     = sarscov2_variants$GISAID_Clade,
   Nextstrain = sarscov2_variants$Nextstrain_Clade
 )
 
 # --- References -----------------------------------------------------------
 
-# Full reference data frame (20 rows)
+# Full reference data frame (21 rows)
 sarscov2_variants$References$data[,
   c("ID", "Authors", "Year", "Journal_Source")
 ]

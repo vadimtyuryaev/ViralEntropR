@@ -45,7 +45,7 @@ readable directly by \code{\link[Biostrings]{readAAStringSet}}
 
 \strong{Full dataset:}
 The complete 137,132-sequence dataset (173 MB, uncompressed FASTA) is
-archived on Zenodo (DOI: \doi{10.5281/zenodo.XXXXXXX}) and is
+archived on Zenodo (DOI: \doi{10.5281/zenodo.19040165}) and is
 programmatically accessible via \code{\link{download_sarscov2_data}}.
 The full file is stored uncompressed on Zenodo;
 \code{\link[Biostrings]{readAAStringSet}} reads it directly.

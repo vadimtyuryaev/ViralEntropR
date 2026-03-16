@@ -51,7 +51,7 @@
 #'   \item{\code{Defining_SNP_Sites}}{List. Integer positions extracted from
 #'     \code{Defining_SNPs}.}
 #'   \item{\code{References}}{Named list with three elements:
-#'     \code{$data} — data frame of 20 verified references;
+#'     \code{$data} — data frame of 21 verified references;
 #'     \code{$display(variant = NULL)} — interactive \code{\link[DT]{datatable}},
 #'     optionally filtered by WHO label;
 #'     \code{$cite(variant)} — character vector of formatted citation strings
@@ -101,49 +101,52 @@ get_variants = function(tibble, check = FALSE) {
   # ── Temporal metadata ────────────────────────────────────────────────────────
   # Order follows variant column order in the Excel sheet (see header above).
   
+  # Alphabetical order: Alpha, Beta, Delta, Epsilon, Eta, Gamma, Iota, Kappa,
+  #                     Lambda, Omicron, Theta, Zeta
+  
   earliest_documented_samples <- c(
     "Sep-2020",  # Alpha   -- ref 2
     "May-2020",  # Beta    -- ref 2
+    "Oct-2020",  # Delta   -- ref 2
     "Mar-2020",  # Epsilon -- ref 2
     "Nov-2020",  # Eta     -- ref 3
+    "Nov-2020",  # Gamma   -- ref 2
     "Nov-2020",  # Iota    -- ref 2
     "Oct-2020",  # Kappa   -- ref 2
-    "Oct-2020",  # Delta   -- ref 2
-    "Aug-2020",  # Lambda  -- ref 5 
-    "Nov-2020",  # Gamma   -- ref 2
-    "Apr-2020",  # Zeta    -- ref 2
+    "Aug-2020",  # Lambda  -- ref 5
+    "Nov-2021",  # Omicron -- ref 6
     "Jan-2021",  # Theta   -- ref 2
-    "Nov-2021"   # Omicron -- ref 6
+    "Apr-2020"   # Zeta    -- ref 2
   )
   
   detection_date <- c(
     "Dec-2020",  # Alpha   -- ref 3
     "Oct-2020",  # Beta    -- ref 3
+    "Dec-2020",  # Delta   -- ref 3
     "Jul-2020",  # Epsilon -- ref 9
     "Nov-2020",  # Eta     -- ref 3
-    "Nov-2020",  # Iota    -- ref 3
-    "Oct-2020",  # Kappa   -- ref 4 
-    "Dec-2020",  # Delta   -- ref 3
-    "Dec-2020",  # Lambda  -- ref 11
     "Dec-2020",  # Gamma   -- ref 3
-    "Apr-2020",  # Zeta    -- ref 3
+    "Nov-2020",  # Iota    -- ref 3
+    "Oct-2020",  # Kappa   -- ref 4
+    "Dec-2020",  # Lambda  -- ref 11
+    "Nov-2021",  # Omicron -- ref 3
     "Feb-2021",  # Theta   -- ref 3
-    "Nov-2021"   # Omicron -- ref 3
+    "Apr-2020"   # Zeta    -- ref 3
   )
   
   US_detection_date <- c(
-    "Dec-2020",  # Alpha   -- ref 7  
-    "Jan-2021",  # Beta    -- ref 8  
+    "Dec-2020",  # Alpha   -- ref 7
+    "Jan-2021",  # Beta    -- ref 8
+    "Mar-2021",  # Delta   -- ref 3
     "Jul-2020",  # Epsilon -- ref 9  ---> in 1 of 1247 samples, then October 2020
-    "Nov-2020",  # Eta     -- ref 3  
-    "Nov-2020",  # Iota    -- ref 3  
-    "Feb-2021",  # Kappa   -- ref 10 
-    "Mar-2021",  # Delta   -- ref 3  
-    "Feb-2021",  # Lambda  -- ref 11 
-    "Jan-2021",  # Gamma   -- ref 12 
-    "Oct-2020",  # Zeta    -- ref 14 
-    "Jan-2021",  # Theta   -- ref 15 
-    "Dec-2021"   # Omicron -- ref 13 
+    "Nov-2020",  # Eta     -- ref 3
+    "Jan-2021",  # Gamma   -- ref 12
+    "Nov-2020",  # Iota    -- ref 3
+    "Feb-2021",  # Kappa   -- ref 10
+    "Feb-2021",  # Lambda  -- ref 11
+    "Dec-2021",  # Omicron -- ref 13
+    "Jan-2021",  # Theta   -- ref 15
+    "Oct-2020"   # Zeta    -- ref 14
   )
   
   # -- Defining SNPs ------------------------------------------------------------
@@ -151,20 +154,20 @@ get_variants = function(tibble, check = FALSE) {
   defining_snps <- list(
     c("N501Y", "A570D", "P681H", "T716I", "S982A", "D1118H"),                   # Alpha   -- ref 4
     c("D80A", "D215G", "K417N", "N501Y", "E484K", "A701V"),                     # Beta    -- ref 4
-    NA,                                                                         # Epsilon -- not in ref 4
-    c("Q52R", "E484K", "Q677H", "F888L"),                                       # Eta     -- ref 4
-    NA,                                                                         # Iota    -- not in ref 4
-    c("E154K", "L452R", "E484Q", "P681R"),                                      # Kappa   -- ref 4
     c("T19R", "L452R", "T478K", "P681R", "D950N"),                              # Delta   -- ref 4
-    NA,                                                                         # Lambda  -- not in ref 4
+    NA,                                                                          # Epsilon -- not in ref 4
+    c("Q52R", "E484K", "Q677H", "F888L"),                                        # Eta     -- ref 4
     c("L18F", "T20N", "P26S", "D138Y", "R190S", "K417T",
-      "E484K", "N501Y", "H655Y", "T1027I"),                                     # Gamma   -- ref 4
-    NA,                                                                         # Zeta    -- not in ref 4
-    NA,                                                                         # Theta   -- not in ref 4
+      "E484K", "N501Y", "H655Y", "T1027I"),                                      # Gamma   -- ref 4
+    NA,                                                                          # Iota    -- not in ref 4
+    c("E154K", "L452R", "E484Q", "P681R"),                                       # Kappa   -- ref 4
+    NA,                                                                          # Lambda  -- not in ref 4
     c("A76V", "T95I", "L212I", "G339D", "S371L","S373P", "S375F",
       "K417N", "N440K", "G446S", "S477N","T478K", "E484A", "Q493R",
       "G496S", "Q498R", "N501Y","Y505H", "T547K", "D614G", "H655Y",
-      "N679K", "P681H","N764K", "D796Y", "N856K", "Q954H", "N969K", "L981F")    # Omicron -- refs 6, 17, 18
+      "N679K", "P681H","N764K", "D796Y", "N856K", "Q954H", "N969K", "L981F"),   # Omicron -- refs 6, 17, 18
+    NA,                                                                          # Theta   -- not in ref 4
+    NA                                                                           # Zeta    -- not in ref 4
   )
   
   # -- Nomenclature -------------------------------------------------------------
@@ -173,31 +176,31 @@ get_variants = function(tibble, check = FALSE) {
   GISAID_clade <- c(
     "GRY",         # Alpha
     "GH/501Y.V2",  # Beta
+    "G/478K.V1",   # Delta
     "GH/452R.V1",  # Epsilon
     "G/484K.V3",   # Eta
+    "GR/501Y.V3",  # Gamma
     "GH/253G.V1",  # Iota
     "G/452R.V3",   # Kappa
-    "G/478K.V1",   # Delta
     "GR/452Q.V1",  # Lambda
-    "GR/501Y.V3",  # Gamma
-    "GR/484K.V2",  # Zeta
+    "GR/484A",     # Omicron
     "GR/1092K.V1", # Theta
-    "GR/484A"      # Omicron
+    "GR/484K.V2"   # Zeta
   )
   
   Nextstrain_clade <- c(
-    "20I/501Y.V1",    # Alpha
-    "20H/501Y.V2",    # Beta
-    "21C",            # Epsilon
-    "21D/S:484K",     # Eta
-    "21F",            # Iota
-    "21B/S:154K",     # Kappa
-    "21A/S:478K",     # Delta
-    "21G",            # Lambda
-    "20J/501Y.V3",    # Gamma
-    "20B/S:484K",     # Zeta
-    "20B/S:265C",     # Theta
-    "21K"             # Omicron
+    "20I/501Y.V1",  # Alpha
+    "20H/501Y.V2",  # Beta
+    "21A/S:478K",   # Delta
+    "21C",          # Epsilon
+    "21D/S:484K",   # Eta
+    "20J/501Y.V3",  # Gamma
+    "21F",          # Iota
+    "21B/S:154K",   # Kappa
+    "21G",          # Lambda
+    "21K",          # Omicron
+    "20B/S:265C",   # Theta
+    "20B/S:484K"    # Zeta
   )
   
   # -- WHO label, Pango lineage, country -- read from Excel ---------------------
@@ -229,6 +232,23 @@ get_variants = function(tibble, check = FALSE) {
   
   sites <- lapply(mutations, get_sites)
   
+  # -- Reorder Excel-read vectors to alphabetical order ----------------------
+  # Excel column order: Alpha, Beta, Epsilon, Eta, Iota, Kappa,
+  #                     Delta, Lambda, Gamma, Zeta, Theta, Omicron
+  # Alphabetical order: Alpha, Beta, Delta, Epsilon, Eta, Gamma,
+  #                     Iota, Kappa, Lambda, Omicron, Theta, Zeta
+  # Reorder index (position in Excel for each alphabetical slot):
+  alpha_order <- c("Alpha", "Beta", "Delta", "Epsilon", "Eta", "Gamma",
+                   "Iota", "Kappa", "Lambda", "Omicron", "Theta", "Zeta")
+  excel_labels <- unlist(who_label)
+  reorder_idx  <- match(alpha_order, excel_labels)
+  
+  who_label     <- who_label[reorder_idx]
+  pango_lineage <- pango_lineage[reorder_idx]
+  country       <- country[reorder_idx]
+  mutations     <- mutations[reorder_idx]
+  sites         <- sites[reorder_idx]
+  
   defining_snps_sites <- lapply(
     defining_snps,
     function(x) ifelse(is.na(x), NA, get_sites(x))
@@ -256,7 +276,7 @@ get_variants = function(tibble, check = FALSE) {
   
   refs_data <- data.frame(
     
-    ID = 1:20,
+    ID = 1:21,
     
     Authors = c(
       "Ghosh N, Nandi S, Saha I",                     #  1
@@ -278,7 +298,8 @@ get_variants = function(tibble, check = FALSE) {
       "Kannan SR, Spratt AN, Sharma K, et al.",       # 17
       "Dhawan M, Saied AA, Mitra S, et al.",          # 18
       "Tao K, Tzou PL, Nouhin J, et al.",             # 19
-      "Brookes AJ"                                    # 20
+      "Brookes AJ",                                   # 20
+      "Salleh MZ, Derrick JP, Deris ZZ"              # 21
     ),
     
     Year = c(
@@ -301,7 +322,8 @@ get_variants = function(tibble, check = FALSE) {
       2022L,  # 17 -- Kannan (epub Dec 2021; published 2022)
       2022L,  # 18 -- Dhawan
       2021L,  # 19 -- Tao
-      1999L   # 20 -- Brookes
+      1999L,  # 20 -- Brookes
+      2021L   # 21 -- Salleh
     ),
     
     Title = c(
@@ -324,7 +346,8 @@ get_variants = function(tibble, check = FALSE) {
       "Omicron SARS-CoV-2 variant: Unique features and their impact on pre-existing antibodies",
       "Omicron variant (B.1.1.529) and its sublineages: What do we know so far amid the emergence of recombinant variants of SARS-CoV-2?",
       "The biological and clinical significance of emerging SARS-CoV-2 variants",
-      "The essence of SNPs"
+      "The essence of SNPs",
+      "Structural Evaluation of the Spike Glycoprotein Variants on SARS-CoV-2 Transmission and Immune Evasion"
     ),
     
     Journal_Source = c(
@@ -347,7 +370,8 @@ get_variants = function(tibble, check = FALSE) {
       "Journal of Autoimmunity",                       # 17
       "Biomedicine & Pharmacotherapy",                 # 18
       "Nature Reviews Genetics",                       # 19
-      "Gene"                                           # 20
+      "Gene",                                          # 20
+      "International Journal of Molecular Sciences"    # 21
     ),
     
     Volume_Issue_Pages = c(
@@ -370,7 +394,8 @@ get_variants = function(tibble, check = FALSE) {
       "126:102779",            # 17 -- Kannan
       "154:113522",            # 18 -- Dhawan
       "22(12):757-773",        # 19 -- Tao
-      "234(2):177-186"         # 20 -- Brookes
+      "234(2):177-186",        # 20 -- Brookes
+      "22(14):7425"            # 21 -- Salleh
     ),
     
     DOI = c(
@@ -393,7 +418,8 @@ get_variants = function(tibble, check = FALSE) {
       "10.1016/j.jaut.2021.102779",     # 17 -- Kannan
       "10.1016/j.biopha.2022.113522",   # 18 -- Dhawan
       "10.1038/s41576-021-00408-x",     # 19 -- Tao
-      "10.1016/S0378-1119(99)00219-X"   # 20 -- Brookes
+      "10.1016/S0378-1119(99)00219-X",  # 20 -- Brookes
+      "10.3390/ijms22147425"            # 21 -- Salleh
     ),
     
     URL = c(
@@ -416,7 +442,8 @@ get_variants = function(tibble, check = FALSE) {
       "https://www.sciencedirect.com/science/article/pii/S0896841121001876",              # 17
       "https://www.sciencedirect.com/science/article/pii/S0753332222009118",              # 18
       "https://www.nature.com/articles/s41576-021-00408-x",                               # 19
-      "https://www.sciencedirect.com/science/article/pii/S037811199900219X"               # 20
+      "https://www.sciencedirect.com/science/article/pii/S037811199900219X",               # 20
+      "https://www.mdpi.com/1422-0067/22/14/7425"                                          # 21
     ),
     
     Type = c(
@@ -439,7 +466,8 @@ get_variants = function(tibble, check = FALSE) {
       "Peer-reviewed article",  # 17
       "Peer-reviewed article",  # 18
       "Peer-reviewed article",  # 19
-      "Peer-reviewed article"   # 20
+      "Peer-reviewed article",  # 20
+      "Peer-reviewed article"   # 21
     ),
     
     Variants_Covered = c(
@@ -462,7 +490,8 @@ get_variants = function(tibble, check = FALSE) {
       "Omicron",                                                                               # 17
       "Omicron",                                                                               # 18
       "Alpha, Beta, Delta, Gamma",                                                             # 19
-       NA_character_                                                                           # 20
+       NA_character_,                                                                           # 20
+      "Alpha, Beta, Delta, Epsilon, Eta, Gamma, Iota, Kappa, Lambda, Theta, Zeta"             # 21
     ),
     
     Data_Field = c(
@@ -485,7 +514,8 @@ get_variants = function(tibble, check = FALSE) {
       "Defining_SNPs, Defining_SNPs_Sites (Omicron)",                                             # 17 -- Kannan: 46 high-prevalence Omicron mutations; structural antibody impact
       "Defining_SNPs, Defining_SNPs_Sites (Omicron)",                                             # 18 -- Dhawan: Omicron sublineages and recombinant variants
       "General evolutionary context",                                                             # 19 -- Tao: biological and clinical significance of SARS-CoV-2 VOCs
-      "SNP methodology"                                                                           # 20 -- Brookes: foundational SNP definition and population genetics methodology
+      "SNP methodology",                                                                          # 20 -- Brookes: foundational SNP definition and population genetics methodology
+      "GISAID_Clade, Nextstrain_Clade"                                                            # 21 -- Salleh: structural evaluation of spike variants; source for GISAID/Nextstrain clade assignments
     ),
     
     stringsAsFactors = FALSE
@@ -543,7 +573,7 @@ get_variants = function(tibble, check = FALSE) {
     caption_text <- if (!is.null(variant))
       sprintf("References for variant: %s", variant)
     else
-      "ViralEntropR - SARS-CoV-2 VOC/VOI Reference Table (20 verified references)"
+      "ViralEntropR - SARS-CoV-2 VOC/VOI Reference Table (21 verified references)"
     
     DT::datatable(
       df[, display_cols],
@@ -580,7 +610,7 @@ get_variants = function(tibble, check = FALSE) {
   #
   # All existing list elements are preserved exactly.
   # References is a named list with three elements:
-  #   $data    -- the full reference data frame (20 rows x 11 columns)
+  #   $data    -- the full reference data frame (21 rows x 11 columns)
   #   $display -- function: renders interactive DT, optionally filtered by variant
   #   $cite    -- function: returns formatted citation strings for a variant
   

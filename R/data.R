@@ -28,7 +28,7 @@
 #'
 #' \strong{Full dataset:}
 #' The complete 137,132-sequence dataset (173 MB, uncompressed FASTA) is
-#' archived on Zenodo (DOI: \doi{10.5281/zenodo.XXXXXXX}) and is
+#' archived on Zenodo (DOI: \doi{10.5281/zenodo.19040165}) and is
 #' programmatically accessible via \code{\link{download_sarscov2_data}}.
 #' The full file is stored uncompressed on Zenodo;
 #' \code{\link[Biostrings]{readAAStringSet}} reads it directly.
@@ -138,7 +138,7 @@ NULL
 #' Interest (VOI): Alpha, Beta, Epsilon, Eta, Iota, Kappa, Delta, Lambda,
 #' Gamma, Zeta, Theta, and Omicron. Includes mutation profiles, nomenclature,
 #' temporal detection records, defining SNPs, and a fully citable reference
-#' table with 20 verified references.
+#' table with 21 verified references.
 #'
 #' @details
 #' The object is available automatically after \code{library(ViralEntropR)}
@@ -174,7 +174,7 @@ NULL
 #'   \item{\code{Defining_SNP_Sites}}{List of 12. Integer positions extracted
 #'     from \code{Defining_SNPs}.}
 #'   \item{\code{References}}{Named list with three elements:
-#'     \code{$data} -- data frame of 20 verified references (columns: ID,
+#'     \code{$data} -- data frame of 21 verified references (columns: ID,
 #'     Authors, Year, Title, Journal_Source, Volume_Issue_Pages, DOI, URL,
 #'     Type, Variants_Covered, Data_Field, Citation);
 #'     \code{$display(variant = NULL)} -- renders an interactive
@@ -197,7 +197,7 @@ NULL
 #' @usage data(sarscov2_variants)
 #'
 #' @source
-#' Compiled from 20 peer-reviewed and surveillance sources; see
+#' Compiled from 21 peer-reviewed and surveillance sources; see
 #' \code{sarscov2_variants$References$data} for the full reference table
 #' with DOIs and URLs. Built from \code{SARS_CoV_2_VOC_VOI.xlsx} via
 #' \code{\link{get_variants}}.
@@ -218,7 +218,8 @@ NULL
 #' # World detection dates for all variants
 #' data.frame(
 #'   Variant  = unlist(sarscov2_variants$WHO_Label),
-#'   Detected = sarscov2_variants$Date_First_Detected
+#'   Detected = sarscov2_variants$Date_First_Detected,
+#'   Country  = unlist(sarscov2_variants$Country_First_Detected)
 #' )
 #'
 #' # --- Mutation sites -------------------------------------------------------
@@ -237,13 +238,14 @@ NULL
 #'
 #' data.frame(
 #'   WHO        = unlist(sarscov2_variants$WHO_Label),
+#'   PANGO      = unlist(sarscov2_variants$Pango_Lineage),
 #'   GISAID     = sarscov2_variants$GISAID_Clade,
 #'   Nextstrain = sarscov2_variants$Nextstrain_Clade
 #' )
 #'
 #' # --- References -----------------------------------------------------------
 #'
-#' # Full reference data frame (20 rows)
+#' # Full reference data frame (21 rows)
 #' sarscov2_variants$References$data[,
 #'   c("ID", "Authors", "Year", "Journal_Source")
 #' ]

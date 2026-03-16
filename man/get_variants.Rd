@@ -71,7 +71,7 @@ variant (\code{NA} where not characterised).}
 \item{\code{Defining_SNP_Sites}}{List. Integer positions extracted from
 \code{Defining_SNPs}.}
 \item{\code{References}}{Named list with three elements:
-\code{$data} — data frame of 20 verified references;
+\code{$data} — data frame of 21 verified references;
 \code{$display(variant = NULL)} — interactive \code{\link[DT]{datatable}},
 optionally filtered by WHO label;
 \code{$cite(variant)} — character vector of formatted citation strings

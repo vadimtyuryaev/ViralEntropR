@@ -96,7 +96,7 @@ stopifnot(
   "Expected 12 variants"                = length(sarscov2_variants$WHO_Label) == 12L,
   "Missing list elements"               = all(expected_names %in% names(sarscov2_variants)),
   "References$data is not a data frame" = is.data.frame(sarscov2_variants$References$data),
-  "Expected 20 references"              = nrow(sarscov2_variants$References$data) == 20L
+  "Expected 21 references"              = nrow(sarscov2_variants$References$data) == 21L
 )
 
 message("Integrity check passed: 12 variants, 20 references.")
