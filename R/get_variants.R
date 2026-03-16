@@ -177,7 +177,7 @@ get_variants = function(tibble, check = FALSE) {
     "G/484K.V3",   # Eta
     "GH/253G.V1",  # Iota
     "G/452R.V3",   # Kappa
-    "G/452R.V3",   # Delta
+    "G/478K.V1",   # Delta
     "GR/452Q.V1",  # Lambda
     "GR/501Y.V3",  # Gamma
     "GR/484K.V2",  # Zeta
@@ -188,7 +188,7 @@ get_variants = function(tibble, check = FALSE) {
   Nextstrain_clade <- c(
     "20I/501Y.V1",    # Alpha
     "20H/501Y.V2",    # Beta
-    "20C/S:452R",     # Epsilon
+    "21C",            # Epsilon
     "21D/S:484K",     # Eta
     "21F",            # Iota
     "21B/S:154K",     # Kappa

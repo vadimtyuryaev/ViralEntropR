@@ -8,7 +8,7 @@
 #' The dataset was originally downloaded from the NCBI SARS-CoV-2 Data Hub on
 #' October 12, 2021 (taxid: 2697049; complete sequences; surface glycoprotein
 #' only), yielding 137,132 sequences. It is archived on Zenodo under
-#' DOI \doi{10.5281/zenodo.XXXXXXX} and released under CC0 1.0 Universal.
+#' DOI \doi{10.5281/zenodo.19040165} and released under CC0 1.0 Universal.
 #'
 #' The file is cached in a persistent, user-level directory that survives
 #' across R sessions (see \code{\link[tools]{R_user_dir}}). To find the cache
@@ -28,13 +28,20 @@
 #'   \code{\link[Biostrings]{readAAStringSet}}.
 #'
 #' @references
-#' Tyuryaev V, et al. (2025). SARS-CoV-2 surface glycoprotein sequences for
-#' ViralEntropR. \emph{Zenodo}. \doi{10.5281/zenodo.XXXXXXX}
+#' Clark K, Karsch-Mizrachi I, Lipman DJ, Ostell J, Sayers EW (2016).
+#' GenBank.
+#' \emph{Nucleic Acids Research}, 44(D1), D67--D72.
+#' \doi{10.1093/nar/gkv1276}
 #'
-#' Hatcher EL, Zhdanov SA, Bao Y, et al. (2017).
-#' Virus Variation Resource — improved response to emergent viral outbreaks.
-#' \emph{Nucleic Acids Research}, 45(D1), D482–D490.
-#' \doi{10.1093/nar/gkw1065}
+#' Sayers EW, Bolton EE, Brister JR, et al. (2022).
+#' Database resources of the National Center for Biotechnology Information.
+#' \emph{Nucleic Acids Research}, 50(D1), D20--D26.
+#' \doi{10.1093/nar/gkab1112}
+#'
+#' NCBI Virus \[Internet\]. Bethesda (MD): National Library of Medicine (US),
+#' National Center for Biotechnology Information; \[2020\] --
+#' \[cited 2021 Oct 12\]. Available from:
+#' \url{https://www.ncbi.nlm.nih.gov/labs/virus/vssi/}
 #'
 #' @seealso
 #' \itemize{
@@ -76,12 +83,12 @@ download_sarscov2_data <- function(destdir = NULL, force = FALSE) {
     dir.create(destdir, recursive = TRUE)
   }
   
-  dest <- file.path(destdir, "sarscov2_spike_ncbi_20211012.fasta")
+  dest <- file.path(destdir, "sequences.fasta")
   
   # Zenodo direct download URL — update XXXXXXX after deposit
   url <- paste0(
-    "https://zenodo.org/record/XXXXXXX/files/",
-    "sarscov2_spike_ncbi_20211012.fasta?download=1"
+    "https://zenodo.org/record/19040165/files/",
+    "sequences.fasta?download=1"
   )
   
   # --- 2. Return cached file if available ------------------------------------
@@ -95,7 +102,7 @@ download_sarscov2_data <- function(destdir = NULL, force = FALSE) {
   message(
     "Downloading SARS-CoV-2 surface glycoprotein dataset from Zenodo.\n",
     "  n = 137,132 sequences | ~173 MB uncompressed\n",
-    "  DOI: 10.5281/zenodo.XXXXXXX\n",
+    "  DOI: 10.5281/zenodo.19040165\n",
     "  This is a one-time download. File will be cached at:\n  ", dest
   )
   
@@ -107,7 +114,7 @@ download_sarscov2_data <- function(destdir = NULL, force = FALSE) {
       stop(
         "Download failed. Please check your internet connection.\n",
         "You can also download the file manually from:\n",
-        "  https://zenodo.org/record/XXXXXXX\n",
+        "  https://zenodo.org/record/19040165\n",
         "and save it to: ", dest, "\n",
         "Original error: ", conditionMessage(e),
         call. = FALSE
@@ -122,7 +129,7 @@ download_sarscov2_data <- function(destdir = NULL, force = FALSE) {
     stop(
       "Downloaded file appears incomplete (", round(fsize / 1e6, 1), " MB).\n",
       "Please try again or download manually from:\n",
-      "  https://zenodo.org/record/XXXXXXX",
+      "  https://zenodo.org/record/19040165",
       call. = FALSE
     )
   }

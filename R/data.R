@@ -83,15 +83,20 @@
 #' @source \url{https://www.ncbi.nlm.nih.gov/labs/virus/vssi/}
 #'
 #' @references
-#' Hatcher EL, Zhdanov SA, Bao Y, et al. (2017).
-#' Virus Variation Resource -- improved response to emergent viral outbreaks.
-#' \emph{Nucleic Acids Research}, 45(D1), D482--D490.
-#' \doi{10.1093/nar/gkw1065}
+#' Clark K, Karsch-Mizrachi I, Lipman DJ, Ostell J, Sayers EW (2016).
+#' GenBank.
+#' \emph{Nucleic Acids Research}, 44(D1), D67--D72.
+#' \doi{10.1093/nar/gkv1276}
 #'
 #' Sayers EW, Bolton EE, Brister JR, et al. (2022).
 #' Database resources of the National Center for Biotechnology Information.
 #' \emph{Nucleic Acids Research}, 50(D1), D20--D26.
 #' \doi{10.1093/nar/gkab1112}
+#'
+#' NCBI Virus \[Internet\]. Bethesda (MD): National Library of Medicine (US),
+#' National Center for Biotechnology Information; \[2020\] --
+#' \[cited 2021 Oct 12\]. Available from:
+#' \url{https://www.ncbi.nlm.nih.gov/labs/virus/vssi/}
 #'
 #' @examples
 #' \dontrun{
