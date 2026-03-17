@@ -135,8 +135,8 @@ NULL
 #' @description
 #' A pre-built named list containing curated biological and epidemiological
 #' metadata for 12 SARS-CoV-2 Variants of Concern (VOC) and Variants of
-#' Interest (VOI): Alpha, Beta, Epsilon, Eta, Iota, Kappa, Delta, Lambda,
-#' Gamma, Zeta, Theta, and Omicron. Includes mutation profiles, nomenclature,
+#' Interest (VOI): Alpha, Beta, Delta, Epsilon, Eta, Gamma, Iota, Kappa, Lambda, 
+#' Omicron, Theta, Zeta. Includes mutation profiles, nomenclature,
 #' temporal detection records, defining SNPs, and a fully citable reference
 #' table with 21 verified references.
 #'
@@ -185,7 +185,7 @@ NULL
 #' }
 #'
 #' @section References:
-#' The 20 curated references cover peer-reviewed articles, CDC MMWR government
+#' The 21 curated references cover peer-reviewed articles, CDC MMWR government
 #' reports, and outbreak.info surveillance database records. Full provenance
 #' is available via \code{sarscov2_variants$References$data} or the
 #' interactive display.
@@ -212,7 +212,7 @@ NULL
 #'
 #' # Pango lineage for Alpha
 #' sarscov2_variants$Pango_Lineage[[
-#'   which(sarscov2_variants$WHO_Label == "Alpha")
+#'   which(unlist(sarscov2_variants$WHO_Label) == "Alpha")
 #' ]]
 #'
 #' # World detection dates for all variants
@@ -225,13 +225,13 @@ NULL
 #' # --- Mutation sites -------------------------------------------------------
 #'
 #' # Defining SNPs and sites for Delta
-#' idx <- which(sarscov2_variants$WHO_Label == "Delta")
+#' idx <- which(unlist(sarscov2_variants$WHO_Label) == "Delta")
 #' sarscov2_variants$Defining_SNPs[[idx]]
 #' sarscov2_variants$Defining_SNP_Sites[[idx]]
 #'
 #' # All Spike mutation sites for Omicron
 #' sarscov2_variants$Mutation_Sites[[
-#'   which(sarscov2_variants$WHO_Label == "Omicron")
+#'   which(unlist(sarscov2_variants$WHO_Label) == "Omicron")
 #' ]]
 #'
 #' # --- Nomenclature ---------------------------------------------------------

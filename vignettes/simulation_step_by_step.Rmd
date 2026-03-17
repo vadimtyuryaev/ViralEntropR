@@ -417,7 +417,7 @@ all_sites <- seq_len(n_col)
 hellinger_mat <- calculate_hellinger_matrix(
   partitions = part_data$Partitions,
   sites      = all_sites,
-  aa_levels  = 20L   # 20 standard amino acids
+  aa_levels  = 25L   # verify
 )
 ```
 

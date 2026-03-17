@@ -33,7 +33,7 @@ numeric-encoded and character matrices.
 }
 \details{
 Ambiguous residues map to the following numeric codes under the package
-encoding: B = 21, J = 22, X = 23, Z = 0 (unrecognised/gap).
+encoding: B = 21, Z = 22, X = 23, J = 0 (unrecognised/gap).
 
 The detection step is fully vectorized: a single logical matrix comparison
 followed by \code{\link[base]{rowSums}} replaces the original row-by-row
