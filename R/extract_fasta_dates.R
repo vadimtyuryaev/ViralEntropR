@@ -44,14 +44,32 @@
 #'
 #' @examples
 #' \dontrun{
-#' fasta  <- Biostrings::readAAStringSet("sequences.fasta")
-#' result <- extract_fasta_dates(fasta, option = 1)
-#' print(head(result$corrected_dates))
-#' print(result$message)
+#' path_sample  <- system.file("extdata", "sarscov2_sample.fasta.gz",
+#'                              package = "ViralEntropR")
+#' fasta_sample <- Biostrings::readAAStringSet(path_sample)
 #'
-#' # Custom pattern
-#' result2 <- extract_fasta_dates(fasta,
-#'                                   custom_pattern = "[0-9]{4}-[0-9]{2}-[0-9]{2}")
+#' # Inspect header structure to confirm date field position
+#' sample(names(fasta_sample), 1)
+#'
+#' # Pass 1: attempt full yyyy-mm-dd extraction
+#' dates_ymd <- extract_fasta_dates(
+#'   fasta_sample,
+#'   custom_pattern = "(?<=\\|)[0-9]{4}-(0?[1-9]|1[0-2])-(0?[1-9]|[12][0-9]|3[01]|00)"
+#' )
+#' dates_ymd$message
+#' sum(is.na(dates_ymd$raw_date_strings))   # sequences missing full date
+#'
+#' # Pass 2: broader yyyy-mm extraction (recommended for monthly partitioning)
+#' dates_ym <- extract_fasta_dates(
+#'   fasta_sample,
+#'   custom_pattern = "(?<=\\|)[0-9]{4}-(0[1-9]|1[0-2])",
+#'   date_format    = "%Y-%m"
+#' )
+#' dates_ym$message
+#' head(dates_ym$corrected_dates)
+#'
+#' # Date range covered by the sample
+#' range(dates_ym$corrected_dates, na.rm = TRUE)
 #' }
 #'
 #' @export

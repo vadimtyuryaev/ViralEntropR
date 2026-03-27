@@ -203,8 +203,21 @@ cluster_sites_by_entropy <- function(entropies,
   # On genuine failure after the namespace fix (truly degenerate or pathological
   # input), tryCatch returns NULL and step 11 returns an empty DataFrame —
   # treating the partition as uninformative, which is scientifically correct.
+  
+  # fit <- tryCatch({
+  #   suppressWarnings(mclust::Mclust(df$entropies, ...))
+  # }, error = function(e) {
+  #   if (verbose) warning("Mclust error: ", conditionMessage(e))
+  #   NULL
+  # })
+  
   fit <- tryCatch({
-    suppressWarnings(mclust::Mclust(df$entropies, ...))
+    suppressWarnings({
+      utils::capture.output(
+        fit_inner <- mclust::Mclust(df$entropies, ...)
+      )
+      fit_inner
+    })
   }, error = function(e) {
     if (verbose) warning("Mclust error: ", conditionMessage(e))
     NULL

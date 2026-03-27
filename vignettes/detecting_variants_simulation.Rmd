@@ -1,6 +1,6 @@
 ---
-title: "Variant Simulation and Analysis: Step by Step"
-author: "Package Maintainer"
+title: "Simulation-Based Detection of Emerging Viral Variants"
+author: "Vadim Tyuryaev, Jane Heffernan, Hanna Jankowski"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -8,7 +8,7 @@ output:
     number_sections: true
     df_print: paged
 vignette: >
-  %\VignetteIndexEntry{Variant Simulation and Analysis: Step by Step}
+  %\VignetteIndexEntry{Simulation-Based Detection of Emerging Viral Variants}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -209,9 +209,22 @@ for (i in seq_along(sim_result$Delet_Records)) {
 }
 ```
 
+## Inspecting the Simulation Output
+
+The sections below walk through selected time points to verify that the
+simulation is behaving as expected. Each month's batch contains 50 sequences
+(reference + variant). Key columns to watch are the **mutated sites** (which
+will show a non-reference amino acid for variant sequences), **Variant**
+(which strain each row belongs to), **Phase** (`R` = reference wild-type,
+`RV` = reference with added site-1/2 variability, `M1`/`M2`... = mutation
+phase), and **Delet** (flags sequences affected by a random deletion event).
+
 ## Reference Phase 1 (month 1)
 
-Phase `RV` denotes reference sequences with added variability at sites 1 or 2.
+During the reference phase only wild-type sequences are present. Phase `RV`
+denotes reference sequences with low-level variability artificially introduced
+at sites 1 and 2 (`ref_variability = TRUE`) to mimic the background noise
+typical of real surveillance data.
 
 ```{r}
 sim_result$Simulation_Output[1:10, ]
@@ -219,13 +232,23 @@ sim_result$Simulation_Output[1:10, ]
 
 ## Reference Phase 4 (month 4)
 
+The final reference month before any variant emerges. All sequences should be
+`Reference` strain, with Phase `R` or `RV`. This establishes the baseline
+amino acid distribution against which downstream Hellinger distances will be
+measured.
+
 ```{r}
 sim_result$Simulation_Output[sim_result$Simulation_Output$Period == 4, ][1:10, ]
 ```
 
 ## `Variant 1` Phase 1 (month 5): sites `r sim_result$Variant_Details[[1]]$pos %>% sort()`
 
-`Reference` can be either `R` or `RV`.
+Variant 1 emerges with 2 de-novo sequences (`n_new_mutations = 2`). The
+mutated sites carry a different amino acid to the reference. The remaining ~48
+sequences are sampled from the reference pool. Notice that the variant
+sequences are a very small minority at this point — this is the detection
+challenge: identifying emergence signal against a large reference background.
+`Reference` rows can be either `R` or `RV`.
 
 ```{r}
 sim_result$Simulation_Output[
@@ -236,7 +259,10 @@ sim_result$Simulation_Output[
 
 ## `Variant 1` Phase 2 (month 6): sites `r sim_result$Variant_Details[[1]]$pos %>% sort()`
 
-Number of Variant 1 sequences here is `r ceiling(2 * 1.25)`.
+After one month of growth at rate 1.25, the number of Variant 1 sequences
+increases to `r ceiling(2 * 1.25)`. The variant is still a small fraction of
+the population, but its mutated sites are accumulating signal in the entropy
+profile.
 
 ```{r}
 sim_result$Simulation_Output[
@@ -247,8 +273,11 @@ sim_result$Simulation_Output[
 
 ## `Variant 1` Phase 4 (month 8): sites `r sim_result$Variant_Details[[1]]$pos %>% sort()`
 
-Number of Variant 1 sequences here is
-`r ceiling(ceiling(ceiling(2 * 1.25) * 1.25) * 1.25)`.
+After three months of compounding growth (`ceiling(2 * 1.25^3)`), Variant 1
+now contributes `r ceiling(ceiling(ceiling(2 * 1.25) * 1.25) * 1.25)` sequences.
+Its mutated sites are now consistently different from the reference, and site
+entropy at those positions is rising — setting the stage for detection in the
+next partition.
 
 ```{r}
 sim_result$Simulation_Output[
@@ -259,12 +288,13 @@ sim_result$Simulation_Output[
 
 ## `Variant 2` Phase 1 (month 9): sites `r sim_result$Variant_Details[[2]]$pos %>% sort()`
 
-Number of Variant 2 sequences here is 2.  Number of Variant 1 sequences here is
-`r ceiling(ceiling(ceiling(ceiling(2 * 1.25) * 1.25) * 1.25) * 1.25)` as they
-continue to multiply.  Variants 1 and 2 are now in competition.  The remainder
-of the 50 sequences is sampled from the fill pool (reference rows only, since
-there are no older non-competing variants yet).  There is also a deleterious
-mutation here at site `r sim_result$Delet_Records[[1]]$site`.
+Variant 2 emerges with 2 de-novo sequences. Variants 1 and 2 are now in direct
+pairwise competition. The remainder of the 50 sequences is sampled from the
+fill pool (reference rows only at this stage, since there are no older
+non-competing variants yet). Note that a random deletion event also fires this
+month at site `r sim_result$Delet_Records[[1]]$site` — those affected rows
+have `Delet = "Yes"` and carry a randomly chosen amino acid substitution at
+that site.
 
 ```{r}
 sim_result$Simulation_Output[sim_result$Simulation_Output$Period == 9, ]
@@ -272,11 +302,21 @@ sim_result$Simulation_Output[sim_result$Simulation_Output$Period == 9, ]
 
 ## `Variant 2` Phase 5 (month 13): sites `r sim_result$Variant_Details[[2]]$pos %>% sort()`
 
+By month 13, both Variant 1 and Variant 2 have been growing for several months
+and together dominate the monthly batch. The reference pool contributes only
+the remaining fill sequences. The population is now clearly multi-strain, with
+entropy elevated at the mutation sites of both variants.
+
 ```{r}
 sim_result$Simulation_Output[sim_result$Simulation_Output$Period == 13, ]
 ```
 
 ## `Variant 3` Phase 1 (month 14): sites `r sim_result$Variant_Details[[3]]$pos %>% sort()`
+
+Variant 3 emerges and begins competing against Variant 2. Variant 1 is now
+relegated to the fill pool with an exponentially increasing sampling weight
+(`2^(1+1) = 4`), meaning it still appears but at lower frequency than the
+two active competitors.
 
 ```{r}
 sim_result$Simulation_Output[sim_result$Simulation_Output$Period == 14, ]
@@ -312,6 +352,27 @@ AL_Cat_mix[1:10, ]
 24 total months with a 4-month reference phase and 2-month non-overlapping
 windows give 12 partitions.
 
+> **How partitioning works:** Each partition contains all sequences observed
+> within its time window. For each partition, `partition_time_windows()`
+> computes the Shannon entropy at every site and then calls
+> `cluster_sites_by_entropy()` to group sites into entropy classes via a
+> Gaussian Mixture Model (GMM). The resulting `DataFrame` has three columns:
+>
+> - **`sites`** -- the site index (position in the sequence)
+> - **`entropies`** -- the Shannon entropy at that site for this partition
+> - **`class`** -- the raw GMM cluster label assigned by Mclust
+>
+> **Important:** At this stage `class` carries raw Mclust labels (arbitrary
+> integers). Class 1 is not necessarily the highest-entropy group until
+> `relabel_entropy_classes()` is applied downstream. Sites with zero entropy
+> (invariant across all sequences in the window) are excluded from clustering
+> and will not appear in the DataFrame.
+>
+> **What to watch for:** As variants emerge and grow, their mutation sites
+> should accumulate increasing entropy across successive partitions, eventually
+> clustering into the highest-entropy group. The sentinel class `999` indicates
+> all remaining sites have identical entropy (one undifferentiated group).
+
 ```{r}
 part_data <- partition_time_windows(
   data          = AL_Cat_mix,
@@ -335,79 +396,114 @@ part_data$Partitions[[1]]$Date %>% unique() %>% sort()
 part_data$Partitions[[part_data$N_partitions]]$Date %>% unique() %>% sort()
 ```
 
-### Sites and Classes Detected in the First Partition
+### Sites and Classes in Partition 1 (Jan--Feb 2020, reference only)
+
+During the reference phase all sites are invariant or near-invariant -- no
+variant signal is present. Most sites are excluded (zero entropy) or form a
+single low-entropy group.
 
 ```{r}
 part_data$Clusters[[1]]$DataFrame
 ```
 
-### Sites and Classes Detected in the Second Partition
+### Sites and Classes in Partition 2 (Mar--Apr 2020, reference only)
 
 ```{r}
 part_data$Clusters[[2]]$DataFrame
 ```
 
-### Sites and Classes Detected in the Third Partition vs. `r sim_result$Variant_Details[[1]]$pos %>% sort()`
+### Sites and Classes in Partition 3 (May--Jun 2020) vs. Variant 1 sites `r sim_result$Variant_Details[[1]]$pos %>% sort()`
+
+Variant 1 emerged in month 5 (May 2020). After two months of growth its
+mutation sites should begin to show elevated entropy relative to other sites.
+Watch for the Variant 1 mutation sites appearing with higher class labels.
 
 ```{r}
 part_data$Clusters[[3]]$DataFrame
 ```
 
-### Sites and Classes Detected in the 4th Partition
+### Sites and Classes in Partition 4 (Jul--Aug 2020)
 
 ```{r}
 part_data$Clusters[[4]]$DataFrame
 ```
 
-### Sites and Classes Detected in the 5th Partition vs. `r sim_result$Variant_Details[[1]]$pos %>% sort()` and `r sim_result$Variant_Details[[2]]$pos %>% sort()`
+### Sites and Classes in Partition 5 (Sep--Oct 2020) vs. Variant 1 `r sim_result$Variant_Details[[1]]$pos %>% sort()` and Variant 2 `r sim_result$Variant_Details[[2]]$pos %>% sort()`
+
+Variant 2 emerged in month 9 (Sep 2020). Both Variant 1 and Variant 2 mutation
+sites should now be detectable as high-entropy clusters.
 
 ```{r}
 part_data$Clusters[[5]]$DataFrame
 ```
 
-### Sites and Classes Detected in the 6th Partition vs. `r sim_result$Variant_Details[[1]]$pos %>% sort()` and `r sim_result$Variant_Details[[2]]$pos %>% sort()`
+### Sites and Classes in Partition 6 (Nov--Dec 2020) vs. Variant 1 `r sim_result$Variant_Details[[1]]$pos %>% sort()` and Variant 2 `r sim_result$Variant_Details[[2]]$pos %>% sort()`
 
 ```{r}
 part_data$Clusters[[6]]$DataFrame
 ```
 
-### Sites and Classes Detected in the 7th Partition vs. `r sim_result$Variant_Details[[1]]$pos %>% sort()`, `r sim_result$Variant_Details[[2]]$pos %>% sort()` and `r sim_result$Variant_Details[[3]]$pos %>% sort()`
+### Sites and Classes in Partition 7 (Jan--Feb 2021) vs. Variants 1--3
+
+Variant 3 emerged in month 14 (Jan 2021). Its mutation sites
+(`r sim_result$Variant_Details[[3]]$pos %>% sort()`) should begin appearing
+as a new elevated-entropy cluster alongside the existing variant sites.
 
 ```{r}
 part_data$Clusters[[7]]$DataFrame
 ```
 
-### Sites and Classes Detected in the 8th Partition vs. `r sim_result$Variant_Details[[1]]$pos %>% sort()`, `r sim_result$Variant_Details[[2]]$pos %>% sort()` and `r sim_result$Variant_Details[[3]]$pos %>% sort()`
+### Sites and Classes in Partition 8 (Mar--Apr 2021) vs. Variants 1--3
 
 ```{r}
 part_data$Clusters[[8]]$DataFrame
 ```
 
-### Sites and Classes Detected in the 9th Partition vs. `r sim_result$Variant_Details[[1]]$pos %>% sort()`, `r sim_result$Variant_Details[[2]]$pos %>% sort()` and `r sim_result$Variant_Details[[3]]$pos %>% sort()`
+### Sites and Classes in Partition 9 (May--Jun 2021) vs. Variants 1--3
 
 ```{r}
 part_data$Clusters[[9]]$DataFrame
 ```
 
-### Sites and Classes Detected in the 10th Partition vs. `r sim_result$Variant_Details[[1]]$pos %>% sort()`, `r sim_result$Variant_Details[[2]]$pos %>% sort()`, `r sim_result$Variant_Details[[3]]$pos %>% sort()` and `r sim_result$Variant_Details[[4]]$pos %>% sort()`
+### Sites and Classes in Partition 10 (Jul--Aug 2021) vs. Variants 1--4
+
+Variant 4 emerged in month 19 (Jul 2021). Its mutation sites
+(`r sim_result$Variant_Details[[4]]$pos %>% sort()`) add to the high-entropy
+pool. With four active variants, the entropy landscape is now complex and
+multi-modal.
 
 ```{r}
 part_data$Clusters[[10]]$DataFrame
 ```
 
-### Sites and Classes Detected in the 11th Partition vs. `r sim_result$Variant_Details[[1]]$pos %>% sort()`, `r sim_result$Variant_Details[[2]]$pos %>% sort()`, `r sim_result$Variant_Details[[3]]$pos %>% sort()` and `r sim_result$Variant_Details[[4]]$pos %>% sort()`
+### Sites and Classes in Partition 11 (Sep--Oct 2021) vs. Variants 1--4
 
 ```{r}
 part_data$Clusters[[11]]$DataFrame
 ```
 
-### Sites and Classes Detected in the 12th Partition vs. `r sim_result$Variant_Details[[1]]$pos %>% sort()`, `r sim_result$Variant_Details[[2]]$pos %>% sort()`, `r sim_result$Variant_Details[[3]]$pos %>% sort()` and `r sim_result$Variant_Details[[4]]$pos %>% sort()`
+### Sites and Classes in Partition 12 (Nov--Dec 2021) vs. Variants 1--4
+
+By the final partition all four variants have been circulating for several
+months. The highest-entropy cluster should contain a union of mutation sites
+from all four variants.
 
 ```{r}
 part_data$Clusters[[12]]$DataFrame
 ```
 
 ## Hellinger Distance (HD)
+
+The Hellinger distance quantifies the shift in amino acid distribution at each
+site between a reference time point (partition T1) and each subsequent
+partition. A distance of 0 means the distribution is identical to the
+reference; a distance approaching 1 (when normalized) means the distribution
+has changed maximally. Sites where a new variant has become prevalent will show
+large, sustained Hellinger distances after the variant's emergence partition.
+
+This is the key signal used by the change point detector: a sudden, sustained
+increase in Hellinger distance at a set of sites is the signature of a new
+variant entering the population.
 
 ### Calculate HD
 
@@ -417,45 +513,72 @@ all_sites <- seq_len(n_col)
 hellinger_mat <- calculate_hellinger_matrix(
   partitions = part_data$Partitions,
   sites      = all_sites,
-  aa_levels  = 25L   # verify
+  aa_levels  = 25L   # 25-character alphabet: 20 standard AAs + B, Z, X, *, -
 )
 ```
 
-### Examine HD Structure: `r n_col` sites × `r ncol(hellinger_mat)` partition differences
+### Examine HD Structure: `r n_col` sites x `r ncol(hellinger_mat)` partition differences
 
-Rows = sites; columns = partition differences (T2 vs T1, T3 vs T1, …).
+The matrix has one row per site and one column per partition comparison (T2
+vs T1, T3 vs T1, ..., T12 vs T1). Rows corresponding to Variant 1 mutation
+sites (`r sim_result$Variant_Details[[1]]$pos %>% sort()`) should show a
+step-change in Hellinger distance starting around column T3 (the partition
+covering Variant 1's first full window of growth).
 
 ```{r}
 dim(hellinger_mat)
 hellinger_mat
 ```
 
-### Save HD into Matrix and Transpose
+### Transpose for Change Point Detection
 
-Now we have `r ncol(hellinger_mat)` multivariate (`r n_col`-dimensional) points
-corresponding to the `r ncol(hellinger_mat)` partition differences.
+The change point algorithms expect a **time x features** matrix -- one row per
+time point, one column per site. We transpose the Hellinger matrix to obtain
+this format. Each row is now a multivariate observation: the full vector of
+Hellinger distances across all `r n_col` sites at that partition comparison.
+A change point corresponds to a partition where this vector suddenly shifts.
 
 ```{r}
 dat_mat_t <- t(hellinger_mat)
 dat_mat_t
 ```
 
-## HD Change Point Detection
+## Change Point Detection
+
+We apply three complementary Energy Change Point (ECP) methods to `dat_mat_t`.
+All three operate on the same transposed Hellinger matrix but differ in their
+algorithmic approach. A **change point** here corresponds to a partition index
+at which the multivariate Hellinger distance vector shifts significantly --
+i.e., a partition where new mutation sites suddenly become highly variable,
+indicating a new variant has entered the population.
+
+**Ground truth for comparison:** The four variants emerged at months 5, 9, 14
+and 19, which map to partition indices 3, 5, 7 and 10 respectively (using
+2-month non-overlapping windows). The correct change points in the Hellinger
+series are therefore at indices **2, 4, 6 and 9** (one step behind, since
+Hellinger at T_k measures the shift *relative to T1*, so the change appears
+one index before the partition where the variant is first detectable).
 
 ### Method 1: Dynamic Programming via `ks.cp3o`
 
+`ks.cp3o` uses dynamic programming to find the globally optimal segmentation
+up to `K` change points. It is deterministic and exact but requires specifying
+`K` (maximum number of change points) in advance. `minsize = 2` ensures each
+segment contains at least 2 time points. This method is best used when the
+approximate number of variants is known.
+
 | **Parameter** | **Description**                                                              | **Default** |
 |---------------|------------------------------------------------------------------------------|-------------|
-| `Z`           | A `T × d` matrix containing the length-`T` time series with `d` dimensions. | —           |
-| `K`           | Maximum number of change points.                                             | 1           |
-| `minsize`     | Minimum segment size.                                                        | 30          |
-| `verbose`     | Print status updates.                                                        | FALSE       |
+| `Z`           | A `T x d` matrix: `T` time points, `d` features (sites).                    | --          |
+| `K`           | Maximum number of change points to detect.                                   | 1           |
+| `minsize`     | Minimum segment length (number of time points per segment).                  | 30          |
+| `verbose`     | Print status updates during optimisation.                                    | FALSE       |
 
 ```{r}
 cp_m1 <- ks.cp3o(
   Z       = dat_mat_t,
-  K       = 11,
-  minsize = 2,
+  K       = 11,        # upper bound: at most 11 CPs in 11 partition differences
+  minsize = 2,         # each segment must span at least 2 partitions
   verbose = FALSE
 )
 
@@ -466,10 +589,14 @@ print("Other change point locations:")
 cp_m1$cpLoc
 ```
 
-### Method 2: Rolling ECP via `detect_changepoints_ecp`
+### Method 2: Expanding Window via `detect_changepoints_ecp`
 
-Same as above, but starting with the first 3 partition differences and
-expanding the window one step at a time.
+This method applies `ks.cp3o` repeatedly with an expanding window: starting
+from the first 3 partition differences and adding one time point at a time.
+It simulates a real-time surveillance scenario where data accumulates
+sequentially and you want to detect a change point as early as possible, without
+knowing how many variants will ultimately emerge. `dynamic_k = TRUE` sets `K`
+adaptively to `nrow(window) - 2` at each step.
 
 ```{r}
 lower     <- 1
@@ -478,45 +605,66 @@ timesteps <- nrow(dat_mat_t) - upper
 
 ECP_res <- detect_changepoints_ecp(
   data_matrix    = dat_mat_t,
-  min_window     = lower,
-  max_window     = upper,
-  n_timesteps    = timesteps,
-  rolling_window = FALSE,
-  dynamic_k      = TRUE,
+  min_window     = lower,      # window always starts at partition 1
+  max_window     = upper,      # initial window covers first 3 time points
+  n_timesteps    = timesteps,  # expand until all time points are included
+  rolling_window = FALSE,      # expanding (not rolling) window
+  dynamic_k      = TRUE,       # K set adaptively at each step
   minsize        = 2,
   verbose        = FALSE
 )
 
+# Collect all change point estimates across all window sizes,
+# keep those >= 1, deduplicate and sort.
 ecp_indices <- ECP_res$ECP_est_list %>%
   unlist() %>%
   .[. >= 1] %>%
   unique() %>%
   sort()
 
-print("Change points estimated by method 2:")
+print("Change points estimated by method 2 (union across all window sizes):")
 ecp_indices
 ```
 
 ### Method 3: Agglomerative Hierarchical ECP via `e.agglo` (preferred)
 
+`e.agglo` uses agglomerative hierarchical clustering on the time series to
+find change points without requiring `K` to be specified. It is the preferred
+method for exploratory analysis because it is parameter-light and tends to be
+robust to the number of variants. The `penalty = function(cps) 0` setting
+applies no regularisation, allowing the algorithm to detect as many change
+points as the data supports.
+
+The `cluster` output assigns each time point to a segment, providing an
+intuitive segmentation of the surveillance timeline that can be directly
+compared to known variant emergence periods.
+
 | **Parameter** | **Description**                                                              | **Default**  |
 |---------------|------------------------------------------------------------------------------|--------------|
-| `X`           | A `T × d` matrix containing the length-`T` time series with `d` dimensions. | —            |
-| `member`      | Initial membership vector for the time series.                               | `1:nrow(X)`  |
-| `alpha`       | Moment index used for determining distance between and within clusters.      | 1            |
-| `penalty`     | Function used to penalise the goodness-of-fit statistics.                    | —            |
+| `X`           | A `T x d` matrix: `T` time points, `d` features (sites).                    | --           |
+| `member`      | Initial segment membership vector (one integer per time point).              | `1:nrow(X)`  |
+| `alpha`       | Moment index for the energy distance metric (1 = first moment).              | 1            |
+| `penalty`     | Penalty function applied to the goodness-of-fit statistic.                   | --           |
 
 ```{r}
 cp_m3 <- e.agglo(
   X       = dat_mat_t,
-  member  = seq_len(nrow(dat_mat_t)),  # naive: no prior knowledge of partitions
+  member  = seq_len(nrow(dat_mat_t)),  # naive: treat each time point as its own segment
   alpha   = 1,
-  penalty = function(cps) { 0 }
+  penalty = function(cps) { 0 }        # no penalty: let the data drive the segmentation
 )
 
-print("Change points estimated by method 3 (naive):")
+print("Change points estimated by method 3 (naive, no penalty):")
 cp_m3$estimates
 
-print("Cluster membership per time point:")
+print("Segment membership per time point:")
 cp_m3$cluster
 ```
+
+### Comparing Methods Against Ground Truth
+
+The expected change point indices (based on variant emergence months) are
+**2, 4, 6 and 9**. All three methods should recover these, possibly with some
+additional false positives from the random deletion events. Method 3 is
+generally the most reliable for an unknown number of variants, while Method 1
+gives a cleaner result when `K` is well-specified.

@@ -41,10 +41,17 @@ Extracts country names from the sequence name strings of an
 }
 \examples{
 \dontrun{
-fasta <- Biostrings::readAAStringSet("sequences.fasta")
-result <- extract_fasta_countries(fasta, position = 2)
-print(result$countries)
-print(result$message)
+path_sample  <- system.file("extdata", "sarscov2_sample.fasta.gz",
+                             package = "ViralEntropR")
+fasta_sample <- Biostrings::readAAStringSet(path_sample)
+
+# Inspect header structure to confirm field positions
+sample(names(fasta_sample), 1)
+
+# Extract countries (position 2 = between first and second pipe)
+result <- extract_fasta_countries(fasta_sample, position = 2)
+result$message
+sort(table(result$countries), decreasing = TRUE)
 }
 
 }

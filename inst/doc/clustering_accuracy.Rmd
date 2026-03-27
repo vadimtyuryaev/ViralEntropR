@@ -1,0 +1,1806 @@
+---
+title: "Clustering Accuracy Estimation: Separating Wild-Type from Delta Variant Sequences"
+author: "Vadim Tyuryaev, Jane Heffernan, Hanna Jankowski"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    df_print: paged
+vignette: >
+  %\VignetteIndexEntry{Clustering Accuracy Estimation: Separating Wild-Type from Delta Variant Sequences}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+references:
+- id: Kaufman1990
+  type: book
+  author:
+  - family: Kaufman
+    given: Leonard
+  - family: Rousseeuw
+    given: Peter J.
+  title: "Finding Groups in Data: An Introduction to Cluster Analysis"
+  publisher: Wiley
+  issued:
+    year: 1990
+  DOI: 10.1002/9780470316801
+  
+- id: Gower1971
+  type: article-journal
+  author:
+  - family: Gower
+    given: John C.
+  title: "A General Coefficient of Similarity and Some of Its Properties"
+  container-title: Biometrics
+  volume: 27
+  issue: 4
+  page: 857-871
+  issued:
+    year: 1971
+  DOI: 10.2307/2528823
+  
+- id: Rousseeuw1987
+  type: article-journal
+  author:
+  - family: Rousseeuw
+    given: Peter J.
+  title: "Silhouettes: A Graphical Aid to the Interpretation and Validation of Cluster Analysis"
+  container-title: Journal of Computational and Applied Mathematics
+  volume: 20
+  page: 53-65
+  issued:
+    year: 1987
+  DOI: 10.1016/0377-0427(87)90125-7
+  
+- id: vanderMaaten2008
+  type: article-journal
+  author:
+  - family: van der Maaten
+    given: Laurens
+  - family: Hinton
+    given: Geoffrey
+  title: "Visualizing Data using t-SNE"
+  container-title: Journal of Machine Learning Research
+  volume: 9
+  page: 2579-2605
+  issued:
+    year: 2008
+  
+- id: Shannon1948
+  type: article-journal
+  author:
+  - family: Shannon
+    given: Claude E.
+  title: A Mathematical Theory of Communication
+  container-title: Bell System Technical Journal
+  volume: 27
+  issue: 3
+  page: 379-423
+  issued:
+    year: 1948
+  DOI: 10.1002/j.1538-7305.1948.tb01338.x
+
+- id: Peacock2021
+  type: article-journal
+  author:
+  - family: Peacock
+    given: Thomas P.
+  - family: Goldhill
+    given: Daniel H.
+  - family: Barclay
+    given: Wendy S.
+  title: The furin cleavage site of SARS-CoV-2 spike protein is a key determinant
+    for transmission due to enhanced replication in airway cells
+  container-title: Nature Microbiology
+  volume: 6
+  page: 899-909
+  issued:
+    year: 2021
+  DOI: 10.1038/s41564-021-00908-w
+
+- id: Johnson2021
+  type: article-journal
+  author:
+  - family: Johnson
+    given: Bryan A.
+  - family: Xie
+    given: Xuping
+  - family: Menachery
+    given: Vineet D.
+  title: Loss of furin cleavage site attenuates SARS-CoV-2 pathogenesis
+  container-title: Nature
+  volume: 591
+  page: 293-299
+  issued:
+    year: 2021
+  DOI: 10.1038/s41586-021-03237-4
+
+- id: Korber2020
+  type: article-journal
+  author:
+  - family: Korber
+    given: Bette
+  - family: Fischer
+    given: Will M.
+  - family: Gnanakaran
+    given: Sandrasegaram
+  title: "Tracking Changes in SARS-CoV-2 Spike: Evidence that D614G Increases
+    Infectivity of the COVID-19 Virus"
+  container-title: Cell
+  volume: 182
+  issue: 4
+  page: 812-827
+  issued:
+    year: 2020
+  DOI: 10.1016/j.cell.2020.06.043
+
+- id: McCallum2021
+  type: article-journal
+  author:
+  - family: McCallum
+    given: Matthew
+  - family: De Marco
+    given: Anna
+  - family: Walls
+    given: Alexandra C.
+  - family: Veesler
+    given: David
+  title: "N-terminal domain antigenic mapping reveals a site of vulnerability for SARS-CoV-2"
+  container-title: Cell
+  volume: 184
+  issue: 9
+  page: 2332-2347
+  issued:
+    year: 2021
+  DOI: 10.1016/j.cell.2021.03.028
+
+- id: Liu2021NTD
+  type: article-journal
+  author:
+  - family: Liu
+    given: Lihong
+  - family: Iketani
+    given: Sho
+  - family: Guo
+    given: Yicheng
+  - family: Ho
+    given: David D.
+  title: "Striking antibody evasion manifested by the Omicron variant of SARS-CoV-2"
+  container-title: Nature
+  volume: 602
+  page: 676-681
+  issued:
+    year: 2022
+  DOI: 10.1038/s41586-021-04388-0
+
+- id: Wrobel2020
+  type: article-journal
+  author:
+  - family: Wrobel
+    given: Antoni G.
+  - family: Benton
+    given: Donald J.
+  - family: Bhatt
+    given: Saket
+  title: "SARS-CoV-2 and bat RaTG13 spike glycoprotein structures inform on virus evolution and furin-cleavage effects"
+  container-title: Nature Structural and Molecular Biology
+  volume: 27
+  page: 763-767
+  issued:
+    year: 2020
+  DOI: 10.1038/s41594-020-0468-x
+
+- id: CDC2022
+  type: article-journal
+  author:
+  - literal: CDC COVID-19 Response Team
+  title: "Effectiveness of COVID-19 mRNA Vaccines Against the Delta (B.1.617.2)
+    Variant Among Adults Aged 18-64 Years --- United States, April 4--July 17, 2021"
+  container-title: "MMWR Morbidity and Mortality Weekly Report"
+  volume: 71
+  issue: 6
+  page: 209-215
+  issued:
+    year: 2022
+  DOI: 10.15585/mmwr.mm7106a4
+  URL: https://www.cdc.gov/mmwr/volumes/71/wr/mm7106a4.htm
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse  = TRUE,
+  comment   = "#>",
+  warning   = FALSE,
+  message   = FALSE,
+  fig.width = 9,
+  fig.height = 6
+)
+
+# Set working directory to package root for local knitting
+knitr::opts_knit$set(root.dir = "C:/YORK_PhD/RESEARCH/PAPERS/GitHub/ViralEntropR")
+```
+
+# Introduction
+
+Entropy-based site selection is only useful if the sites it identifies carry
+genuine biological signal. This vignette provides a rigorous empirical test:
+we take real SARS-CoV-2 Spike protein sequences from two well-separated
+surveillance windows --- **May--June 2020**, when the ancestral wild-type was
+circulating in the United States, and **July--August 2021**, when the Delta
+variant (*B.1.617.2*) was dominant --- and ask whether the sites selected by
+`cluster_sites_by_entropy()` are sufficient to recover the correct temporal
+structure when the two groups are clustered together.
+
+Several terms are used throughout this vignette and are defined here for
+clarity. A **variant of concern (VOC)** is a SARS-CoV-2 lineage designated by
+the WHO as carrying mutations with demonstrated impact on transmissibility,
+disease severity, or immune evasion. A **variant of interest (VOI)** is a
+lineage under active monitoring for potentially similar properties but without
+yet sufficient evidence for VOC designation. A **single nucleotide polymorphism (SNP)**, 
+used here in the amino acid sense, refers to a specific substitution
+at a defined Spike protein site that is characteristic of a given lineage and
+used as a defining marker in surveillance catalogues. A **Gaussian mixture model (GMM)** 
+is a probabilistic model that represents a given distribution as a
+weighted sum of Gaussian components; here it is applied to the vector of
+per-site Shannon entropies to identify sites with unusually high variability
+--- those sites form the discriminating feature set passed to the clustering
+step.
+
+The pipeline mirrors the approach used in the main detection study, but applied
+retrospectively to a known ground truth. Because we know which sequences belong
+to which period, we can evaluate clustering accuracy formally using **precision**,
+**recall** and **F1 score**, and cross-reference the discriminating sites against 
+the curated Delta SNP catalogue in `sarscov2_variants`. The dominance of the 
+Delta variant in the United States during July--August 2021 is well established
+from national surveillance data [@CDC2022].
+
+The analysis proceeds in nine steps:
+
+1. **Load and preprocess** the full NCBI Spike protein dataset, following the
+   identical pipeline described in the *Preprocessing* vignette.
+2. **Partition** US sequences into two 2-month time windows.
+3. **Select sites** via GMM entropy clustering on the combined data, achieving
+   dimensionality reduction from 1,273 sites to a compact discriminating
+   subset.
+4. **Cluster** the combined sequences using PAM with Gower distance, with the
+   optimal number of clusters determined by Silhouette analysis.
+5. **Visualise** the clustering in 2D via t-SNE, highlighting wild-type
+   sequences (black crosses) and medoid sequences (transparent red diamonds).
+6. **Evaluate** accuracy via precision, recall and F1 score across k = 2, 3, 4, 
+   and 9.
+7. **Characterise** each cluster via modal amino acid profiles, pairwise contrast 
+   analysis identifying sites that differentiate the wild-type cluster from all 
+   others, and annotating defining mutations. 
+8. **Examine borderline sequences** at k = 4 by identifying sequences assigned to 
+   wild-type cluster but falling in the visual boundary regions of the t-SNE 
+   layout and comparing their mutational profiles to cluster medoids.
+9. **Apply the pipeline at scale** to all ~109,536 available US sequences.
+
+**Positive class definition:** Period 1 (wild-type, May--June 2020) sequences
+correctly assigned to the cluster with the highest Period 1 purity.
+Precision, recall and F1 are computed for this positive class.
+
+# Libraries
+
+```{r libraries}
+library(ViralEntropR)
+library(dplyr)
+library(ggplot2)
+library(scales)       # pretty_breaks for silhouette plot
+library(cluster)      # pam(), daisy()
+library(Rtsne)        # t-SNE visualisation
+library(future.apply) # parallel PAM silhouette loop
+library(kableExtra)   # compact HTML tables
+```
+
+# Global Parameters
+
+All user-facing parameters for steps 1---8 are gathered here. Adjust `COUNTRY`,
+the two time windows, and `K_HIGHLIGHT` before re-rendering; no other chunk needs to change.
+
+```{r parameters}
+# ── User-modifiable parameters ───────────────────────────────────────────────
+
+# Data
+COUNTRY         <- "USA"          # filter to this country (NULL = all countries)
+UNIQUE_SEQS     <- TRUE           # TRUE = deduplicate sequences before PAM
+                                  # FALSE = keep all sequences (including duplicates)
+N_SITES         <- 1273L          # number of Spike protein sites
+
+# Time windows
+PERIOD1_START   <- "2020-05-01"   # Period 1: wild-type phase
+PERIOD1_END     <- "2020-07-01"
+PERIOD2_START   <- "2021-07-01"   # Period 2: Delta-dominant phase
+PERIOD2_END     <- "2021-09-01"
+
+# PAM silhouette sweep
+K_MAX           <- 40L                # maximum number of PAM clusters to evaluate
+K_HIGHLIGHT     <- c(2L, 3L, 4L, 9L)  # PAM k values to plot in detail
+
+# t-SNE parameters
+TSNE_PERPLEXITY <- 10L
+TSNE_SEED       <- 42L
+
+# Parallelism (future.apply)
+N_WORKERS       <- max(1L, parallel::detectCores() - 1L)
+```
+
+# Load Preprocessed Data
+
+The raw NCBI FASTA file is loaded and processed in a single pipeline. Dates are
+extracted from sequence headers using a two-pass regex strategy: a full `yyyy-mm-dd` 
+pass first, followed by a `yyyy-mm` pass to recover sequences with month-level
+precision only. Sequences with unresolvable dates or missing country annotations
+are removed. The remaining sequences are converted to a character matrix, filtered 
+for ambiguous amino acid codes (B, J, X, Z), integer-encoded using the 25-character
+`ViralEntropR` alphabet, and assembled into a data frame with integer site
+columns `1:N_SITES` plus `Date` and `Country` columns. Rows are sorted by date
+and the index is reset.
+
+```{r load-data}
+# -- Replace this path with your actual preprocessed data object -------------
+# AL_df <- readRDS("path/to/AL_Cat_preprocessed.rds")
+# For demonstration we load from the bundled sample -- for full results
+# use the complete preprocessed NCBI dataset.
+# ---------------------------------------------------------------------------
+
+fasta_path <- file.path("data-raw", "sequences.fasta")
+fasta      <- Biostrings::readAAStringSet(fasta_path)
+
+# --- Dates ------------------------------------------------------------------
+# Pass 1: identify sequences with year-only dates
+dates_ymd <- extract_fasta_dates(
+  fasta,
+  custom_pattern = "(?<=\\|)[0-9]{4}-(0?[1-9]|1[0-2])-(0?[1-9]|[12][0-9]|3[01]|00)"
+)
+
+# Pass 2: extract yyyy-mm, remove year-only
+dates_result <- extract_fasta_dates(
+  fasta,
+  custom_pattern = "(?<=\\|)[0-9]{4}-(0[1-9]|1[0-2])",
+  date_format    = "%Y-%m"
+)
+
+if (!is.na(dates_result$missing_id[1]) && length(dates_result$missing_id) > 0) {
+  fasta        <- fasta[-dates_result$missing_id]
+  dates_result <- extract_fasta_dates(
+    fasta,
+    custom_pattern = "(?<=\\|)[0-9]{4}-(0[1-9]|1[0-2])",
+    date_format    = "%Y-%m"
+  )
+}
+
+# --- Countries --------------------------------------------------------------
+countries_result <- extract_fasta_countries(fasta, position = 2)
+
+if (!is.na(countries_result$missing_id[1]) && length(countries_result$missing_id) > 0) {
+  fasta            <- fasta[-countries_result$missing_id]
+  countries_result <- extract_fasta_countries(fasta, position = 2)
+  dates_result     <- extract_fasta_dates(
+    fasta,
+    custom_pattern = "(?<=\\|)[0-9]{4}-(0[1-9]|1[0-2])",
+    date_format    = "%Y-%m"
+  )
+}
+
+# --- Convert, filter, encode ------------------------------------------------
+char_mat       <- fasta_to_char_matrix(fasta)
+filtered       <- filter_ambiguous_sequences(char_mat, option = 2)
+clean_char_mat <- filtered$FilteredMatrix
+deleted_rows   <- filtered$DeletedSeqId
+
+corrected_dates <- dates_result$corrected_dates[-deleted_rows]
+countries       <- countries_result$countries[-deleted_rows]
+
+int_mat <- encode_aa_sequence(clean_char_mat)
+
+# --- Assemble data frame ----------------------------------------------------
+n_sites         <- ncol(int_mat)
+AL_df           <- as.data.frame(int_mat)
+colnames(AL_df) <- as.character(seq_len(n_sites))
+AL_df[]         <- lapply(AL_df, as.integer)
+AL_df$Date      <- as.Date(format(corrected_dates, "%Y-%m-01"))
+AL_df$Country   <- countries
+AL_df           <- AL_df[order(AL_df$Date), ]
+rownames(AL_df) <- NULL
+
+sprintf("Final data frame: %d sequences x %d sites", nrow(AL_df), n_sites)
+
+```
+
+## Country Filter
+
+Restricting to a single country (`US`) reduces confounding from inter-country
+sampling biases and surveillance heterogeneity. All downstream analyses use
+`AL_df` after this filter.
+
+```{r filter-country}
+# Filter by country if specified
+if (!is.null(COUNTRY)) {
+  AL_df <- AL_df[!is.na(AL_df$Country) & AL_df$Country == COUNTRY, ]
+  sprintf("Sequences after country filter (%s): %d", COUNTRY, nrow(AL_df))
+}
+```
+
+# Step 1: Data Partitioning
+
+## Partition into Two Time Windows (Wild-Type vs Delta)
+
+We extract two non-overlapping 2-month windows: Period 1 covers the reference
+wild-type phase and Period 2 covers the Delta-dominant phase.
+
+```{r partition}
+part1 <- partition_time_windows(
+  data          = AL_df,
+  n_sites       = N_SITES,
+  window_length = 2L,
+  window_type   = 2L,          # sliding (2-month window)
+  start_date    = PERIOD1_START,
+  end_date      = PERIOD1_END,
+  verbose       = FALSE
+)
+
+part2 <- partition_time_windows(
+  data          = AL_df,
+  n_sites       = N_SITES,
+  window_length = 2L,
+  window_type   = 2L,
+  start_date    = PERIOD2_START,
+  end_date      = PERIOD2_END,
+  verbose       = FALSE
+)
+
+df_p1 <- part1$Partitions[[1]]
+df_p2 <- part2$Partitions[[1]]
+
+sprintf("Period 1 (%s to %s): %d sequences",
+        PERIOD1_START, PERIOD1_END, nrow(df_p1))
+sprintf("Period 2 (%s to %s): %d sequences",
+        PERIOD2_START, PERIOD2_END, nrow(df_p2))
+```
+
+## Per-Period Entropy Clustering
+
+```{r per-period-clusters}
+# Helper: extract highest-entropy sites from a cluster DataFrame
+top_sites <- function(clust_df) {
+  sort(clust_df[clust_df$class == max(clust_df$class), ]$sites)
+}
+
+# Period 1 top sites
+sites_p1 <- top_sites(part1$Clusters[[1]]$DataFrame)
+
+cat("Period 1 highest-entropy sites:\n")
+print(sites_p1)
+
+# Period 2 top sites
+sites_p2 <- top_sites(part2$Clusters[[1]]$DataFrame)
+
+cat("\nPeriod 2 highest-entropy sites:\n")
+print(sites_p2)
+```
+
+> **Biological note — site 681 (furin cleavage site).** Site 681 is of
+> exceptional epidemiological significance and its detection in the Period 1
+> (wild-type) entropy profile is noteworthy. Position 681 sits immediately
+> upstream of the RRAR polybasic furin cleavage site at the S1/S2 boundary,
+> a structural feature that is unique to SARS-CoV-2 among closely related
+> sarbecoviruses and was absent in SARS-CoV-1. The furin cleavage site enables
+> the Spike protein to be pre-cleaved by furin-family proteases within the
+> secretory pathway before virion release, substantially increasing the
+> efficiency of cell entry and facilitating airway tropism. This feature is
+> widely regarded as a key determinant of SARS-CoV-2's high transmissibility
+> in humans.
+> 
+> Substitutions at position 681 subsequently became defining mutations of two
+> of the most consequential VOCs: **P681H** (proline to histidine) in Alpha
+> (B.1.1.7), and **P681R** (proline to arginine) in Delta (B.1.617.2). Both
+> substitutions enhance furin cleavage efficiency, P681R more so than P681H, 
+> by altering the charge and conformation of the cleavage loop, resulting
+> in faster S1/S2 processing, more efficient membrane fusion, and increased
+> competitive fitness. The entropy signal at site 681 in the wild-type period
+> therefore reflects early, low-frequency variation at a position that was
+> already under strong positive selection pressure.
+>
+> Key references: [@Peacock2021;@Johnson2021]
+
+# Step 2: Combine Both Partitions
+
+## Analyze the Selected Sites
+
+We combine both periods and run GMM entropy clustering on the union to identify
+sites that discriminate the two time points. This achieves dimensionality
+reduction from `r N_SITES` sites to a smaller informative subset.
+
+```{r combined-gmm}
+# Combine periods -- rows are sequences, columns are sites
+df_combined           <- rbind(df_p1, df_p2)
+rownames(df_combined) <- seq_len(nrow(df_combined))
+
+# Period 1 size -- used throughout for labelling
+n_p1 <- nrow(df_p1)
+n_p2 <- nrow(df_p2)
+n_total <- nrow(df_combined)
+
+cat(sprintf("Combined: %d sequences (%d Period 1 + %d Period 2)\n",
+            n_total, n_p1, n_p2))
+
+# Entropy on site columns only
+entrp_combined <- apply(df_combined[, seq_len(N_SITES), drop = FALSE],
+                        2, calculate_entropy)
+
+clust_combined <- cluster_sites_by_entropy(entrp_combined, nr = n_total)
+clust_combined_df <- clust_combined$DataFrame
+
+selected_sites <- sort(
+  clust_combined_df[clust_combined_df$class == max(clust_combined_df$class), ]$sites
+)
+
+cat(sprintf("\nGMM selected %d sites from combined data:\n",
+            length(selected_sites)))
+print(selected_sites)
+```
+
+## Cross-Reference with Known Variant Sites
+
+```{r cross-reference}
+# ── Helper: pull SNP catalogue for a named variant ──────────────────────────
+get_variant_snps <- function(label) {
+  idx   <- which(unlist(sarscov2_variants$WHO_Label) == label)
+  sites <- sarscov2_variants$Defining_SNP_Sites[[idx]]
+  snps  <- sarscov2_variants$Defining_SNPs[[idx]]
+  list(label = label, sites = sites, snps = snps)
+}
+
+# Retrieve catalogues for the four VOCs of interest
+var_delta <- get_variant_snps("Delta")
+var_alpha <- get_variant_snps("Alpha")
+var_beta  <- get_variant_snps("Beta")
+var_gamma <- get_variant_snps("Gamma")
+
+# Convenience aliases (used throughout downstream chunks)
+delta_sites <- var_delta$sites;  delta_snps <- var_delta$snps
+alpha_sites <- var_alpha$sites;  alpha_snps <- var_alpha$snps
+beta_sites  <- var_beta$sites;   beta_snps  <- var_beta$snps
+gamma_sites <- var_gamma$sites;  gamma_snps <- var_gamma$snps
+
+# ── Print SNP tables ─────────────────────────────────────────────────────────
+for (v in list(var_delta, var_alpha, var_beta, var_gamma)) {
+  cat(sprintf("\n%s defining SNP sites:\n", v$label))
+  print(data.frame(SNP = v$snps, Site = v$sites))
+}
+
+# ── Overlap with GMM-selected sites ─────────────────────────────────────────
+overlap_list <- lapply(list(var_delta, var_alpha, var_beta, var_gamma),
+                       function(v) intersect(selected_sites, v$sites))
+names(overlap_list) <- c("Delta", "Alpha", "Beta", "Gamma")
+
+# Keep Delta overlap as scalar for backward compatibility
+overlap <- overlap_list[["Delta"]]
+
+# voc_list defined here so it is available to all downstream chunks
+# (delta-flag, pam-and-plots, mode-profile, contrast-gmm)
+voc_list <- list(Delta = var_delta, Alpha = var_alpha,
+                 Beta  = var_beta,  Gamma = var_gamma)
+
+cat("\nGMM-selected sites overlapping with VOC defining SNP sites:\n")
+for (nm in names(overlap_list)) {
+  ov <- overlap_list[[nm]]
+  cat(sprintf("  %-6s: %s\n",
+              nm,
+              if (length(ov) > 0) paste(ov, collapse = ", ") else "none"))
+}
+
+# ── Note on shared mutations across VOCs ─────────────────────────────────────
+# Identify sites present in the SNP catalogues of more than one VOC
+all_voc_sites <- lapply(voc_list, function(v) v$sites)
+site_freq     <- table(unlist(all_voc_sites))
+shared_sites  <- as.integer(names(site_freq[site_freq > 1L]))
+
+cat("\nSites shared by more than one VOC catalogue:\n")
+for (s in sort(shared_sites)) {
+  vocs_with_site <- names(voc_list)[
+    vapply(voc_list, function(v) s %in% v$sites, logical(1L))
+  ]
+  # Collect the actual SNP names at this site for each VOC
+  snp_labels <- vapply(vocs_with_site, function(vn) {
+    v   <- voc_list[[vn]]
+    idx <- which(v$sites == s)
+    paste(v$snps[idx], collapse = "/")
+  }, character(1L))
+  cat(sprintf("  Site %-5d: %s\n", s,
+              paste(sprintf("%s (%s)", vocs_with_site, snp_labels),
+                    collapse = ", ")))
+}
+```
+
+> **Note on the combined dataset.** The union of the two time windows spans
+> the wild-type phase through the peak of Delta dominance, and the
+> GMM-selected sites capture mutation signatures from *all* major VOCs
+> circulating during this period. Several sites carry mutations that recur
+> independently across multiple variants, a hallmark of convergent evolution
+> under strong positive selection. For example, site 501 (N501Y) is shared
+> by Alpha, Beta and Gamma --- all three independently acquired the same
+> asparagine-to-tyrosine substitution because it enhances ACE2 receptor
+> binding affinity. Similarly, site 484 (E484K in Beta and Gamma, E484Q in
+> Delta/Kappa) is a key immune evasion site; the different amino acid outcomes
+> (K vs Q) at the same position across variants illustrate that while the
+> *site* is under selection, the *specific substitution* depends on the
+> genetic background. Site 614 (D614G) is present across virtually all VOCs
+> and was the first globally dominant mutation, increasing Spike
+> conformational stability and transmissibility [@Korber2020].
+
+# Step 3: PAM Clustering with Gower Distance
+
+Partitioning Around Medoids (PAM) is a robust clustering algorithm that
+minimises the sum of pairwise dissimilarities between each sequence and the
+medoid of its assigned cluster [@Kaufman1990]. Unlike K-Means, PAM medoids are
+actual observed sequences rather than computed centroids, making them directly
+interpretable as representative viral haplotypes.
+
+## Prepare Feature Matrix
+
+```{r prepare-pam}
+# Subset to selected sites and convert to factors (required for Gower distance)
+AL_Cat_sub <- df_combined[, as.character(selected_sites), drop = FALSE]
+AL_Cat_sub[] <- lapply(AL_Cat_sub, as.integer)
+
+if (UNIQUE_SEQS) {
+  # Deduplicate -- record original row indices for labelling
+  AL_Cat_fac    <- AL_Cat_sub %>% mutate_if(is.integer, as.factor)
+  unique_idx    <- which(!duplicated(AL_Cat_fac))
+  AL_Cat_fac    <- AL_Cat_fac[unique_idx, , drop = FALSE]
+  orig_period   <- ifelse(unique_idx <= n_p1, 1L, 2L)
+  cat(sprintf("Unique sequences: %d (from %d total)\n",
+              nrow(AL_Cat_fac), n_total))
+} else {
+  AL_Cat_fac  <- AL_Cat_sub %>% mutate_if(is.integer, as.factor)
+  orig_period <- ifelse(seq_len(n_total) <= n_p1, 1L, 2L)
+  cat(sprintf("All sequences retained: %d\n", nrow(AL_Cat_fac)))
+}
+
+n_p1_eff <- sum(orig_period == 1L)
+n_p2_eff <- sum(orig_period == 2L)
+cat(sprintf("Period 1 sequences in PAM input: %d\n", n_p1_eff))
+cat(sprintf("Period 2 sequences in PAM input: %d\n", n_p2_eff))
+```
+
+## Gower Distance Matrix
+
+Gower distance between two sequences $\mathbf{x}$ and $\mathbf{y}$ is defined
+as $d_G(\mathbf{x}, \mathbf{y}) = \frac{1}{p} \sum_{j=1}^{p} \delta_j \, s_j$,
+where $p$ is the number of sites, $\delta_j \in \{0, 1\}$ indicates whether
+site $j$ is comparable for the given pair, and $s_j$ is a site-specific
+dissimilarity score that equals $0$ when $x_j = y_j$ and $1$ otherwise for
+categorical variables such as amino acid codes [@Gower1971].
+
+```{r gower, results='hide', message=FALSE}
+gower_dist <- daisy(AL_Cat_fac, metric = "gower")
+```
+
+## Silhouette Analysis
+
+The silhouette width for sequence $i$ is defined as
+$s(i) = \frac{b(i) - a(i)}{\max\{a(i),\, b(i)\}}$, where $a(i)$ is the mean
+Gower distance from $i$ to all other sequences in its own cluster and $b(i)$
+is the mean Gower distance from $i$ to all sequences in the nearest
+neighbouring cluster; $s(i) \in [-1, 1]$, with values close to $1$ indicating
+a well-separated assignment and values close to $0$ or negative indicating
+overlap or potential misclassification [@Rousseeuw1987].
+
+We sweep k from 2 to `K_MAX` in parallel to find the optimal number of
+clusters.
+
+```{r silhouette, cache=TRUE}
+future::plan(future::multisession, workers = N_WORKERS)
+
+sil_width <- c(NA, future_sapply(2:K_MAX, function(k) {
+  pam(gower_dist, diss = TRUE, k = k)$silinfo$avg.width
+}))
+
+future::plan(future::sequential)
+
+# Silhouette plot -- grid lines, x-ticks every 5
+# Drop k=1 (undefined, NA) before plotting to avoid missing-value warnings.
+# na.rm = TRUE on geom calls provides an additional safety net.
+sil_df <- data.frame(k = seq_len(K_MAX), width = sil_width)
+sil_df <- sil_df[!is.na(sil_df$width), ]   # removes k=1 row
+
+ggplot(sil_df, aes(x = k, y = width)) +
+  geom_line(colour = "black", na.rm = TRUE) +
+  geom_point(colour = "darkorange", shape = 1, size = 2, na.rm = TRUE) +
+  geom_vline(xintercept = K_HIGHLIGHT, linetype = "dashed",
+             colour = "steelblue", alpha = 0.6) +
+  scale_x_continuous(limits       = c(2L, K_MAX),
+                     breaks        = seq(5, K_MAX, by = 5),
+                     minor_breaks  = seq(2, K_MAX, by = 1)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 6)) +
+  labs(title    = "Silhouette Analysis: Optimal Number of Clusters",
+       subtitle  = sprintf("Blue dashed lines mark k = %s (highlighted solutions)",
+                           paste(K_HIGHLIGHT, collapse = ", ")),
+       x = "Number of clusters",
+       y = "Average Silhouette Width") +
+  theme_bw() +
+  theme(panel.grid.major = element_line(colour = "grey85"),
+        panel.grid.minor = element_line(colour = "grey93"),
+        plot.title       = element_text(hjust = 0.5),
+        plot.subtitle    = element_text(hjust = 0.5, size = 9),
+        axis.title.x     = element_text(colour = "steelblue"),
+        axis.title.y     = element_text(colour = "darkorange"))
+
+optimal_k <- which.max(sil_width)
+cat(sprintf("Optimal k by silhouette: %d  (width = %.4f)\n",
+            optimal_k, max(sil_width, na.rm = TRUE)))
+```
+
+# Step 4: PAM Fitting and t-SNE Visualisation
+
+## t-SNE Embedding
+
+t-distributed Stochastic Neighbour Embedding (t-SNE) is a non-linear
+dimensionality reduction method that maps high-dimensional pairwise distances
+to a 2D layout by preserving local neighbourhood structure [@vanderMaaten2008].
+Distances in the t-SNE plot are not interpretable in absolute terms --- only
+the relative proximity of points within and between clusters carries meaning
+--- and the same Gower distance matrix is used as input for both PAM and t-SNE
+to ensure consistency between the clustering and its visualisation.
+
+To reiterate, t-SNE is run once on the Gower distance matrix and the resulting 
+2D coordinatesare reused for all k values. This ensures that spatial positions
+are identicalacross plots so that differences in cluster boundaries are directly 
+comparable.
+
+Each plot uses three visual layers:
+
+- **Coloured shapes** -- PAM cluster assignment.
+- **Black cross overlay** -- Period 1 (wild-type) sequences.
+- **Filled red diamond** -- medoid of each cluster: unlike K-Means centroids,
+  PAM medoids are actual observed sequences drawn directly from the data,
+  making them biologically interpretable centers of their cluster.
+
+```{r tsne, cache=TRUE}
+set.seed(TSNE_SEED)
+tsne_obj <- Rtsne(gower_dist, is_distance = TRUE,
+                  perplexity = TSNE_PERPLEXITY)
+
+tsne_base <- tsne_obj$Y %>%
+  as.data.frame() %>%
+  setNames(c("X", "Y")) %>%
+  mutate(period = orig_period)
+```
+
+## VOC SNP Matching Helpers
+
+The following helpers are used throughout Steps 4--8 to count and name VOC
+defining SNP matches in individual sequences. `count_snp_matches()` returns
+an integer count; `get_matched_snps()` returns the names of matched SNPs.
+These functions operate only on the `selected_sites` subset, so overlap counts
+refer to defining SNPs that were also selected by the entropy GMM.
+
+```{r delta-flag}
+# ── Helper: count how many of a variant's SNPs are present in a sequence ────
+# seq_int: named integer vector (site name -> encoded amino acid value)
+# voc:     list with $sites and $snps (from get_variant_snps())
+# Returns: integer count of matching SNP alleles
+count_snp_matches <- function(seq_int, voc) {
+  # Only consider SNP sites that are present in the selected_sites subset
+  overlap_sites <- intersect(as.character(voc$sites), names(seq_int))
+  if (length(overlap_sites) == 0L) return(0L)
+
+  expected_codes <- vapply(as.integer(overlap_sites), function(s) {
+    snp_idx <- which(voc$sites == s)
+    aa_char <- substring(voc$snps[snp_idx], nchar(voc$snps[snp_idx]))
+    as.integer(encode_aa_sequence(matrix(aa_char))[1L, 1L])
+  }, integer(1L))
+  names(expected_codes) <- overlap_sites
+
+  sum(vapply(overlap_sites, function(s) {
+    isTRUE(seq_int[[s]] == expected_codes[[s]])
+  }, logical(1L)))
+}
+
+# ── Apply to all Period 1 sequences ─────────────────────────────────────────
+# p1_rows_int: row indices into AL_Cat_int that correspond to Period 1
+p1_rows_int <- which(orig_period == 1L)
+
+# Build integer version of the deduplicated feature matrix for display/mode calc
+AL_Cat_int <- AL_Cat_fac %>%
+  mutate_if(is.factor, function(x) as.integer(as.character(x)))
+
+# Convert to named integer matrix for fast row-wise access
+AL_Cat_int_mat <- as.matrix(AL_Cat_int)
+colnames(AL_Cat_int_mat) <- colnames(AL_Cat_int)
+
+# voc_list <- list(Delta = var_delta, Alpha = var_alpha,
+#                  Beta  = var_beta,  Gamma = var_gamma)
+
+# match_counts: matrix [n_p1_int x 4] -- SNP match count per Period 1 sequence
+match_counts <- do.call(cbind, lapply(voc_list, function(voc) {
+  vapply(p1_rows_int, function(r) {
+    count_snp_matches(AL_Cat_int_mat[r, ], voc)
+  }, integer(1L))
+}))
+rownames(match_counts) <- p1_rows_int
+
+# ── Helper: return names of matched SNPs (not just count) ───────────────────
+get_matched_snps <- function(seq_int, voc) {
+  overlap_sites <- intersect(as.character(voc$sites), names(seq_int))
+  if (length(overlap_sites) == 0L) return(character(0L))
+  vapply(overlap_sites, function(s) {
+    snp_idx   <- which(voc$sites == as.integer(s))
+    aa_char   <- substring(voc$snps[snp_idx], nchar(voc$snps[snp_idx]))
+    exp_code  <- as.integer(encode_aa_sequence(matrix(aa_char))[1L, 1L])
+    if (isTRUE(seq_int[[s]] == exp_code)) voc$snps[snp_idx] else NA_character_
+  }, character(1L)) |> (\(x) x[!is.na(x)])()
+}
+
+# ── Summary table with SNP detail ───────────────────────────────────────────
+cat("Period 1 sequences by number of VOC SNP matches\n")
+cat("(only SNPs at GMM-selected sites are considered)\n\n")
+
+for (voc_nm in names(voc_list)) {
+  voc         <- voc_list[[voc_nm]]
+  n_overlap   <- length(intersect(as.character(voc$sites),
+                                  as.character(selected_sites)))
+  counts      <- match_counts[, voc_nm]
+  cat(sprintf("%s  (%d defining SNPs, %d overlap with selected sites):\n",
+              voc_nm, length(voc$sites), n_overlap))
+  if (n_overlap == 0L) {
+    cat("  No overlap with GMM-selected sites -- skip.\n\n")
+    next
+  }
+  for (m in seq(n_overlap, 0L)) {
+    seq_idx <- which(counts == m)
+    if (length(seq_idx) == 0L && m < n_overlap) next
+    cat(sprintf("  %d/%d SNP match(es): %d sequence(s)",
+                m, n_overlap, length(seq_idx)))
+    if (m > 0L && length(seq_idx) > 0L) {
+      # Collect matched SNP names for each sequence at this tier
+      snp_sets <- lapply(p1_rows_int[seq_idx], function(r) {
+        get_matched_snps(AL_Cat_int_mat[r, ], voc)
+      })
+      # Unique SNP patterns
+      snp_patterns <- sort(unique(vapply(snp_sets,
+                                         paste, character(1L), collapse = "+")))
+      cat(sprintf("  [SNP pattern(s): %s]", paste(snp_patterns, collapse = " | ")))
+    }
+    cat("\n")
+  }
+  cat("\n")
+}
+
+```
+
+## t-SNE Plot Function
+
+A reusable helper that renders the t-SNE embedding coloured by PAM cluster
+assignment. Three visual layers are overlaid: cluster-coloured points,
+black crosses for Period 1 sequences, and red diamonds for cluster medoids.
+
+```{r plot-function}
+# Reusable plot function: takes PAM clustering vector and medoid row indices,
+# produces a t-SNE plot with three visual layers:
+#   1. Coloured shapes by cluster
+#   2. Black cross overlay for Period 1 (wild-type) sequences
+#   3. Filled red diamond for each cluster medoid
+plot_tsne <- function(pam_clust, k, medoid_rows,
+                      tsne_df    = tsne_base,
+                      period_vec = orig_period,
+                      xlim_fixed = NULL,
+                      ylim_fixed = NULL) {
+
+  df <- tsne_df %>%
+    mutate(cluster   = factor(pam_clust),
+           is_p1     = (period_vec == 1L),
+           is_medoid = row_number() %in% medoid_rows)
+
+  p <- ggplot(df, aes(x = X, y = Y, colour = cluster, shape = cluster)) +
+    geom_point(size = 2, alpha = 0.7) +
+    scale_shape_manual(values = seq(0, k)) +
+    # Black cross overlay for all Period 1 sequences
+    geom_point(data         = subset(df, is_p1),
+               aes(x = X, y = Y),
+               colour       = "black", shape = 4, size = 2,
+               inherit.aes  = FALSE) +
+    # Semi-transparent red diamond: alpha reveals the medoid is a real data point.
+    geom_point(data         = subset(df, is_medoid),
+               aes(x = X, y = Y),
+               colour       = "red", shape = 18, size = 5,
+               alpha        = 0.45,
+               inherit.aes  = FALSE) +
+    labs(title    = sprintf("PAM k = %d  |  t-SNE visualisation", k),
+         subtitle = "Crosses = Period 1 (wild-type);  Red diamonds = cluster medoids",
+         x = "t-SNE dimension 1",
+         y = "t-SNE dimension 2") +
+    theme_bw() +
+    theme(plot.title    = element_text(hjust = 0.5),
+          plot.subtitle = element_text(hjust = 0.5, size = 9))
+
+  # Apply fixed axis ranges if supplied -- ensures identical plot area across
+  # all k values regardless of legend size differences
+  if (!is.null(xlim_fixed) && !is.null(ylim_fixed))
+    p <- p + coord_cartesian(xlim = xlim_fixed, ylim = ylim_fixed)
+
+  print(p)
+  invisible(p)
+}
+```
+
+## PAM and Medoid Analysis
+
+```{r pam-and-plots, results="asis"}
+# Helper: render kableExtra table in results='asis' chunks inside loops
+kt <- function(tbl) cat(as.character(tbl), "\n")
+# Fit PAM for all highlighted k values
+pam_fits <- lapply(K_HIGHLIGHT, function(k) {
+  pam(gower_dist, diss = TRUE, k = k)
+})
+names(pam_fits) <- paste0("k", K_HIGHLIGHT)
+
+# Precompute fixed axis ranges from the common t-SNE coordinates so that all
+# plots have an identical data area regardless of legend size differences.
+x_pad    <- diff(range(tsne_base$X)) * 0.05
+y_pad    <- diff(range(tsne_base$Y)) * 0.05
+xlim_fix <- range(tsne_base$X) + c(-x_pad, x_pad)
+ylim_fix <- range(tsne_base$Y) + c(-y_pad, y_pad)
+
+for (k in K_HIGHLIGHT) {
+  fit         <- pam_fits[[paste0("k", k)]]
+  medoid_rows <- fit$id.med
+
+  # ── Subsection heading ──────────────────────────────────────────────────
+  cat(sprintf("\n## PAM k = %d\n\n### t-SNE Plot\n\n", k))
+
+  # ── Plot ─────────────────────────────────────────────────────────────────
+  plot_tsne(fit$clustering, k, medoid_rows,
+            xlim_fixed = xlim_fix, ylim_fixed = ylim_fix)
+
+  # ── Medoid sequences kable ───────────────────────────────────────────────
+  cat(sprintf("\n### Medoid Sequences (k = %d)\n\n", k))
+  medoid_aa <- decode_aa_sequence(
+    as.matrix(AL_Cat_int[medoid_rows, , drop = FALSE])
+  )
+  medoid_df           <- as.data.frame(medoid_aa)
+  colnames(medoid_df) <- as.character(selected_sites)
+  rownames(medoid_df) <- paste0("cl_", seq_len(k))
+
+  # Red cell_spec wherever cl_i (i > 1) differs from cl_1 at that site.
+  # Direct [row, col_name] access -- avoids any as.character(df[row,]) pitfalls.
+  if (k > 1L) {
+    for (ri in 2L:k) {
+      for (nm in colnames(medoid_df)) {
+        v1 <- medoid_df[1L, nm]; vi <- medoid_df[ri, nm]
+        if (vi != v1)
+          medoid_df[ri, nm] <- cell_spec(vi, format = "html",
+                                         color = "red", bold = TRUE)
+      }
+    }
+  }
+
+  kt(
+    kbl(medoid_df, format = "html", escape = FALSE,
+        caption = sprintf("Medoid sequences (k = %d) | red = differs from cl_1", k)) |>
+      kable_styling(bootstrap_options = c("condensed", "hover"),
+                    font_size = 11, full_width = FALSE) |>
+      row_spec(1L, background = "#d6eaf8")
+  )
+
+  # ── VOC SNP content kable ────────────────────────────────────────────────
+  cat(sprintf("\n### VOC SNP Content of Medoids (k = %d)\n\n", k))
+
+  voc_tbl <- do.call(rbind, lapply(seq_len(k), function(cl_i) {
+    row_i <- medoid_rows[cl_i]
+    vapply(names(voc_list), function(voc_nm) {
+      voc   <- voc_list[[voc_nm]]
+      n_ov  <- length(intersect(as.character(voc$sites),
+                                as.character(selected_sites)))
+      n_m   <- count_snp_matches(AL_Cat_int_mat[row_i, ], voc)
+      sprintf("%d / %d", n_m, n_ov)
+    }, character(1L))
+  }))
+  voc_tbl           <- as.data.frame(voc_tbl)
+  rownames(voc_tbl) <- paste0("cl_", seq_len(k))
+
+  kt(
+    kbl(voc_tbl, format = "html",
+        caption = sprintf("VOC SNP matches per medoid (matched / overlap sites), k = %d", k)) |>
+      kable_styling(bootstrap_options = c("condensed", "hover"),
+                    font_size = 11, full_width = FALSE)
+  )
+  cat("\n")
+}
+```
+
+# Step 5: Modal Amino Acid Profile per Cluster
+
+For each k value, we compute the most frequent (modal) amino acid at each
+GMM-selected site within each cluster. This reveals the characteristic sequence
+signature of each temporal group and allows direct comparison with the medoid.
+The mode matrices computed here are also used by the contrast analysis in Step 7.
+
+```{r mode-profile, results="asis"}
+get_mode <- function(x) { ux <- unique(x); ux[which.max(tabulate(match(x, ux)))] }
+
+# Store mode matrices for Step 7 contrast analysis.
+mode_results <- list()
+
+for (k in K_HIGHLIGHT) {
+  fit         <- pam_fits[[paste0("k", k)]]
+  clust_vec   <- fit$clustering
+  medoid_rows <- fit$id.med
+  k_levels    <- sort(unique(clust_vec))
+
+  mode_mat <- do.call(rbind, lapply(k_levels, function(cl) {
+    rows <- which(clust_vec == cl)
+    vapply(colnames(AL_Cat_int), function(s) get_mode(AL_Cat_int[rows, s]),
+           integer(1L))
+  }))
+  rownames(mode_mat) <- paste0("cl_", k_levels)
+  colnames(mode_mat) <- colnames(AL_Cat_int)
+
+  mode_aa           <- decode_aa_sequence(as.matrix(mode_mat))
+  rownames(mode_aa) <- paste0("cl_", k_levels)
+  colnames(mode_aa) <- as.character(selected_sites)
+
+  medoid_int          <- as.matrix(AL_Cat_int[medoid_rows, , drop = FALSE])
+  medoid_aa           <- decode_aa_sequence(medoid_int)
+  rownames(medoid_aa) <- paste0("med_", k_levels)
+  colnames(medoid_aa) <- as.character(selected_sites)
+
+  mode_results[[paste0("k", k)]] <- list(
+    mode_int  = mode_mat, k_levels = k_levels, clust_vec = clust_vec)
+
+  same_flag <- all(mode_mat == medoid_int)
+  obs_note  <- if (same_flag)
+    sprintf("**Mode = Medoid for all clusters (k = %d): tight cohesion confirmed.**", k)
+  else {
+    diff_s <- which(apply(mode_mat != medoid_int, 2, any))
+    sprintf("**Sites where mode differs from medoid (k = %d): %s**",
+            k, paste(selected_sites[diff_s], collapse = ", "))
+  }
+
+  cat(sprintf("\n### k = %d\n\n%s\n\n", k, obs_note))
+
+  # Build combined df with cell_spec red highlighting where mode != medoid
+  combined_df <- as.data.frame(rbind(mode_aa, medoid_aa), stringsAsFactors = FALSE)
+  n_cl <- length(k_levels)
+  for (col_i in seq_along(selected_sites)) {
+    col_nm <- as.character(selected_sites[col_i])
+    for (ci in seq_along(k_levels)) {
+      mv <- mode_aa[ci, col_i]; dv <- medoid_aa[ci, col_i]
+      if (mv != dv) {
+        combined_df[ci,        col_nm] <- cell_spec(mv, color="red", bold=TRUE)
+        combined_df[n_cl + ci, col_nm] <- cell_spec(dv, color="red", bold=TRUE)
+      }
+    }
+  }
+
+  kt(
+    kbl(combined_df, format="html", escape=FALSE,
+        caption=sprintf("Mode (cl_* = blue) / Medoid (med_* = yellow) | red = differs  [k=%d]", k)) |>
+      kable_styling(bootstrap_options=c("condensed","hover"), font_size=11, full_width=FALSE) |>
+      row_spec(seq_len(n_cl),           background="#d6eaf8") |>
+      row_spec(seq(n_cl+1L, n_cl*2L),   background="#fef9e7")
+  )
+  cat("\n")
+}
+```
+
+> **Observation.** Across k = 2, 3 and 4, the modal amino acid at every
+> selected site within each cluster coincides exactly with the PAM medoid
+> sequence. This agreement confirms that each cluster is internally
+> homogeneous: the most centrally located sequence in Gower space is also the
+> most frequent sequence at every position, which is precisely what one expects
+> from a viral population dominated by a single emergent haplotype. At k = 9
+> the correspondence is no longer exact at every site, reflecting the finer
+> subdivision of sequence space into smaller, less internally uniform clusters.
+> The overall mutational profile of each medoid nonetheless remains intact,
+> indicating that the core variant signal is preserved even as the clustering
+> resolution increases.
+
+# Step 6: Precision, Recall and F1 Score
+
+For each k value tested (2, 3, 4 and 9), we compute classification metrics
+treating Period 1 sequences as the positive class. Since PAM cluster labels are
+arbitrary integers, we first identify the cluster with the highest Period 1
+purity and designate that as the predicted positive label.
+
+```{r metrics}
+compute_metrics <- function(clust_vec, period_vec, n_p1_eff) {
+  p1_idx <- which(period_vec == 1L)
+  cl_purity <- tapply(clust_vec[p1_idx], clust_vec[p1_idx], length)
+  positive_cluster <- as.integer(names(which.max(cl_purity)))
+  pred_positive <- clust_vec == positive_cluster
+  true_positive <- period_vec == 1L
+  TP <- sum( pred_positive &  true_positive)
+  FP <- sum( pred_positive & !true_positive)
+  FN <- sum(!pred_positive &  true_positive)
+  TN <- sum(!pred_positive & !true_positive)
+  precision <- if ((TP + FP) > 0) TP / (TP + FP) else NA_real_
+  recall    <- if ((TP + FN) > 0) TP / (TP + FN) else NA_real_
+  f1        <- if (!is.na(precision) && !is.na(recall) && (precision + recall) > 0)
+               2 * precision * recall / (precision + recall) else NA_real_
+  list(k = length(unique(clust_vec)), positive_cluster = positive_cluster,
+       TP = TP, FP = FP, FN = FN, TN = TN,
+       precision = round(precision, 4), recall = round(recall, 4),
+       f1 = round(f1, 4))
+}
+
+metrics_list <- lapply(K_HIGHLIGHT, function(k) {
+  compute_metrics(pam_fits[[paste0("k", k)]]$clustering, orig_period, n_p1_eff)
+})
+metrics_df <- do.call(rbind, lapply(metrics_list, as.data.frame))
+print(metrics_df)
+```
+
+> **On the interplay between statistical optimality and biological knowledge.**
+> The silhouette analysis provides a useful unsupervised criterion for cluster
+> compactness and separation. It correctly identifies k = 2 as the most
+> statistically compact solution. However, k = 2 conflates all non-ancestral
+> variants into a single cluster, obscuring the variant-level structure that
+> is biologically meaningful. As k increases to 3 and 4, F1 scores improve
+> and individual VOC-associated clusters become identifiable, which is confirmed
+> visually through t-SNE, quantitatively through the medoid SNP content
+> tables, and formally through precision and recall. Practitioners working
+> with biological sequence data should treat silhouette analysis as a starting
+> point, not a definitive criterion: statistical optimality and biological
+> interpretability need not coincide. Selecting k requires integrating three 
+> complementary sources of evidence: the silhouette curve, visual inspection of 
+> the t-SNE layout, and domain knowledge. No single criterion is sufficient on 
+> its own.
+
+# Step 7: Site Differentiation — Wild-Type Cluster vs Later Clusters
+
+Using the mode matrices computed in Step 5, we ask: at which Spike sites does
+the modal amino acid in each non-wild-type cluster differ from that of the
+wild-type cluster?
+
+A site flagged across multiple k values and multiple non-wild-type clusters is
+a robust, reproducible differentiator. The ranked frequency table below counts
+how many of the `r sum(vapply(K_HIGHLIGHT, function(k) length(unique(pam_fits[[paste0("k",k)]]$clustering))-1L, integer(1L)))` total (k, cluster) comparisons flag each site,
+and annotates each site with its VOC SNP membership where applicable [@Korber2020;@CDC2022].
+
+## Annotation helper
+
+```{r site-annotation-helper}
+# annotate_site_full(s): compact VOC annotation for Spike site s.
+# Uses ALL 12 variants in sarscov2_variants (not just the 4 in voc_list).
+# Distinguishes:
+#   "VOC-SNP"  = site is a defining SNP for that VOC (Defining_SNP_Sites)
+#   "VOC"      = site is mutated in that VOC but is NOT a defining SNP
+#   ""         = not found in any VOC catalogue
+# Examples: 452 -> "Alpha/Delta/Epsilon/Iota/Kappa-SNP"
+#            95 -> "Delta/Iota/Kappa/Omicron"
+#           190 -> "Gamma-SNP; Iota"
+annotate_site_full <- function(s) {
+  labels    <- unlist(sarscov2_variants$WHO_Label)
+  snp_sites <- sarscov2_variants$Defining_SNP_Sites
+  mut_sites <- sarscov2_variants$Mutation_Sites
+  snp_vocs  <- labels[vapply(snp_sites, function(ss) s %in% ss, logical(1L))]
+  mut_only  <- setdiff(labels[vapply(mut_sites, function(ms) s %in% ms, logical(1L))],
+                       snp_vocs)
+  parts <- c(
+    if (length(snp_vocs) > 0L) paste0(paste(snp_vocs, collapse = "/"), "-SNP"),
+    if (length(mut_only)  > 0L) paste(mut_only, collapse = "/"))
+  if (length(parts) == 0L) "" else paste(parts, collapse = "; ")
+}
+```
+
+## Contrasts calculation
+
+```{r contrast-gmm, results="asis"}
+max_possible <- sum(vapply(K_HIGHLIGHT, function(k) {
+  length(unique(pam_fits[[paste0("k", k)]]$clustering)) - 1L
+}, integer(1L)))
+
+site_diff_counts <- integer(length(selected_sites))
+names(site_diff_counts) <- as.character(selected_sites)
+contrast_rows <- list()
+
+for (k in K_HIGHLIGHT) {
+  mr        <- mode_results[[paste0("k", k)]]
+  clust_vec <- mr$clust_vec
+  k_levels  <- mr$k_levels
+  mode_int  <- mr$mode_int
+
+  p1_idx <- which(orig_period == 1L)
+  purity <- tapply(clust_vec[p1_idx], clust_vec[p1_idx], length)
+  wt_cl  <- as.integer(names(which.max(purity)))
+  wt_row <- which(k_levels == wt_cl)
+
+  for (cl in k_levels[k_levels != wt_cl]) {
+    cl_row        <- which(k_levels == cl)
+    diff_vec      <- mode_int[cl_row, ] != mode_int[wt_row, ]
+    diff_sites_cl <- selected_sites[diff_vec]
+
+    site_diff_counts[as.character(diff_sites_cl)] <-
+      site_diff_counts[as.character(diff_sites_cl)] + 1L
+
+    voc_str <- if (length(diff_sites_cl) > 0L)
+      vapply(diff_sites_cl, annotate_site_full, character(1L))
+    else character(0L)
+
+    contrast_rows[[length(contrast_rows)+1L]] <- data.frame(
+      k=k, wt=wt_cl, vs=cl, n=length(diff_sites_cl),
+      sites = if (length(diff_sites_cl)>0L) paste(diff_sites_cl, collapse=", ") else "-",
+      VOC   = if (length(diff_sites_cl)>0L)
+        paste(sprintf("%s[%s]", diff_sites_cl, voc_str), collapse=", ") else "-",
+      stringsAsFactors=FALSE)
+  }
+}
+
+# Ranked frequency table
+freq_df <- data.frame(
+  Site = as.integer(names(site_diff_counts)),
+  Freq = as.integer(site_diff_counts),
+  Pct  = round(100 * site_diff_counts / max_possible, 1),
+  stringsAsFactors = FALSE)
+freq_df <- freq_df[freq_df$Freq > 0L, ]
+if (nrow(freq_df) > 0L) {
+  freq_df <- freq_df[order(-freq_df$Freq), ]
+  freq_df$VOC <- vapply(freq_df$Site, annotate_site_full, character(1L))
+  cat(sprintf("\n**Site differentiation across all %d (k, cluster) comparisons:**\n\n",
+              max_possible))
+  kt(
+    kbl(freq_df, format="html",
+        col.names=c("Site","Freq",sprintf("%% of %d comparisons", max_possible),"VOC"),
+        caption="Sites ranked by differentiation frequency (wild-type vs other clusters)") |>
+      kable_styling(bootstrap_options=c("condensed","hover","striped"),
+                    font_size=11, full_width=FALSE) |>
+      column_spec(3,
+        color = ifelse(freq_df$Pct >= 50, "darkred", "black"),
+        bold  = freq_df$Pct >= 50)
+  )
+  cat("\n")
+} else {
+  cat("\n*No differentiating sites found (all clusters share the same modal residues).*\n\n")
+}
+
+# Per-k breakdown
+if (length(contrast_rows) > 0L) {
+  contrast_df <- do.call(rbind, contrast_rows)
+  cat("\n**Per-(k, cluster) breakdown:**\n\n")
+  kt(
+    kbl(contrast_df, format="html",
+        caption="Differentiating sites: wild-type cluster vs each other cluster") |>
+      kable_styling(bootstrap_options=c("condensed","hover"), font_size=11, full_width=FALSE)
+  )
+}
+```
+
+## Biological Interpretation of Key Differentiating Sites
+
+> The tables above reveal sites that consistently differentiate the wild-type
+> cluster from all others across multiple k values. Beyond the expected
+> VOC-defining SNP sites --- D614G (site 614, present in virtually all VOCs
+> [@Korber2020]), sites 452, 478, 501 and 681 --- the analysis flags two
+> clusters of NTD residues whose significance is not immediately apparent from
+> VOC catalogues alone.
+>
+> **Site 190 -- NTD allosteric control node.** Residue N188 and nearby NTD
+> residues including position 190 show large state-dependent interaction energy
+> changes with S2 residues that regulate RBD opening, indicating an allosteric
+> control node modulating the closed-to-open transition of the Spike trimer
+> [@Wrobel2020]. Substitutions here can alter the open/closed equilibrium,
+> influencing ACE2 engagement and antibody accessibility without residing
+> within the receptor-binding motif itself.
+>
+> **Sites 141--158 -- NTD antigenic supersite and immune-escape module.**
+> Residues 140--150 form the N-terminal half of the NTD antigenic supersite
+> loop, while residues 152, 153, 155, 157 and 158 form a single exposed loop
+> functioning as an immune-escape module, heavily targeted by NTD-directed
+> neutralising antibodies [@McCallum2021]. Deletions and substitutions in
+> 141--158 arise repeatedly under immune pressure, remodel the supersite
+> conformation, and confer resistance to NTD-directed antibodies while leaving
+> ACE2 binding largely intact [@Liu2021NTD]. Their recurrent selection across
+> Alpha, Beta, Gamma and Delta is a hallmark of convergent immune-escape
+> evolution. Crucially, these sites were identified here by entropy alone ---
+> no prior annotation was used.
+
+# Step 8: Borderline Period 1 Sequences
+
+PAM assigns each sequence to its nearest medoid by Gower distance, so no
+wild-type-cluster sequence can be strictly closer to a foreign medoid in Gower
+space --- that is the definition of cluster membership. However, the t-SNE
+projection reveals that some cluster-1 sequences sit visually close to the
+territory of neighbouring clusters in 2D. These sequences are not misclassified
+in Gower space, but their position in the t-SNE layout suggests they occupy an
+intermediate region of sequence space, making them biologically interesting
+candidates for closer inspection. We identify them by hardcoded coordinate
+regions derived from direct visual inspection of the k = 4 t-SNE plot.
+
+```{r borderline, results="asis"}
+# Borderline analysis for k=4 only. Boundary regions from visual inspection:
+#   Region A: X > 15  AND  Y <= 0          (right border, near cluster 2)
+#   Region B: X > -10 AND  X < 10  AND  Y < -10  (center bottom border, clusters 3/4)
+# Applies to ALL cluster-1 sequences regardless of time period.
+
+k         <- 4L
+fit       <- pam_fits[[paste0("k", k)]]
+clust_vec <- fit$clustering
+med_rows  <- fit$id.med
+
+wt_cl       <- 1L
+foreign_cls <- setdiff(sort(unique(clust_vec)), wt_cl)
+wt_rows     <- which(clust_vec == wt_cl)
+
+cat(sprintf("\n### k = %d  (wild-type = cluster %d)\n\n", k, wt_cl))
+
+# Apply coordinate filter
+region_A <- tsne_base$X[wt_rows] > 15  & tsne_base$Y[wt_rows] <= 0
+region_B <- tsne_base$X[wt_rows] > -10 & tsne_base$X[wt_rows] < 10 &
+            tsne_base$Y[wt_rows] < -10
+is_bl   <- region_A | region_B
+bl_rows <- wt_rows[is_bl]
+
+cat(sprintf("%d wt-cluster sequences fall in the boundary t-SNE region(s).\n\n",
+            length(bl_rows)))
+
+if (length(bl_rows) == 0L) {
+  cat("*No sequences in the defined boundary regions.*\n\n")
+} else {
+
+  # t-SNE distances to own and nearest foreign medoid
+  wt_med_x <- tsne_base$X[med_rows[wt_cl]]
+  wt_med_y <- tsne_base$Y[med_rows[wt_cl]]
+  d_own    <- sqrt((tsne_base$X[bl_rows] - wt_med_x)^2 +
+                   (tsne_base$Y[bl_rows] - wt_med_y)^2)
+
+  fgn_dist_mat <- vapply(foreign_cls, function(cl) {
+    fx <- tsne_base$X[med_rows[cl]]; fy <- tsne_base$Y[med_rows[cl]]
+    sqrt((tsne_base$X[bl_rows] - fx)^2 + (tsne_base$Y[bl_rows] - fy)^2)
+  }, numeric(length(bl_rows)))
+
+  d_fgn  <- if (length(foreign_cls) == 1L) as.numeric(fgn_dist_mat)
+             else apply(fgn_dist_mat, 1L, min)
+  margin <- d_own - d_fgn
+
+  period_lbl <- ifelse(orig_period[bl_rows] == 1L, "P1", "P2")
+
+  dist_tbl <- data.frame(
+    global_idx = bl_rows,
+    period     = period_lbl,
+    tsne_X     = round(tsne_base$X[bl_rows], 1),
+    tsne_Y     = round(tsne_base$Y[bl_rows], 1),
+    d_own      = round(d_own,  2),
+    d_fgn      = round(d_fgn, 2),
+    margin     = round(margin, 2)
+  )
+  dist_tbl <- dist_tbl[order(dist_tbl$margin), ]
+
+  kt(
+    kbl(dist_tbl, format = "html",
+        col.names = c("Row idx", "Period", "t-SNE X", "t-SNE Y",
+                      "d(own med)", "d(nearest fgn med)", "Margin"),
+        caption = sprintf(
+          "Boundary-region wt-cluster sequences, sorted by margin [k=%d, wt=cl%d]",
+          k, wt_cl)) |>
+      kable_styling(bootstrap_options = c("condensed","hover"),
+                    font_size = 11, full_width = FALSE) |>
+      column_spec(7L,
+                  color = ifelse(dist_tbl$margin < 0, "red", "black"),
+                  bold  = dist_tbl$margin < 0)
+  )
+  cat("\n")
+
+  # VOC SNP content table
+  n_ref         <- 1L + length(foreign_cls)
+  all_rows_bl   <- c(med_rows[wt_cl], med_rows[foreign_cls], dist_tbl$global_idx)
+  row_labels_bl <- c(
+    sprintf("wt_med (cl%d)", wt_cl),
+    sprintf("fgn_med (cl%d)", foreign_cls),
+    sprintf("border[row%d] %s", dist_tbl$global_idx, dist_tbl$period)
+  )
+  voc_bl <- do.call(rbind, lapply(all_rows_bl, function(r) {
+    vapply(names(voc_list), function(voc_nm) {
+      voc  <- voc_list[[voc_nm]]
+      n_ov <- length(intersect(as.character(voc$sites),
+                               as.character(selected_sites)))
+      n_m  <- count_snp_matches(AL_Cat_int_mat[r, ], voc)
+      sprintf("%d / %d", n_m, n_ov)
+    }, character(1L))
+  }))
+  voc_bl           <- as.data.frame(voc_bl)
+  rownames(voc_bl) <- row_labels_bl
+  n_bl             <- nrow(voc_bl) - n_ref
+
+  tbl_voc <- kbl(voc_bl, format = "html",
+      caption = sprintf(
+        "VOC SNP content: wt medoid | foreign medoids | borderline sequences [k=%d]",
+        k)) |>
+    kable_styling(bootstrap_options = c("condensed","hover"),
+                  font_size = 11, full_width = FALSE) |>
+    row_spec(1L,             background = "#d6eaf8") |>
+    row_spec(seq(2L, n_ref), background = "#fef9e7")
+  if (n_bl > 0L)
+    tbl_voc <- row_spec(tbl_voc, seq(n_ref + 1L, nrow(voc_bl)),
+                        background = "#fce4ec")
+  kt(tbl_voc)
+  cat("\n")
+
+  # Sequence comparison table
+  own_med_aa <- as.data.frame(decode_aa_sequence(
+    as.matrix(AL_Cat_int[med_rows[wt_cl], , drop = FALSE])))
+  foreign_aa <- do.call(rbind, lapply(foreign_cls, function(cl)
+    as.data.frame(decode_aa_sequence(
+      as.matrix(AL_Cat_int[med_rows[cl], , drop = FALSE])))))
+  border_aa  <- as.data.frame(decode_aa_sequence(
+    as.matrix(AL_Cat_int[bl_rows, , drop = FALSE])))
+
+  compare_df <- rbind(own_med_aa, foreign_aa, border_aa)
+  colnames(compare_df) <- as.character(selected_sites)
+  rownames(compare_df) <- c(
+    sprintf("wt_med (cl%d)", wt_cl),
+    sprintf("fgn_med (cl%d)", foreign_cls),
+    sprintf("border[row%d] %s margin=%.2f",
+            dist_tbl$global_idx, dist_tbl$period, dist_tbl$margin)
+  )
+
+  out_df <- compare_df
+  for (ri in 2L:nrow(compare_df)) {
+    for (nm in colnames(compare_df)) {
+      v1 <- compare_df[1L, nm]; vi <- compare_df[ri, nm]
+      if (!is.na(vi) && vi != v1)
+        out_df[ri, nm] <- cell_spec(vi, format = "html", color = "red", bold = TRUE)
+    }
+  }
+  kt(
+    kbl(out_df, format = "html", escape = FALSE,
+        caption = sprintf(
+          "wt medoid (blue) | foreign medoids (yellow) | borderline (pink) | red = differs from wt medoid  [k=%d]",
+          k)) |>
+      kable_styling(bootstrap_options = c("condensed","hover"),
+                    font_size = 11, full_width = FALSE) |>
+      row_spec(1L,             background = "#d6eaf8") |>
+      row_spec(seq(2L, n_ref), background = "#fef9e7") |>
+      row_spec(seq(n_ref + 1L, nrow(out_df)), background = "#fce4ec")
+  )
+  cat("\n")
+}
+```
+
+# Step 9: Full-Dataset Clustering (All 109,536 Sequences)
+
+The preceding analysis was conducted on a focused two-period subset to enable
+supervised evaluation against a known ground truth. Here we apply the same
+entropy-GMM-PAM pipeline to the **complete preprocessed dataset** (`AL_df`,
+all available USA sequences across all time periods) to demonstrate that the
+algorithm achieves robust cluster separation at scale, without restricting to
+a specific surveillance window.
+
+## Site Selection on Full Dataset
+
+```{r full-gmm, cache=TRUE}
+# Entropy on all N_SITES sites across all sequences in AL_df
+entrp_full <- apply(AL_df[, seq_len(N_SITES), drop = FALSE], 2L, calculate_entropy)
+
+clust_full    <- cluster_sites_by_entropy(entrp_full, nr = nrow(AL_df))
+clust_full_rl <- relabel_entropy_classes(clust_full$DataFrame)
+
+selected_sites_full <- sort(
+  clust_full_rl[clust_full_rl$class == 1L, ]$sites
+)
+
+cat(sprintf("Full-dataset GMM selected %d sites from %d sequences:\n",
+            length(selected_sites_full), nrow(AL_df)))
+print(selected_sites_full)
+
+# Overlap with VOC defining SNP sites -- uses same get_variant_snps() as Step 2.
+# The difference vs. the two-period selected_sites is expected: entropy was
+# computed on 109k sequences with different frequency distributions, so GMM
+# selects a different (potentially overlapping) site subset.
+# Delta two-period: 5 overlap sites (19,452,478,681,950).
+# Delta full-dataset overlap depends on selected_sites_full computed above.
+overlap_full <- lapply(voc_list, function(v)
+  intersect(selected_sites_full, v$sites))
+names(overlap_full) <- names(voc_list)
+
+cat("\nGMM-selected sites overlapping with VOC defining SNP sites (full dataset):\n")
+for (nm in names(overlap_full)) {
+  ov <- overlap_full[[nm]]
+  cat(sprintf("  %-6s: %s\n", nm,
+              if (length(ov) > 0L) paste(ov, collapse = ", ") else "none"))
+}
+```
+
+## Gower Distance
+
+```{r full-gower, cache=TRUE}
+# Subset to selected sites and convert to factors
+AL_full_fac <- AL_df[, as.character(selected_sites_full), drop = FALSE]
+AL_full_fac[] <- lapply(AL_full_fac, function(x) as.factor(as.integer(x)))
+
+# Deduplicate before Gower: 109k sequences produce an infeasible distance
+# matrix (~48 GB). Unique sequences are sufficient for PAM/t-SNE and
+# dramatically reduce computation while preserving the full sequence diversity.
+full_unique_idx  <- which(!duplicated(AL_full_fac))
+AL_full_fac_uniq <- AL_full_fac[full_unique_idx, , drop = FALSE]
+
+cat(sprintf("Unique sequences for full-dataset clustering: %d (from %d total)\n",
+            nrow(AL_full_fac_uniq), nrow(AL_full_fac)))
+
+gower_dist_full <- daisy(AL_full_fac_uniq, metric = "gower")
+```
+
+## Silhouette Analysis
+
+```{r full-silhouette, cache=TRUE}
+future::plan(future::multisession, workers = N_WORKERS)
+
+sil_width_full <- c(NA, future_sapply(2:K_MAX, function(k) {
+  pam(gower_dist_full, diss = TRUE, k = k)$silinfo$avg.width
+}))
+
+future::plan(future::sequential)
+
+sil_df_full <- data.frame(k = seq_len(K_MAX), width = sil_width_full)
+sil_df_full <- sil_df_full[!is.na(sil_df_full$width), ]
+
+ggplot(sil_df_full, aes(x = k, y = width)) +
+  geom_line(colour = "black") +
+  geom_point(colour = "darkorange", shape = 1, size = 2) +
+  geom_vline(xintercept = c(6L, 7L, 9L), linetype = "dashed", colour = "steelblue", alpha = 0.6) +
+  scale_x_continuous(limits = c(2L, K_MAX),
+                     breaks = seq(5, K_MAX, by = 5),
+                     minor_breaks = seq(2, K_MAX, by = 1)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 6)) +
+  labs(title    = "Silhouette Analysis: Full Dataset (All Sequences)",
+       subtitle = "Blue dashed lines mark k = 6, 7, 9",
+       x = "Number of clusters", y = "Average Silhouette Width") +
+  theme_bw() +
+  theme(panel.grid.major  = element_line(colour = "grey85"),
+        panel.grid.minor  = element_line(colour = "grey93"),
+        plot.title        = element_text(hjust = 0.5),
+        plot.subtitle     = element_text(hjust = 0.5, size = 9),
+        axis.title.x      = element_text(colour = "steelblue"),
+        axis.title.y      = element_text(colour = "darkorange"))
+
+optimal_k_full <- which.max(sil_width_full)
+cat(sprintf("Optimal k by silhouette (full dataset): %d  (width = %.4f)\n",
+            optimal_k_full, max(sil_width_full, na.rm = TRUE)))
+```
+
+## PAM Fitting
+
+We run t-SNE once on the full Gower distance matrix and recolour by each PAM
+solution (k = 2, 3 and 7). Fixed axis ranges ensure spatial positions are
+identical across all plots.
+
+```{r full-pam, cache=TRUE}
+K_HIGHLIGHT_FULL <- c(6L, 7L, 9L)
+
+pam_fits_full <- lapply(K_HIGHLIGHT_FULL, function(k)
+  pam(gower_dist_full, diss = TRUE, k = k))
+names(pam_fits_full) <- paste0("k", K_HIGHLIGHT_FULL)
+
+for (k in K_HIGHLIGHT_FULL) {
+  cat(sprintf("k=%d cluster sizes: ", k))
+  cat(paste(table(pam_fits_full[[paste0("k",k)]]$clustering), collapse=" | "), "\n")
+}
+```
+
+## t-SNE Visualisation
+
+```{r full-tsne, cache=TRUE}
+set.seed(TSNE_SEED)
+tsne_full_obj <- Rtsne(gower_dist_full, is_distance = TRUE,
+                       perplexity = TSNE_PERPLEXITY)
+
+tsne_full_base <- as.data.frame(tsne_full_obj$Y) |>
+  setNames(c("X", "Y"))
+```
+
+```{r full-int-mat}
+# Integer matrix for medoid decoding and VOC matching (built once, reused)
+AL_full_int     <- AL_full_fac_uniq |>
+  mutate_if(is.factor, function(x) as.integer(as.character(x)))
+AL_full_int_mat <- as.matrix(AL_full_int)
+
+# VOC list for full dataset (Alpha, Beta, Delta, Gamma only)
+voc_list_full <- list(
+  Delta = get_variant_snps("Delta"),
+  Alpha = get_variant_snps("Alpha"),
+  Beta  = get_variant_snps("Beta"),
+  Gamma = get_variant_snps("Gamma")
+)
+
+# Fixed axis ranges for identical plot area across all k values
+x_pad_f    <- diff(range(tsne_full_base$X)) * 0.05
+y_pad_f    <- diff(range(tsne_full_base$Y)) * 0.05
+xlim_fix_f <- range(tsne_full_base$X) + c(-x_pad_f,  x_pad_f)
+ylim_fix_f <- range(tsne_full_base$Y) + c(-y_pad_f,  y_pad_f)
+```
+
+```{r full-plots, results="asis"}
+for (k in K_HIGHLIGHT_FULL) {
+  fit_f      <- pam_fits_full[[paste0("k", k)]]
+  med_f      <- fit_f$id.med
+  cl_sizes_f <- as.integer(table(fit_f$clustering))
+
+  # ── t-SNE plot ─────────────────────────────────────────────────────────────
+  cat(sprintf("\n## Full Dataset PAM k = %d\n\n### t-SNE Plot\n\n", k))
+
+  df_f <- tsne_full_base |>
+    mutate(cluster   = factor(fit_f$clustering),
+           is_medoid = row_number() %in% med_f)
+
+  p_f <- ggplot(df_f, aes(x = X, y = Y, colour = cluster, shape = cluster)) +
+    geom_point(size = 1.5, alpha = 0.5) +
+    scale_shape_manual(values = seq(0, k)) +
+    geom_point(data        = subset(df_f, is_medoid),
+               aes(x = X, y = Y),
+               colour      = "red", shape = 18, size = 5, alpha = 0.45,
+               inherit.aes = FALSE) +
+    coord_cartesian(xlim = xlim_fix_f, ylim = ylim_fix_f) +
+    labs(title    = sprintf("PAM k = %d | Full Dataset t-SNE", k),
+         subtitle = sprintf("Unique sequences: %d | Red diamonds = cluster medoids",
+                            nrow(AL_full_fac_uniq)),
+         x = "t-SNE dimension 1", y = "t-SNE dimension 2") +
+    theme_bw() +
+    theme(plot.title    = element_text(hjust = 0.5),
+          plot.subtitle = element_text(hjust = 0.5, size = 9))
+  print(p_f)
+
+  # ── Medoid sequences table ──────────────────────────────────────────────────
+  cat(sprintf("\n### Medoid Sequences (k = %d)\n\n", k))
+
+  med_aa <- decode_aa_sequence(as.matrix(AL_full_int[med_f, , drop = FALSE]))
+  med_df <- as.data.frame(med_aa)
+  colnames(med_df) <- as.character(selected_sites_full)
+  rownames(med_df) <- paste0("cl_", seq_len(k))
+  med_df <- cbind(N = cl_sizes_f, med_df)
+
+  if (k > 1L) {
+    for (ri in 2L:k) {
+      for (nm in as.character(selected_sites_full)) {
+        v1 <- med_df[1L, nm]; vi <- med_df[ri, nm]
+        if (!is.na(vi) && vi != v1)
+          med_df[ri, nm] <- cell_spec(vi, format = "html", color = "red", bold = TRUE)
+      }
+    }
+  }
+  kt(
+    kbl(med_df, format = "html", escape = FALSE,
+        caption = sprintf(
+          "Medoid sequences (k=%d, full dataset) | N = cluster size | red = differs from cl_1",
+          k)) |>
+      kable_styling(bootstrap_options = c("condensed","hover"),
+                    font_size = 11, full_width = FALSE) |>
+      row_spec(1L, background = "#d6eaf8")
+  )
+
+  # ── VOC SNP content table ───────────────────────────────────────────────────
+  cat(sprintf("\n### VOC SNP Content (k = %d)\n\n", k))
+
+  voc_tbl_f <- do.call(rbind, lapply(seq_len(k), function(cl_i) {
+    row_i <- med_f[cl_i]
+    vapply(names(voc_list_full), function(voc_nm) {
+      voc  <- voc_list_full[[voc_nm]]
+      n_ov <- length(intersect(as.character(voc$sites),
+                               as.character(selected_sites_full)))
+      n_m  <- count_snp_matches(AL_full_int_mat[row_i, ], voc)
+      sprintf("%d / %d", n_m, n_ov)
+    }, character(1L))
+  }))
+  voc_tbl_f           <- as.data.frame(voc_tbl_f)
+  rownames(voc_tbl_f) <- paste0("cl_", seq_len(k))
+
+  kt(
+    kbl(voc_tbl_f, format = "html",
+        caption = sprintf(
+          "VOC SNP matches per medoid (matched / overlap sites), full dataset k=%d",
+          k)) |>
+      kable_styling(bootstrap_options = c("condensed","hover"),
+                    font_size = 11, full_width = FALSE)
+  )
+  cat("\n")
+}
+```
+
+# Summary (Clustering Accuracy)
+
+```{r summary}
+cat("== Analysis Summary ==\n\n")
+cat(sprintf("Country filter:         %s\n",
+            ifelse(is.null(COUNTRY), "none (all countries)", COUNTRY)))
+cat(sprintf("Unique sequences:       %s\n", UNIQUE_SEQS))
+cat(sprintf("Period 1 sequences:     %d  (%s to %s)\n",
+            n_p1_eff, PERIOD1_START, PERIOD1_END))
+cat(sprintf("Period 2 sequences:     %d  (%s to %s)\n",
+            n_p2_eff, PERIOD2_START, PERIOD2_END))
+cat(sprintf("GMM-selected sites:     %d  [%s]\n",
+            length(selected_sites),
+            paste(selected_sites, collapse = ", ")))
+cat("\nVOC SNP overlap with GMM-selected sites:\n")
+for (nm in names(overlap_list)) {
+  ov <- overlap_list[[nm]]
+  cat(sprintf("  %-6s: %s\n",
+              nm,
+              if (length(ov) > 0) paste(ov, collapse = ", ") else "none"))
+}
+cat(sprintf("\nOptimal k by silhouette:   %d\n", optimal_k))
+cat(sprintf("Optimal k by F1 score:     %d\n\n",
+            K_HIGHLIGHT[which.max(metrics_df$f1)]))
+cat("Classification metrics (k = 2, 3, 4, 9):\n")
+print(metrics_df[, c("k", "positive_cluster", "TP", "FP", "FN",
+                      "precision", "recall", "f1")])
+```
+
+# Conclusions
+
+### Clustering Accuracy Study (Steps 1--8)
+
+`ViralEntropR`'s entropy-driven dimensionality reduction, combined with PAM
+clustering on Gower distance, recovers the temporal structure of SARS-CoV-2
+evolution without any supervised learning or prior knowledge of mutation
+topology.
+
+**Perfect recall across all solutions.** All PAM solutions (k = 2, 3 and 4)
+achieve recall = 1.00: every wild-type sequence (Period 1, May--June 2020) is
+assigned to the wild-type cluster. No ancestral sequence is assigned to the
+Delta-dominant partition despite the method being entirely unsupervised.
+
+**F1 score peaks at k = 9, consistent with known biology.** While k = 2
+achieves the highest silhouette width, k = 9 yields the best classification
+performance and is the biologically justified solution. During the combined
+surveillance window, the United States was host not only to the ancestral
+wild-type and the four designated VOCs (Alpha, Beta, Gamma and Delta) but also
+to several co-circulating Variants of Interest --- Kappa, Iota, Epsilon and
+Lambda --- each carrying distinct subsets of Spike mutations. The pairwise
+contrast analysis in Step 7 recovers mutation signatures consistent with
+several of these lineages, suggesting that the nine-cluster solution captures
+genuine sub-variant structure.
+
+**The method is purely information-theoretic.** No feature engineering beyond
+Shannon entropy scoring is applied, and the spatial topology of sites along the
+Spike protein is entirely ignored. Sites are selected because their amino acid
+distribution changed between surveillance periods --- as Shannon's foundational
+framework predicts, entropy naturally captures the informative positions
+[@Shannon1948].
+
+**Mode equals medoid: cluster cohesion confirmed.** For k = 2, 3 and 4, the 
+modal amino acid at every selected site within each cluster matches the PAM
+medoid sequence exactly, confirming that these clusters are not statistical 
+artefacts but reflect genuine population bottlenecks imposed by emergent 
+variants. At k = 9, a small number of sites show minor discrepancies
+between the mode and the medoid, as expected when clusters become smaller and
+the within-cluster frequency distribution at some positions is more diffuse.
+Critically, these discrepancies do not alter the VOC SNP classification of any
+medoid: the defining mutation signatures remain intact, and the affected sites
+carry non-defining substitutions that do not change the lineage assignment.
+
+**Unsupervised recovery of functionally annotated sites.** Steps 7 and 8 used
+no biological annotation. Yet the analysis independently flagged the NTD
+allosteric control node near residue 190 [@Wrobel2020] and the antigenic
+supersite spanning positions 141--158 [@McCallum2021;@Liu2021NTD] --- both
+implicated in immune evasion and RBD conformational regulation. This
+convergence with independently established structural biology validates that
+the entropy pipeline captures genuine evolutionary signal.
+
+### Full-Dataset Clustering: Global Separation Patterns (Step 9)
+
+The full-dataset analysis (Step 9) is conceptually distinct from the accuracy
+study. It operates on all ~109,536 available USA sequences across the full
+surveillance timeline, with GMM site selection (`selected_sites_full`) performed
+on the entire dataset. The selected sites therefore reflect population-wide
+entropy rather than the contrast between two specific windows, and the two site
+sets are expected to differ --- this is by design.
+
+Across all values of k tried, the t-SNE plots show visible separation among
+clusters. At k = 9, the VOC SNP content of the medoid sequences confirms clear
+separation of all four major VOCs circulating at the cut-off time of the
+dataset: Alpha, Beta, Delta and Gamma each have a dedicated cluster whose
+medoid carries the corresponding defining mutations. This demonstrates that the
+entropy-GMM-PAM pipeline is capable of recovering the known variant structure of 
+the pandemic without any labelled outcomes or restriction to time windows.
+
+`ViralEntropR` provides a transparent, reproducible, and computationally
+efficient framework for detecting and characterising viral variant structure
+in large sequence datasets, combining rigorous information theory with the
+interpretability required for epidemiological application.
+
+# References
+
+::: {#refs}
+:::

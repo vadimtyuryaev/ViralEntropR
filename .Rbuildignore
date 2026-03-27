@@ -11,3 +11,4 @@
 ^\.RDataTmp.*$
 ^doc$
 ^Meta$
+^inst/doc/preprocessing_pipeline\.Rmd$
