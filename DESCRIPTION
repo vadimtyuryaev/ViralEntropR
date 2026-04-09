@@ -23,7 +23,6 @@ RoxygenNote: 7.3.3
 Imports: 
     HDcpDetect,
     ecp,
-    kableExtra,
     knitr,
     lubridate,
     magrittr,
@@ -38,6 +37,7 @@ Suggests:
     dplyr,
     ggplot2,
     here,
+    kableExtra,
     readxl,
     rmarkdown,
     testthat (>= 3.0.0)

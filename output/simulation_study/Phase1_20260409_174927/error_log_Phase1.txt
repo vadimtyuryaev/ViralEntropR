@@ -1,0 +1,8 @@
+ViralEntropR Simulation Study
+Phase:   1
+Started: 20260409_174927
+N_ITER:  50
+N_CORES: 31
+REF_SEQ length: 96 aa
+Scenarios: NoDel_NoSiteDel, Del_NoSiteDel, NoDel_SiteDel, Del_And_SiteDel
+
