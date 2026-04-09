@@ -108,7 +108,6 @@
 #' }
 #' @importFrom ecp e.agglo
 #' @importFrom knitr kable
-#' @importFrom kableExtra kable_styling save_kable
 #' @importFrom utils tail
 #' @importFrom magrittr %>%
 #'
