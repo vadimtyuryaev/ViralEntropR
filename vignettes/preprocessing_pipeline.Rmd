@@ -21,6 +21,9 @@ knitr::opts_chunk$set(
   warning  = FALSE,
   message  = FALSE
 )
+
+# Set working directory to package root for local knitting
+knitr::opts_knit$set(root.dir = "C:/YORK_PhD/RESEARCH/PAPERS/GitHub/ViralEntropR")
 ```
 
 # Introduction

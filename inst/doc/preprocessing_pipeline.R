@@ -5,6 +5,9 @@ knitr::opts_chunk$set(
   message  = FALSE
 )
 
+# Set working directory to package root for local knitting
+knitr::opts_knit$set(root.dir = "C:/YORK_PhD/RESEARCH/PAPERS/GitHub/ViralEntropR")
+
 library(ViralEntropR)
 library(Biostrings)
 library(dplyr)
