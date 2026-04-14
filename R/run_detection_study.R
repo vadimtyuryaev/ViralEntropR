@@ -27,6 +27,14 @@
 #'     (full timeline) and locally (up to \code{part_em - 1}).
 #' }
 #'
+#' When \code{mc.cores > 1} and the platform is not Windows, the inner sweep
+#' over \code{n_new_mut_seq_vec} is parallelised using
+#' \code{parallel::mclapply} (Linux fork, copy-on-write, no export overhead).
+#' Each forked worker handles one \code{n_new_seq} value independently,
+#' reducing peak memory from O(length(n_new_mut_seq_vec)) to O(1) per call.
+#' On Windows or when \code{mc.cores = 1}, a sequential \code{lapply} is
+#' used automatically.
+#'
 #' @param ref_seq Character. The reference amino acid sequence string.
 #' @param variants_list List. Each element is an integer vector of mutation
 #'   counts per variant for that scenario (e.g. \code{list(c(2), c(2,3))}).
@@ -62,7 +70,11 @@
 #'   Default \code{TRUE}.
 #' @param output_file Character. Filename for the HTML report. Default
 #'   \code{"variants_detection_study.html"}.
-
+#' @param mc.cores Integer. Number of cores for the inner
+#'   \code{n_new_mut_seq_vec} sweep via \code{parallel::mclapply}.
+#'   Defaults to \code{1L} (sequential). Values greater than 1 are silently
+#'   clamped to 1 on Windows. On Linux HPC set to the number of available
+#'   cores (e.g. \code{12L}).
 #' @param ... Additional arguments passed to
 #'   \code{\link{partition_time_windows}} (and on to
 #'   \code{\link{cluster_sites_by_entropy}}).
@@ -96,7 +108,8 @@
 #'   n_seq_per_month       = 50L,
 #'   sliding_window_length = 2L,
 #'   window_option         = 3L,
-#'   save_html             = FALSE
+#'   save_html             = FALSE,
+#'   mc.cores              = 1L
 #' )
 #'
 #' print(res$Results[, c("variant", "num_denovo_sequences",
@@ -106,7 +119,7 @@
 #' cat("First distinct detection at n_new =",
 #'     res$First_Detect_Sample, "sequences\n")
 #' }
-#' 
+#'
 #' @importFrom kableExtra kable_styling save_kable
 #' @importFrom ecp e.agglo
 #' @importFrom knitr kable
@@ -133,6 +146,7 @@ run_detection_study <- function(
     window_option             = 3,
     save_html                 = TRUE,
     output_file               = "variants_detection_study.html",
+    mc.cores                  = 1L,
     ...
 ) {
   
@@ -148,6 +162,10 @@ run_detection_study <- function(
   sim_dates  <- seq.Date(as.Date(start_date), as.Date(end_date), by = "month")
   total_seqs <- (length(sim_dates) - num_months_ref_seq) * n_seq_per_month
   n_ref      <- num_months_ref_seq * n_seq_per_month
+  
+  # Clamp mc.cores to 1 on Windows — forking is not available
+  mc.cores <- if (.Platform$OS.type == "windows") 1L
+  else max(1L, as.integer(mc.cores))
   
   # --- 1. Shared helper functions --------------------------------------------
   
@@ -239,8 +257,6 @@ run_detection_study <- function(
       
       # 2. Encode + partition -------------------------------------------------
       mat_sim  <- sim_res$Simulation_Output
-      # encode_aa_sequence handles the character→integer mapping (equivalent
-      # to old letters_to_numbers_vectorized, verified)
       enc_mat  <- encode_aa_sequence(as.matrix(mat_sim[, seq_len(n_col)]))
       AL_df    <- as.data.frame(enc_mat)
       AL_df[]  <- lapply(AL_df, as.integer)
@@ -256,24 +272,18 @@ run_detection_study <- function(
                              extra_args))
       
       # 3. Relabel all cluster DataFrames once upfront -------------------------
-      # relabel_entropy_classes is applied here — before any class access —
-      # so that class 1 = highest entropy group is guaranteed across all
-      # partitions. Doing this once per part_data is cleaner and faster than
-      # relabeling on every individual access inside the variant loop.
       relabeled_clusters <- lapply(part_data$Clusters, function(cl) {
         cl$DataFrame <- relabel_entropy_classes(cl$DataFrame)
         cl
       })
-
+      
       # 4. Hellinger matrix + transpose for e.agglo --------------------------
-      # aa_levels = 25 matches the encode_aa_sequence alphabet
-      # (old code used 20; 25 is correct for the full encoding)
       hell_mat <- calculate_hellinger_matrix(
         partitions = part_data$Partitions,
         sites      = seq_len(n_col),
         aa_levels  = 25L
       )
-      dat_t  <- t(hell_mat)   # time_steps × sites — ready for e.agglo
+      dat_t  <- t(hell_mat)
       
       # 5. Global change point detection (full timeline) ----------------------
       max_cp <- length(part_data$Clusters) - 1L
@@ -303,16 +313,8 @@ run_detection_study <- function(
         sites <- sort(info$pos)
         em    <- info$em
         
-        # FIX: was ceiling(em/2) — hardcoded window length.
-        # Corrected to use sliding_window_length.
         part_em <- ceiling(em / sliding_window_length)
-
-        # Guard: part_em can exceed length(relabeled_clusters) when end_date
-        # equals (rather than one month beyond) the last simulation month.
-        # interval() counts the distance between two dates, which is one less
-        # than the number of monthly time points, so n_chunks can be one short.
-        # Rather than silently crashing on an out-of-bounds list access, clamp
-        # part_em and warn so the caller knows the convention was violated.
+        
         if (part_em > length(relabeled_clusters)) {
           warning(sprintf(
             "Variant %d: part_em (%d) exceeds number of partitions (%d). ",
@@ -323,9 +325,6 @@ run_detection_study <- function(
           part_em <- length(relabeled_clusters)
         }
         
-        # Highest entropy cluster is class 1 after relabel_entropy_classes.
-        # FIX: old code used max(class label) which is coincidental/wrong
-        # when labels are arbitrary Mclust integers.
         cl_em     <- relabeled_clusters[[part_em]]$DataFrame
         top_sites <- if (nrow(cl_em) > 0L)
           cl_em[as.numeric(cl_em$class) == 1L, ]$sites
@@ -335,11 +334,6 @@ run_detection_study <- function(
         deleterious_site <- if (date_em %in% names(delet))
           delet[[date_em]]$site else NA
         
-        # Forward search: find first partition where sites appear in top cluster.
-        # seq() is NOT used here because seq(n+1, n) returns c(n+1, n) in R
-        # (a descending sequence), not an empty sequence. An explicit range
-        # check ensures the loop body is skipped when part_em is the last
-        # partition, avoiding an out-of-bounds access on relabeled_clusters.
         dp <- part_em
         if (!all(setdiff(sites, deleterious_site) %in% top_sites)) {
           dp <- NA
@@ -360,11 +354,8 @@ run_detection_study <- function(
         
         detected_flags_all[v_idx] <- isTRUE(dp == part_em)
         detected_sites_str        <- paste(sort(top_sites), collapse = ",")
-        # FIX: sites_list_all was initialised but never populated in old code.
-        # Populated here so first_distinct_detect logic works correctly.
         sites_list_all[[v_idx]]   <- detected_sites_str
         
-        # Per-variant CP: e.agglo on data up to part_em - 1 ----------------
         if (part_em > 2L && max_cp >= 2L) {
           cp_var_raw <- ecp::e.agglo(
             X       = dat_t[seq_len(part_em - 1L), , drop = FALSE],
@@ -416,8 +407,31 @@ run_detection_study <- function(
       )
     } # end run_one_n_new
     
-    # ── Dispatch ─────────────────────────────────────────────────────────
-    iter_results <- lapply(n_new_mut_seq_vec, run_one_n_new)
+    # ── Dispatch: parallel on Linux, sequential on Windows -----------------
+    # mc.cores > 1 only ever reached on Linux (clamped above on Windows).
+    # mclapply forks the current process — all variables in scope are
+    # available in each child via copy-on-write with zero export overhead.
+    # Each worker handles exactly one n_new_seq value, so peak memory per
+    # worker is O(1 simulation) rather than O(length(n_new_mut_seq_vec)).
+    iter_results <- if (mc.cores > 1L) {
+      parallel::mclapply(
+        n_new_mut_seq_vec,
+        run_one_n_new,
+        mc.cores    = mc.cores,
+        mc.set.seed = TRUE
+      )
+    } else {
+      lapply(n_new_mut_seq_vec, run_one_n_new)
+    }
+    
+    # Normalise any crashed workers (try-error from mclapply) to NULL rows
+    # so downstream rbind does not encounter unexpected types.
+    iter_results <- lapply(iter_results, function(r) {
+      if (inherits(r, "try-error"))
+        list(rows = NULL, fully_detected = FALSE,
+             sites_list = list(), sim_res = NULL, part_data = NULL)
+      else r
+    })
     
     # ── Accumulate results ────────────────────────────────────────────────
     sim_res_list[[scenario_idx]]   <- setNames(
@@ -431,10 +445,6 @@ run_detection_study <- function(
     all_rows[[scenario_idx]] <- do.call(rbind, lapply(iter_results, `[[`, "rows"))
     
     # ── First distinct detection threshold ────────────────────────────────
-    # First n_new_seq where all variants are detected AND detected site sets
-    # are mutually distinct (no site attributed to multiple variants).
-    # FIX: sites_list_all was never populated in the old code so this check
-    # always evaluated TRUE trivially — now correctly uses the actual sites.
     for (k in seq_along(n_new_mut_seq_vec)) {
       if (iter_results[[k]]$fully_detected) {
         vec <- unlist(strsplit(
@@ -501,10 +511,10 @@ run_detection_study <- function(
   
   html_table <- knitr::kable(
     results_df[, display_cols],
-    format     = "html",
-    escape     = FALSE,
-    table.attr = "class='table table-bordered'",
-    caption    = caption_text
+    format       = "html",
+    escape       = FALSE,
+    table.attr   = "class='table table-bordered'",
+    caption      = caption_text
   ) %>%
     kableExtra::kable_styling(
       bootstrap_options = c("striped", "hover", "condensed", "responsive")
@@ -513,7 +523,7 @@ run_detection_study <- function(
   if (isTRUE(save_html) && !is.null(output_file))
     kableExtra::save_kable(html_table, file = output_file)
   
-  # --- 9. Return — names match original -------------------------------------
+  # --- 9. Return ------------------------------------------------------------
   list(
     Sim_List            = sim_res_list,
     Part_Data           = part_data_list,
