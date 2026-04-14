@@ -48,6 +48,7 @@
 #'   \item{styled}{The \code{kableExtra} HTML kable object.}
 #'   If \code{return_table = FALSE}, returns only the styled kable object.
 #'
+#' @importFrom kableExtra kable kable_styling column_spec save_kable
 #' @importFrom magrittr %>%
 #' @export
 #'

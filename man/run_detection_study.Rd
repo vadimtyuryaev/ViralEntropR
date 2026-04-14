@@ -153,4 +153,5 @@ cat("CP Accuracy:", res$CP_Accuracy, "\n")
 cat("First distinct detection at n_new =",
     res$First_Detect_Sample, "sequences\n")
 }
+
 }

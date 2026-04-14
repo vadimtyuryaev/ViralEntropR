@@ -106,6 +106,8 @@
 #' cat("First distinct detection at n_new =",
 #'     res$First_Detect_Sample, "sequences\n")
 #' }
+#' 
+#' @importFrom kableExtra kable_styling save_kable
 #' @importFrom ecp e.agglo
 #' @importFrom knitr kable
 #' @importFrom utils tail
@@ -497,25 +499,19 @@ run_detection_study <- function(
     "actual_cp", "detected_cp_var", "detected_cp_all"
   )
   
-  if (requireNamespace("kableExtra", quietly = TRUE)) {
-    html_table <- knitr::kable(
-      results_df[, display_cols],
-      format     = "html",
-      escape     = FALSE,
-      table.attr = "class='table table-bordered'",
-      caption    = caption_text
-    ) %>%
-      kableExtra::kable_styling(
-        bootstrap_options = c("striped", "hover", "condensed", "responsive")
-      )
-    
-    if (isTRUE(save_html) && !is.null(output_file))
-      kableExtra::save_kable(html_table, file = output_file)
-  } else {
-    html_table <- NULL
-    if (isTRUE(save_html))
-      warning("kableExtra not installed; HTML table not saved.")
-  }
+  html_table <- knitr::kable(
+    results_df[, display_cols],
+    format     = "html",
+    escape     = FALSE,
+    table.attr = "class='table table-bordered'",
+    caption    = caption_text
+  ) %>%
+    kableExtra::kable_styling(
+      bootstrap_options = c("striped", "hover", "condensed", "responsive")
+    )
+  
+  if (isTRUE(save_html) && !is.null(output_file))
+    kableExtra::save_kable(html_table, file = output_file)
   
   # --- 9. Return — names match original -------------------------------------
   list(
