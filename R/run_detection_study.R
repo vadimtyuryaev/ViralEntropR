@@ -27,14 +27,6 @@
 #'     (full timeline) and locally (up to \code{part_em - 1}).
 #' }
 #'
-#' When \code{mc.cores > 1} and the platform is not Windows, the inner sweep
-#' over \code{n_new_mut_seq_vec} is parallelised using
-#' \code{parallel::mclapply} (Linux fork, copy-on-write, no export overhead).
-#' Each forked worker handles one \code{n_new_seq} value independently,
-#' reducing peak memory from O(length(n_new_mut_seq_vec)) to O(1) per call.
-#' On Windows or when \code{mc.cores = 1}, a sequential \code{lapply} is
-#' used automatically.
-#'
 #' @param ref_seq Character. The reference amino acid sequence string.
 #' @param variants_list List. Each element is an integer vector of mutation
 #'   counts per variant for that scenario (e.g. \code{list(c(2), c(2,3))}).
@@ -70,11 +62,6 @@
 #'   Default \code{TRUE}.
 #' @param output_file Character. Filename for the HTML report. Default
 #'   \code{"variants_detection_study.html"}.
-#' @param mc.cores Integer. Number of cores for the inner
-#'   \code{n_new_mut_seq_vec} sweep via \code{parallel::mclapply}.
-#'   Defaults to \code{1L} (sequential). Values greater than 1 are silently
-#'   clamped to 1 on Windows. On Linux HPC set to the number of available
-#'   cores (e.g. \code{12L}).
 #' @param ... Additional arguments passed to
 #'   \code{\link{partition_time_windows}} (and on to
 #'   \code{\link{cluster_sites_by_entropy}}).
@@ -108,8 +95,7 @@
 #'   n_seq_per_month       = 50L,
 #'   sliding_window_length = 2L,
 #'   window_option         = 3L,
-#'   save_html             = FALSE,
-#'   mc.cores              = 1L
+#'   save_html             = FALSE
 #' )
 #'
 #' print(res$Results[, c("variant", "num_denovo_sequences",
@@ -146,7 +132,6 @@ run_detection_study <- function(
     window_option             = 3,
     save_html                 = TRUE,
     output_file               = "variants_detection_study.html",
-    mc.cores                  = 1L,
     ...
 ) {
   
@@ -156,16 +141,12 @@ run_detection_study <- function(
   cp_accuracy           <- rep(NA_real_, n_scen)
   sim_res_list          <- vector("list", n_scen)
   part_data_list        <- vector("list", n_scen)
-  all_rows              <- vector("list", n_scen)   # collected before rbind
+  all_rows              <- vector("list", n_scen)
   
   n_col      <- nchar(ref_seq)
   sim_dates  <- seq.Date(as.Date(start_date), as.Date(end_date), by = "month")
   total_seqs <- (length(sim_dates) - num_months_ref_seq) * n_seq_per_month
   n_ref      <- num_months_ref_seq * n_seq_per_month
-  
-  # Clamp mc.cores to 1 on Windows — forking is not available
-  mc.cores <- if (.Platform$OS.type == "windows") 1L
-  else max(1L, as.integer(mc.cores))
   
   # --- 1. Shared helper functions --------------------------------------------
   
@@ -183,8 +164,8 @@ run_detection_study <- function(
     dh <- vapply(d, function(s)
       if (s %in% a) sprintf('<span style="background-color:yellow;">%s</span>', s) else s,
       character(1L))
-    list(sites    = paste(ah, collapse = ","),
-         detected = paste(dh, collapse = ","),
+    list(sites      = paste(ah, collapse = ","),
+         detected   = paste(dh, collapse = ","),
          deleterious = deleterious)
   }
   
@@ -219,10 +200,10 @@ run_detection_study <- function(
       character(1L)), collapse = "<br/>")
   )
   
-  # --- 3. Setup -------------------------------------------------------------
+  # --- 3. Extra args ---------------------------------------------------------
   extra_args <- list(...)
   
-  # --- 4. Scenario loop (sequential — scenarios are typically few) -----------
+  # --- 4. Scenario loop ------------------------------------------------------
   for (scenario_idx in seq_along(variants_list)) {
     
     number_of_variants <- variants_list[[scenario_idx]]
@@ -256,10 +237,10 @@ run_detection_study <- function(
       )
       
       # 2. Encode + partition -------------------------------------------------
-      mat_sim  <- sim_res$Simulation_Output
-      enc_mat  <- encode_aa_sequence(as.matrix(mat_sim[, seq_len(n_col)]))
-      AL_df    <- as.data.frame(enc_mat)
-      AL_df[]  <- lapply(AL_df, as.integer)
+      mat_sim    <- sim_res$Simulation_Output
+      enc_mat    <- encode_aa_sequence(as.matrix(mat_sim[, seq_len(n_col)]))
+      AL_df      <- as.data.frame(enc_mat)
+      AL_df[]    <- lapply(AL_df, as.integer)
       AL_df$Date <- as.Date(format(as.Date(mat_sim$Date), "%Y-%m-01"))
       
       part_data <- do.call(partition_time_windows,
@@ -271,27 +252,27 @@ run_detection_study <- function(
                                   end_date      = end_date),
                              extra_args))
       
-      # 3. Relabel all cluster DataFrames once upfront -------------------------
+      # 3. Relabel all cluster DataFrames once upfront ------------------------
       relabeled_clusters <- lapply(part_data$Clusters, function(cl) {
         cl$DataFrame <- relabel_entropy_classes(cl$DataFrame)
         cl
       })
       
-      # 4. Hellinger matrix + transpose for e.agglo --------------------------
+      # 4. Hellinger matrix ---------------------------------------------------
       hell_mat <- calculate_hellinger_matrix(
         partitions = part_data$Partitions,
         sites      = seq_len(n_col),
         aa_levels  = 25L
       )
-      dat_t  <- t(hell_mat)
+      dat_t <- t(hell_mat)
       
-      # 5. Global change point detection (full timeline) ----------------------
+      # 5. Global change point detection --------------------------------------
       max_cp <- length(part_data$Clusters) - 1L
       if (max_cp >= 2L) {
         cp_all_raw <- ecp::e.agglo(
-          X      = dat_t,
-          member = seq_len(nrow(dat_t)),
-          alpha  = 1,
+          X       = dat_t,
+          member  = seq_len(nrow(dat_t)),
+          alpha   = 1,
           penalty = function(cps) 0
         )$estimates
         cp_all <- cp_all_raw[cp_all_raw > 1L & cp_all_raw <= max_cp]
@@ -336,7 +317,7 @@ run_detection_study <- function(
         
         dp <- part_em
         if (!all(setdiff(sites, deleterious_site) %in% top_sites)) {
-          dp <- NA
+          dp        <- NA
           n_clusters <- length(relabeled_clusters)
           if (part_em < n_clusters) {
             for (i in (part_em + 1L):n_clusters) {
@@ -407,33 +388,10 @@ run_detection_study <- function(
       )
     } # end run_one_n_new
     
-    # ── Dispatch: parallel on Linux, sequential on Windows -----------------
-    # mc.cores > 1 only ever reached on Linux (clamped above on Windows).
-    # mclapply forks the current process — all variables in scope are
-    # available in each child via copy-on-write with zero export overhead.
-    # Each worker handles exactly one n_new_seq value, so peak memory per
-    # worker is O(1 simulation) rather than O(length(n_new_mut_seq_vec)).
-    iter_results <- if (mc.cores > 1L) {
-      parallel::mclapply(
-        n_new_mut_seq_vec,
-        run_one_n_new,
-        mc.cores    = mc.cores,
-        mc.set.seed = TRUE
-      )
-    } else {
-      lapply(n_new_mut_seq_vec, run_one_n_new)
-    }
+    # ── Dispatch (sequential — parallelism is at the job level above) ──────
+    iter_results <- lapply(n_new_mut_seq_vec, run_one_n_new)
     
-    # Normalise any crashed workers (try-error from mclapply) to NULL rows
-    # so downstream rbind does not encounter unexpected types.
-    iter_results <- lapply(iter_results, function(r) {
-      if (inherits(r, "try-error"))
-        list(rows = NULL, fully_detected = FALSE,
-             sites_list = list(), sim_res = NULL, part_data = NULL)
-      else r
-    })
-    
-    # ── Accumulate results ────────────────────────────────────────────────
+    # ── Accumulate results --------------------------------------------------
     sim_res_list[[scenario_idx]]   <- setNames(
       lapply(iter_results, `[[`, "sim_res"),
       as.character(n_new_mut_seq_vec)
@@ -442,9 +400,10 @@ run_detection_study <- function(
       lapply(iter_results, `[[`, "part_data"),
       as.character(n_new_mut_seq_vec)
     )
-    all_rows[[scenario_idx]] <- do.call(rbind, lapply(iter_results, `[[`, "rows"))
+    all_rows[[scenario_idx]] <- do.call(rbind,
+                                        lapply(iter_results, `[[`, "rows"))
     
-    # ── First distinct detection threshold ────────────────────────────────
+    # ── First distinct detection threshold ----------------------------------
     for (k in seq_along(n_new_mut_seq_vec)) {
       if (iter_results[[k]]$fully_detected) {
         vec <- unlist(strsplit(
@@ -459,7 +418,7 @@ run_detection_study <- function(
     
   } # end scenario loop
   
-  # --- 5. Combine all rows (one rbind, not incremental) ---------------------
+  # --- 5. Combine all rows ---------------------------------------------------
   results_df <- do.call(rbind, all_rows)
   rownames(results_df) <- NULL
   
@@ -475,32 +434,28 @@ run_detection_study <- function(
     cp_accuracy[i] <- mean(correct, na.rm = TRUE)
   }
   
-  # --- 7. Post-processing: sort and HTML highlighting -----------------------
-  results_df$sites          <- vapply(results_df$sites_raw,          sort_string, character(1L))
-  results_df$detected_sites <- vapply(results_df$detected_sites_raw, sort_string, character(1L))
+  # --- 7. Post-processing ----------------------------------------------------
+  results_df$sites          <- vapply(results_df$sites_raw,
+                                      sort_string, character(1L))
+  results_df$detected_sites <- vapply(results_df$detected_sites_raw,
+                                      sort_string, character(1L))
   
-  results_df$actual_cp <- mapply(
-    highlight_actual_cp,
-    results_df$actual_cp_raw,
-    results_df$detected_cp_var_raw
-  )
-  results_df$detected_cp_var <- mapply(
-    highlight_detected_cp_var,
-    results_df$detected_cp_var_raw,
-    results_df$actual_cp_raw
-  )
+  results_df$actual_cp <- mapply(highlight_actual_cp,
+                                 results_df$actual_cp_raw,
+                                 results_df$detected_cp_var_raw)
+  results_df$detected_cp_var <- mapply(highlight_detected_cp_var,
+                                       results_df$detected_cp_var_raw,
+                                       results_df$actual_cp_raw)
   
-  hl <- mapply(
-    highlight_sites_advanced,
-    results_df$sites,
-    results_df$detected_sites,
-    results_df$deleterious_sites,
-    SIMPLIFY = FALSE
-  )
+  hl <- mapply(highlight_sites_advanced,
+               results_df$sites,
+               results_df$detected_sites,
+               results_df$deleterious_sites,
+               SIMPLIFY = FALSE)
   results_df$sites          <- vapply(hl, `[[`, character(1L), "sites")
   results_df$detected_sites <- vapply(hl, `[[`, character(1L), "detected")
   
-  # --- 8. HTML table --------------------------------------------------------
+  # --- 8. HTML table ---------------------------------------------------------
   display_cols <- c(
     "scenario", "variant", "num_denovo_sequences",
     "sites", "detected_sites", "deleterious_sites",
@@ -523,7 +478,7 @@ run_detection_study <- function(
   if (isTRUE(save_html) && !is.null(output_file))
     kableExtra::save_kable(html_table, file = output_file)
   
-  # --- 9. Return ------------------------------------------------------------
+  # --- 9. Return -------------------------------------------------------------
   list(
     Sim_List            = sim_res_list,
     Part_Data           = part_data_list,
