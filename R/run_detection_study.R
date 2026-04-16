@@ -27,6 +27,14 @@
 #'     (full timeline) and locally (up to \code{part_em - 1}).
 #' }
 #'
+#' \strong{Memory note:} When \code{return_sims = FALSE} (the default),
+#' simulation outputs and partition data are not retained after each
+#' \code{n_new_seq} iteration, keeping peak memory proportional to the size
+#' of a single simulation rather than \code{length(n_new_mut_seq_vec)}
+#' simulations. Set \code{return_sims = TRUE} only when inspecting
+#' intermediate results interactively (e.g. in a vignette), and only with
+#' short \code{n_new_mut_seq_vec} vectors.
+#'
 #' @param ref_seq Character. The reference amino acid sequence string.
 #' @param variants_list List. Each element is an integer vector of mutation
 #'   counts per variant for that scenario (e.g. \code{list(c(2), c(2,3))}).
@@ -62,15 +70,22 @@
 #'   Default \code{TRUE}.
 #' @param output_file Character. Filename for the HTML report. Default
 #'   \code{"variants_detection_study.html"}.
+#' @param return_sims Logical. If \code{TRUE}, the returned list includes
+#'   \code{Sim_List} and \code{Part_Data} (full simulation and partition
+#'   objects for every \code{n_new_seq} value). If \code{FALSE} (default),
+#'   these are \code{NULL}, keeping memory usage proportional to a single
+#'   simulation. Use \code{TRUE} only for interactive inspection with short
+#'   \code{n_new_mut_seq_vec} vectors.
 #' @param ... Additional arguments passed to
 #'   \code{\link{partition_time_windows}} (and on to
 #'   \code{\link{cluster_sites_by_entropy}}).
 #'
 #' @return A named list:
 #' \item{Sim_List}{Nested list \code{[[scenario]][[n_new_seq]]} of
-#'   \code{viralSim} objects.}
+#'   \code{viralSim} objects, or \code{NULL} when \code{return_sims = FALSE}.}
 #' \item{Part_Data}{Nested list \code{[[scenario]][[n_new_seq]]} of
-#'   \code{partition_time_windows} outputs.}
+#'   \code{partition_time_windows} outputs, or \code{NULL} when
+#'   \code{return_sims = FALSE}.}
 #' \item{Results}{Data frame with one row per (scenario × n_new_seq × variant),
 #'   containing site-level and change-point detection results with HTML
 #'   highlighting.}
@@ -95,7 +110,8 @@
 #'   n_seq_per_month       = 50L,
 #'   sliding_window_length = 2L,
 #'   window_option         = 3L,
-#'   save_html             = FALSE
+#'   save_html             = FALSE,
+#'   return_sims           = FALSE
 #' )
 #'
 #' print(res$Results[, c("variant", "num_denovo_sequences",
@@ -132,6 +148,7 @@ run_detection_study <- function(
     window_option             = 3,
     save_html                 = TRUE,
     output_file               = "variants_detection_study.html",
+    return_sims               = FALSE,
     ...
 ) {
   
@@ -139,9 +156,14 @@ run_detection_study <- function(
   n_scen                <- length(variants_list)
   first_distinct_detect <- rep(NA_real_, n_scen)
   cp_accuracy           <- rep(NA_real_, n_scen)
-  sim_res_list          <- vector("list", n_scen)
-  part_data_list        <- vector("list", n_scen)
   all_rows              <- vector("list", n_scen)
+  
+  # Sim_List and Part_Data are only populated when return_sims = TRUE.
+  # When FALSE (default / simulation study), they remain NULL, keeping
+  # peak memory proportional to one simulation at a time rather than
+  # length(n_new_mut_seq_vec) simulations simultaneously.
+  sim_res_list   <- if (isTRUE(return_sims)) vector("list", n_scen) else NULL
+  part_data_list <- if (isTRUE(return_sims)) vector("list", n_scen) else NULL
   
   n_col      <- nchar(ref_seq)
   sim_dates  <- seq.Date(as.Date(start_date), as.Date(end_date), by = "month")
@@ -164,8 +186,8 @@ run_detection_study <- function(
     dh <- vapply(d, function(s)
       if (s %in% a) sprintf('<span style="background-color:yellow;">%s</span>', s) else s,
       character(1L))
-    list(sites      = paste(ah, collapse = ","),
-         detected   = paste(dh, collapse = ","),
+    list(sites       = paste(ah, collapse = ","),
+         detected    = paste(dh, collapse = ","),
          deleterious = deleterious)
   }
   
@@ -213,8 +235,20 @@ run_detection_study <- function(
     if (length(vi) < nv - 1L)
       vi <- c(vi, rep(utils::tail(vi, 1L), nv - 1L - length(vi)))
     
-    # ── Per-n_new_seq worker (closes over scenario variables) ──────────────
-    run_one_n_new <- function(n_new_seq) {
+    # Pre-allocate accumulators for this scenario
+    rows_this_scenario  <- vector("list", length(n_new_mut_seq_vec))
+    fully_detected_vec  <- logical(length(n_new_mut_seq_vec))
+    sites_list_per_n    <- vector("list", length(n_new_mut_seq_vec))
+    
+    if (isTRUE(return_sims)) {
+      sim_res_list[[scenario_idx]]   <- vector("list", length(n_new_mut_seq_vec))
+      part_data_list[[scenario_idx]] <- vector("list", length(n_new_mut_seq_vec))
+    }
+    
+    # --- 4a. n_new_seq loop (sequential) -------------------------------------
+    for (k in seq_along(n_new_mut_seq_vec)) {
+      
+      n_new_seq <- n_new_mut_seq_vec[k]
       
       # 1. Simulate -----------------------------------------------------------
       sim_res <- simulate_variant_evolution(
@@ -253,6 +287,8 @@ run_detection_study <- function(
                              extra_args))
       
       # 3. Relabel all cluster DataFrames once upfront ------------------------
+      # Class 1 is the highest-entropy group after relabeling. Applied here,
+      # once per part_data, before any class access in the variant loop.
       relabeled_clusters <- lapply(part_data$Clusters, function(cl) {
         cl$DataFrame <- relabel_entropy_classes(cl$DataFrame)
         cl
@@ -266,7 +302,7 @@ run_detection_study <- function(
       )
       dat_t <- t(hell_mat)
       
-      # 5. Global change point detection --------------------------------------
+      # 5. Global change point detection (full timeline) ----------------------
       max_cp <- length(part_data$Clusters) - 1L
       if (max_cp >= 2L) {
         cp_all_raw <- ecp::e.agglo(
@@ -296,6 +332,8 @@ run_detection_study <- function(
         
         part_em <- ceiling(em / sliding_window_length)
         
+        # Guard: part_em can exceed available partitions when end_date equals
+        # (rather than one month beyond) the last simulation month.
         if (part_em > length(relabeled_clusters)) {
           warning(sprintf(
             "Variant %d: part_em (%d) exceeds number of partitions (%d). ",
@@ -315,9 +353,13 @@ run_detection_study <- function(
         deleterious_site <- if (date_em %in% names(delet))
           delet[[date_em]]$site else NA
         
+        # Forward search: find the first partition where all non-deleterious
+        # mutation sites appear in the top-entropy cluster.
+        # An explicit range check guards against the seq(n+1, n) pitfall in R
+        # which returns a descending sequence rather than an empty one.
         dp <- part_em
         if (!all(setdiff(sites, deleterious_site) %in% top_sites)) {
-          dp        <- NA
+          dp         <- NA
           n_clusters <- length(relabeled_clusters)
           if (part_em < n_clusters) {
             for (i in (part_em + 1L):n_clusters) {
@@ -337,6 +379,7 @@ run_detection_study <- function(
         detected_sites_str        <- paste(sort(top_sites), collapse = ",")
         sites_list_all[[v_idx]]   <- detected_sites_str
         
+        # Per-variant CP: e.agglo on Hellinger sequence up to part_em - 1
         if (part_em > 2L && max_cp >= 2L) {
           cp_var_raw <- ecp::e.agglo(
             X       = dat_t[seq_len(part_em - 1L), , drop = FALSE],
@@ -377,43 +420,48 @@ run_detection_study <- function(
           detected_cp_all      = detected_cp_all,
           stringsAsFactors     = FALSE
         )
+      } # end variant loop
+      
+      # Accumulate lightweight results rows
+      rows_this_scenario[[k]] <- do.call(rbind, rows_this)
+      fully_detected_vec[k]   <- all(detected_flags_all)
+      sites_list_per_n[[k]]   <- sites_list_all
+      
+      # Store heavy objects only when explicitly requested
+      if (isTRUE(return_sims)) {
+        sim_res_list[[scenario_idx]][[k]]   <- sim_res
+        part_data_list[[scenario_idx]][[k]] <- part_data
       }
       
-      list(
-        rows           = do.call(rbind, rows_this),
-        fully_detected = all(detected_flags_all),
-        sites_list     = sites_list_all,
-        sim_res        = sim_res,
-        part_data      = part_data
-      )
-    } # end run_one_n_new
+      # Free heavy objects immediately when not needed — this keeps peak
+      # memory proportional to one simulation rather than n_new_mut_seq_vec
+      # simulations, which is the root cause of the 30 GB accumulation.
+      rm(sim_res, mat_sim, enc_mat, AL_df, part_data,
+         relabeled_clusters, hell_mat, dat_t, rows_this,
+         details, delet)
+      
+    } # end n_new_seq loop
     
-    # ── Dispatch (sequential — parallelism is at the job level above) ──────
-    iter_results <- lapply(n_new_mut_seq_vec, run_one_n_new)
+    # Combine rows for this scenario
+    all_rows[[scenario_idx]] <- do.call(rbind, rows_this_scenario)
     
-    # ── Accumulate results --------------------------------------------------
-    sim_res_list[[scenario_idx]]   <- setNames(
-      lapply(iter_results, `[[`, "sim_res"),
-      as.character(n_new_mut_seq_vec)
-    )
-    part_data_list[[scenario_idx]] <- setNames(
-      lapply(iter_results, `[[`, "part_data"),
-      as.character(n_new_mut_seq_vec)
-    )
-    all_rows[[scenario_idx]] <- do.call(rbind,
-                                        lapply(iter_results, `[[`, "rows"))
-    
-    # ── First distinct detection threshold ----------------------------------
+    # First distinct detection threshold:
+    # First n_new_seq where all variants detected AND site sets are mutually
+    # distinct (no site attributed to more than one variant simultaneously).
     for (k in seq_along(n_new_mut_seq_vec)) {
-      if (iter_results[[k]]$fully_detected) {
-        vec <- unlist(strsplit(
-          unlist(iter_results[[k]]$sites_list), ","
-        ))
+      if (fully_detected_vec[k]) {
+        vec <- unlist(strsplit(unlist(sites_list_per_n[[k]]), ","))
         if (length(unique(vec)) == length(vec) &&
             is.na(first_distinct_detect[scenario_idx])) {
           first_distinct_detect[scenario_idx] <- n_new_mut_seq_vec[k]
         }
       }
+    }
+    
+    # Name the stored lists by n_new_seq value for easy access
+    if (isTRUE(return_sims)) {
+      names(sim_res_list[[scenario_idx]])   <- as.character(n_new_mut_seq_vec)
+      names(part_data_list[[scenario_idx]]) <- as.character(n_new_mut_seq_vec)
     }
     
   } # end scenario loop
@@ -434,7 +482,7 @@ run_detection_study <- function(
     cp_accuracy[i] <- mean(correct, na.rm = TRUE)
   }
   
-  # --- 7. Post-processing ----------------------------------------------------
+  # --- 7. Post-processing: sort site strings and apply HTML highlighting ----
   results_df$sites          <- vapply(results_df$sites_raw,
                                       sort_string, character(1L))
   results_df$detected_sites <- vapply(results_df$detected_sites_raw,
