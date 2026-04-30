@@ -1,0 +1,626 @@
+---
+title: "Gaussian Mixture Model Site Selection on SARS-CoV-2 Spike Protein Shannon Entropy Distributions: 
+Robustness to Monotone Transformations"
+author: "Vadim Tyuryaev, Jane Heffernan, Hanna Jankowski"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    includes:
+      in_header: meta_gmm.html
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  comment = "#>",
+  fig.height = 6,
+  fig.width  = 12
+)
+```
+
+# Overview
+
+Gaussian Mixture Model (GMM) clustering is applied to per-site Shannon entropy
+vectors derived from two SARS-CoV-2 spike protein datasets --- GISAID and NCBI
+--- to identify sites exhibiting elevated evolutionary variability[@Fraley2002; 
+@Cover2006; @Shannon1948].The primary goal of this analysis is not site detection 
+per se, but rather to assess whether applying monotone transformations to the 
+entropy distribution prior to GMM fitting provides any additional information or
+improvement in site selection, and whether the added layer of methodological 
+complexity is warranted.
+
+A natural question is whether the pronounced right-skewness of the entropy
+distribution, characteristic of genomic surveillance data where the majority of
+sites are highly conserved, adversely affects GMM fitting and subsequent site
+selection. To investigate this, six transformations are applied to the entropy
+vectors and the resulting site selections are compared with those obtained on the
+original scale. Five of the six transformations are monotone increasing ---
+$\log(1+x)$, $\log(1+\log(1+x))$, $\sqrt{x}$, Box-Cox ($\lambda = -0.05$),
+and logarithmic $\ln(x)$ --- and are therefore expected to preserve rank-based site
+selection. The reciprocal $\frac{1}{1+x}$ is monotone decreasing and is included
+as a deliberate contrast: by inverting the entropy ranking it provides a natural
+negative control, confirming that site selection depends critically on the
+preservation of rank ordering. While monotone increasing transformations preserve
+rank ordering, Gaussian mixture models depend on the metric structure of the data
+--- including inter-point distances and component variances --- and are therefore
+not guaranteed to yield identical cluster assignments under such
+transformations[@McLachlan2000; @Hennig2015]. Despite this, empirical
+comparisons indicate that, although monotone increasing transformations alter the
+geometry of the data, they do not materially affect the identification of
+high-entropy sites in the SARS-CoV-2 spike protein datasets considered here,
+and the additional methodological complexity they introduce is not justified.
+
+**Document structure and scope of analysis**
+The complete entropy distributions (all 1273 sites) are visualised initially to
+illustrate the characteristic right-skewed profile of genomic sequence
+variability, where most positions exhibit near-zero entropy and a small subset
+displays elevated variability[@Korber2020]. All subsequent analysis ---
+including GMM fitting, transformation experiments, and comparison tables --- is
+conducted on filtered entropy vectors with zero-entropy sites removed. These
+positions carry no variability signal and therefore do not contribute to
+clustering. Additionally, singleton-entropy sites (observed in the NCBI dataset)
+are excluded, as they are likely dominated by rare events or sequencing
+artefacts rather than sustained evolutionary variation.
+
+For each entropy vector, six sub-vectors are analysed: the complete filtered
+vector and five trimmed subsets --- Q1+, median+, mean+, Q3+, and the 90th
+percentile+. This constitutes a sensitivity analysis of GMM-based site selection
+to the choice of pre-filtering threshold.
+
+**Distributions visualization**
+Throughout this document, input entropy distributions are rendered in
+<span style="color:#4682B4;">**blue (`#4682B4`)**</span> and GMM-selected
+site distributions in <span style="color:#2CA25F;">**green (`#2CA25F`)**</span>.
+
+---
+
+# Libraries and Helper Functions
+
+```{r libraries}
+library(ViralEntropR)
+library(kableExtra)
+library(dplyr) 
+library(mclust)
+library(ggplot2)
+library(patchwork)
+library(scales)
+library(here)
+
+source("gmm_site_selection.R")
+source("generate_comparison_table.R")
+```
+
+---
+
+# Output Directory
+
+```{r output-dir}
+TABLE_DIR <- here("analysis", "GMM_transformation_study", "tables")
+dir.create(TABLE_DIR, recursive = TRUE, showWarnings = FALSE)
+table_path <- function(filename) file.path(TABLE_DIR, filename)
+```
+
+---
+
+# Reference Sites
+
+VOC-defining mutation sites are extracted from the `sarscov2_variants` package
+dataset.  Two reference sets are used: NCBI comparisons use Alpha, Beta, Gamma,
+and Delta (the VOCs present in the October 2021 NCBI dataset); GISAID
+comparisons additionally include Omicron, which is represented in the GISAID
+dataset through April 2024.
+
+```{r important-sites}
+data("sarscov2_variants", package = "ViralEntropR")
+
+extract_voc_sites <- function(labels) {
+  sort(unique(unlist(lapply(labels, function(label) {
+    idx <- which(sarscov2_variants$WHO_Label == label)
+    if (length(idx) == 0L) {
+      warning(sprintf("WHO_Label '%s' not found in sarscov2_variants.", label))
+      return(integer(0L))
+    }
+    sarscov2_variants$Mutation_Sites[[idx]]
+  }))))
+}
+
+voc_labels_ncbi  <- c("Alpha", "Beta", "Gamma", "Delta")
+voc_labels_gisaid <- c("Alpha", "Beta", "Gamma", "Delta", "Omicron")
+
+important_sites_ncbi  <- extract_voc_sites(voc_labels_ncbi)
+important_sites_gisaid <- extract_voc_sites(voc_labels_gisaid)
+
+sprintf("NCBI  reference sites (Alpha/Beta/Gamma/Delta): %d",
+        length(important_sites_ncbi))
+print(important_sites_ncbi)
+
+sprintf("GISAID reference sites (Alpha/Beta/Gamma/Delta/Omicron): %d",
+        length(important_sites_gisaid))
+print(important_sites_gisaid)
+```
+
+---
+
+# Custom Transformation Objects
+
+All transformations are monotone on the entropy support, ensuring rank ordering
+is preserved. Cluster membership may still change when the number of components
+G selected by BIC differs between scales; the comparison tables quantify this
+empirically.
+
+```{r transformations}
+loglog1p1p_trans <- scales::trans_new(
+  name      = "log1p(log1p)",
+  transform = function(x) log(log(x + 1) + 1),
+  inverse   = function(x) exp(exp(x) - 1) - 1,
+  breaks    = scales::log_breaks()
+)
+
+reciprocal_trans <- scales::trans_new(
+  name      = "reciprocal(1+x)",
+  transform = function(x) 1 / (x + 1),
+  inverse   = function(x) 1 / x - 1,
+  breaks    = scales::pretty_breaks()
+)
+
+boxcox_trans <- function(lambda = -0.05) {
+  scales::trans_new(
+    name      = sprintf("Box-Cox(\u03bb=%.2f)", lambda),
+    transform = function(x) if (lambda == 0) log(x) else (x^lambda - 1)/lambda,
+    inverse   = function(x) if (lambda == 0) exp(x) else (lambda*x + 1)^(1/lambda),
+    breaks    = scales::pretty_breaks()
+  )
+}
+```
+
+---
+
+# Data
+
+## Loading
+
+`GISAID_US_aligned_feature_matrix_1273aa` and `Data_Matrix_Filtered_NCBI_Data_US`
+are fully post-processed data matrices containing United States sequences only.
+The preprocessing steps for the NCBI dataset are documented in the 
+`preprocessing_pipeline` package vignette 
+(`vignette("preprocessing_pipeline", package = "ViralEntropR")`); the GISAID
+pipeline is recorded in `analysis/GISAID_data_preprocessing/GISAID_Preprocessing_Pipeline.Rmd`.
+
+Each matrix has rows = sequences, columns = integer-encoded amino acid sites
+1–1273 plus `Date` and `Country` metadata columns.
+
+```{r load-data}
+AL_df_GISAID <- readRDS(here("analysis","GISAID_data_preprocessing", 
+                             "GISAID_US_aligned_feature_matrix_1273aa.rds"))
+AL_df_NCBI   <- readRDS(here("data-raw", "Data_Matrix_Filtered_NCBI_Data_US"))
+
+nr_gisaid <- nrow(AL_df_GISAID)
+nr_ncbi   <- nrow(AL_df_NCBI)
+
+nc_gisaid <- ncol(AL_df_GISAID)-2 # Date and Country
+nc_ncbi   <- ncol(AL_df_NCBI)-2   # Date and Country
+
+sprintf("GISAID: %d sequences x %d sites", nr_gisaid,nc_gisaid)
+sprintf("NCBI:   %d sequences x %d sites", nr_ncbi,nc_ncbi)
+```
+
+## Entropy Vectors
+
+```{r compute-entropy}
+Entrop_Vec_GISAID <- apply(AL_df_GISAID[, 1:1273], 2, calculate_entropy)
+Entrop_Vec_NCBI   <- apply(AL_df_NCBI[,   1:1273], 2, calculate_entropy)
+
+sprintf("GISAID entropy range: [%.6f, %.6f]",
+        min(Entrop_Vec_GISAID), max(Entrop_Vec_GISAID))
+sprintf("NCBI   entropy range: [%.6f, %.6f]",
+        min(Entrop_Vec_NCBI), max(Entrop_Vec_NCBI))
+```
+
+## Zero and Singleton Removal
+
+```{r preprocessing}
+sngl_gisaid <- -(
+  (1/nr_gisaid) * log2(1/nr_gisaid) +
+  ((nr_gisaid-1)/nr_gisaid) * log2((nr_gisaid-1)/nr_gisaid)
+)
+sngl_ncbi <- -(
+  (1/nr_ncbi) * log2(1/nr_ncbi) +
+  ((nr_ncbi-1)/nr_ncbi) * log2((nr_ncbi-1)/nr_ncbi)
+)
+
+sprintf("GISAID — zero-entropy sites:      %d", sum(Entrop_Vec_GISAID == 0))
+sprintf("NCBI   — zero-entropy sites:      %d", sum(Entrop_Vec_NCBI == 0))
+sprintf("NCBI   — singleton-entropy sites: %d",
+        sum(Entrop_Vec_NCBI == round(sngl_ncbi, 6L)))
+sprintf("GISAID   — singleton-entropy sites: %d",
+        sum(Entrop_Vec_GISAID == round(sngl_gisaid, 6L)))
+
+Entrop_Vec_GISAID_no0S <- Entrop_Vec_GISAID[Entrop_Vec_GISAID != 0]
+
+Entrop_Vec_NCBI_no0S <- Entrop_Vec_NCBI[
+  Entrop_Vec_NCBI != 0 &
+  Entrop_Vec_NCBI != round(sngl_ncbi, 6L)
+]
+
+sprintf("GISAID — sites retained after zero removal:             %d",
+        length(Entrop_Vec_GISAID_no0S))
+sprintf("NCBI   — sites retained after zero + singleton removal: %d",
+        length(Entrop_Vec_NCBI_no0S))
+```
+---
+
+# Complete Data — Distribution Overview
+
+The entropy distributions of the complete (unfiltered) vectors are shown here
+for both datasets to illustrate the characteristic right-skewed profile.  No
+GMM is fitted to the complete data; all subsequent analysis uses the
+zero/singleton-removed vectors.
+
+```{r dist-complete-gisaid}
+plot_entropy_distributions(Entrop_Vec_GISAID, prob = 0.9,
+                           dataset_label = "GISAID \u2014 complete (all 1273 sites)",
+                           bins = 10)
+```
+
+```{r dist-complete-ncbi}
+plot_entropy_distributions(Entrop_Vec_NCBI, prob = 0.9,
+                           dataset_label = "NCBI \u2014 complete (all 1273 sites)",
+                           bins = 10)
+```
+
+---
+
+# Untransformed Analysis (Zeros/Singletons Removed)
+
+GMM is fitted on the zero/singleton-removed entropy vectors.  The component
+with the highest mean entropy is selected as the high-variability cluster.
+
+## GISAID
+
+```{r gmm-gisaid-no0s}
+GISAID_gmm_no0S <- gmm_site_selection(
+  Entrop_Vec_GISAID_no0S,
+  prob             = 0.9,
+  transfr          = NULL,
+  hist             = TRUE,
+  calc_gmm_orig    = TRUE,
+  calc_gmm_transfr = FALSE,
+  dataset_label    = "GISAID \u2014 zeros removed",
+  bins             = 20
+)
+```
+
+```{r table-gisaid-untransf}
+tbl <- save_orig_comparison_table(
+  GISAID_gmm_no0S,
+  table_caption   = "Site selection \u2014 GISAID, zeros removed, untransformed",
+  save_path       = table_path("NonTransformed_GISAID_no0S.html"),
+  important_sites = important_sites_gisaid
+)
+tbl
+```
+
+## NCBI
+
+```{r gmm-ncbi-no0s}
+NCBI_gmm_no0S <- gmm_site_selection(
+  Entrop_Vec_NCBI_no0S,
+  prob             = 0.9,
+  transfr          = NULL,
+  hist             = TRUE,
+  calc_gmm_orig    = TRUE,
+  calc_gmm_transfr = FALSE,
+  dataset_label    = "NCBI \u2014 zeros and singletons removed",
+  bins             = 20
+)
+```
+
+```{r table-ncbi-untransf}
+tbl <- save_orig_comparison_table(
+  NCBI_gmm_no0S,
+  table_caption   = "Site selection \u2014 NCBI, zeros and singletons removed, untransformed",
+  save_path       = table_path("NonTransformed_NCBI_no0S.html"),
+  important_sites = important_sites_ncbi
+)
+tbl
+```
+
+---
+
+# Transformation Experiments
+
+All transformations are applied exclusively to the zero/singleton-removed
+vectors.  For each transformation, the GMM is fitted on the transformed scale;
+selected sites are reported back on the original entropy scale for
+interpretability.
+
+## Box-Cox Lambda Exploration
+
+$$
+x^{(\lambda)} = \begin{cases} \dfrac{x^{\lambda} - 1}{\lambda} & \text{if } \lambda \neq 0 \\[6pt] \ln(x) & \text{if } \lambda = 0 \end{cases}
+$$
+
+where $x > 0$ is the per-site Shannon entropy and $\lambda$ is the
+transformation parameter. For $\lambda$ close to zero the Box-Cox transformation
+approximates the natural logarithm, providing near-logarithmic compression of
+the right tail while remaining defined at $x = 0$ in the limit as
+$\lambda \to 0$.
+
+Nine equally spaced values of λ across [−2, 2] are applied to the
+zero/singleton-removed vectors to identify which value most effectively
+yield the most symmetric shape of the distribution.  
+
+```{r boxcox-lambda-exploration}
+boxcox_transform <- function(x, lambda) {
+  if (lambda == 0) log(x) else (x^lambda - 1) / lambda
+}
+lambdas <- seq(-2, 2, length.out = 9L)
+
+plot_boxcox_grid <- function(ev, dataset_label) {
+  plots <- lapply(seq_along(lambdas), function(i) {
+    lam  <- lambdas[i]
+    data <- boxcox_transform(ev, lam)
+    ggplot2::ggplot(data.frame(x = data), ggplot2::aes(x = x)) +
+      ggplot2::geom_histogram(fill = "steelblue", colour = "white",
+                              alpha = 0.85, bins = 20L) +
+      ggplot2::labs(title = sprintf("\u03bb = %.2f", lam),
+                    x = "Transformed entropy", y = "Count") +
+      ggplot2::theme_bw(base_size = 9) +
+      ggplot2::theme(plot.title       = ggplot2::element_text(face = "bold",
+                                                               hjust = 0.5),
+                     panel.grid.minor = ggplot2::element_blank())
+  })
+  print(
+    patchwork::wrap_plots(plots, ncol = 3L) +
+      patchwork::plot_annotation(
+        title = sprintf("Box-Cox transformation \u2014 %s", dataset_label),
+        theme = ggplot2::theme(plot.title = ggplot2::element_text(
+          face = "bold", hjust = 0.5, size = 12)))
+  )
+}
+
+plot_boxcox_grid(Entrop_Vec_GISAID_no0S, "GISAID (zeros removed)")
+plot_boxcox_grid(Entrop_Vec_NCBI_no0S,   "NCBI (zeros and singletons removed)")
+```
+
+## Log1p
+
+```{r transf-log1p}
+GISAID_log1p_no0S <- gmm_site_selection(
+  Entrop_Vec_GISAID_no0S, transfr = scales::log1p_trans(),
+  prob = 0.9, hist = TRUE, calc_gmm_orig = FALSE, calc_gmm_transfr = TRUE,
+  dataset_label = "GISAID \u2014 zeros removed", bins = 20
+)
+
+NCBI_log1p_no0S <- gmm_site_selection(
+  Entrop_Vec_NCBI_no0S, transfr = scales::log1p_trans(),
+  prob = 0.9, hist = TRUE, calc_gmm_orig = FALSE, calc_gmm_transfr = TRUE,
+  dataset_label = "NCBI \u2014 zeros and singletons removed", bins = 20
+)
+
+save_transformed_comparison_table(
+  GISAID_log1p_no0S,
+  "Site selection \u2014 GISAID, zeros removed, Log1p",
+  table_path("Log1p_GISAID_no0S.html"), important_sites_gisaid
+)
+
+save_transformed_comparison_table(
+  NCBI_log1p_no0S,
+  "Site selection \u2014 NCBI, zeros and singletons removed, Log1p",
+  table_path("Log1p_NCBI_no0S.html"), important_sites_ncbi
+)
+```
+
+## Log1p∘Log1p (Double Compression)
+
+```{r transf-loglog}
+GISAID_loglog_no0S <- gmm_site_selection(
+  Entrop_Vec_GISAID_no0S, transfr = loglog1p1p_trans,
+  prob = 0.9, hist = TRUE, calc_gmm_orig = FALSE, calc_gmm_transfr = TRUE,
+  dataset_label = "GISAID \u2014 zeros removed", bins = 20
+)
+
+NCBI_loglog_no0S <- gmm_site_selection(
+  Entrop_Vec_NCBI_no0S, transfr = loglog1p1p_trans,
+  prob = 0.9, hist = TRUE, calc_gmm_orig = FALSE, calc_gmm_transfr = TRUE,
+  dataset_label = "NCBI \u2014 zeros and singletons removed", bins = 20
+)
+
+save_transformed_comparison_table(
+  GISAID_loglog_no0S,
+  "Site selection \u2014 GISAID, zeros removed, Log1p\u2218Log1p",
+  table_path("LogLog_GISAID_no0S.html"), important_sites_gisaid
+)
+
+save_transformed_comparison_table(
+  NCBI_loglog_no0S,
+  "Site selection \u2014 NCBI, zeros and singletons removed, Log1p\u2218Log1p",
+  table_path("LogLog_NCBI_no0S.html"), important_sites_ncbi
+)
+```
+
+## Square Root
+
+```{r transf-sqrt}
+GISAID_sqrt_no0S <- gmm_site_selection(
+  Entrop_Vec_GISAID_no0S, transfr = scales::sqrt_trans(),
+  prob = 0.9, hist = TRUE, calc_gmm_orig = FALSE, calc_gmm_transfr = TRUE,
+  dataset_label = "GISAID \u2014 zeros removed", bins = 20
+)
+
+NCBI_sqrt_no0S <- gmm_site_selection(
+  Entrop_Vec_NCBI_no0S, transfr = scales::sqrt_trans(),
+  prob = 0.9, hist = TRUE, calc_gmm_orig = FALSE, calc_gmm_transfr = TRUE,
+  dataset_label = "NCBI \u2014 zeros and singletons removed", bins = 20
+)
+
+save_transformed_comparison_table(
+  GISAID_sqrt_no0S,
+  "Site selection \u2014 GISAID, zeros removed, Square root",
+  table_path("Sqrt_GISAID_no0S.html"), important_sites_gisaid
+)
+
+save_transformed_comparison_table(
+  NCBI_sqrt_no0S,
+  "Site selection \u2014 NCBI, zeros and singletons removed, Square root",
+  table_path("Sqrt_NCBI_no0S.html"), important_sites_ncbi
+)
+```
+
+## Reciprocal
+
+```{r transf-reciprocal}
+GISAID_recip_no0S <- gmm_site_selection(
+  Entrop_Vec_GISAID_no0S, transfr = reciprocal_trans,
+  prob = 0.9, hist = TRUE, calc_gmm_orig = FALSE, calc_gmm_transfr = TRUE,
+  dataset_label = "GISAID \u2014 zeros removed", bins = 20
+)
+
+NCBI_recip_no0S <- gmm_site_selection(
+  Entrop_Vec_NCBI_no0S, transfr = reciprocal_trans,
+  prob = 0.9, hist = TRUE, calc_gmm_orig = FALSE, calc_gmm_transfr = TRUE,
+  dataset_label = "NCBI \u2014 zeros and singletons removed", bins = 20
+)
+
+save_transformed_comparison_table(
+  GISAID_recip_no0S,
+  "Site selection \u2014 GISAID, zeros removed, Reciprocal",
+  table_path("Reciprocal_GISAID_no0S.html"), important_sites_gisaid
+)
+
+save_transformed_comparison_table(
+  NCBI_recip_no0S,
+  "Site selection \u2014 NCBI, zeros and singletons removed, Reciprocal",
+  table_path("Reciprocal_NCBI_no0S.html"), important_sites_ncbi
+)
+```
+
+## Box-Cox (λ = −0.05)
+
+```{r transf-boxcox}
+bc_trans <- boxcox_trans(lambda = -0.05)
+
+GISAID_bc_no0S <- gmm_site_selection(
+  Entrop_Vec_GISAID_no0S, transfr = bc_trans,
+  prob = 0.9, hist = TRUE, calc_gmm_orig = FALSE, calc_gmm_transfr = TRUE,
+  dataset_label = "GISAID \u2014 zeros removed", bins = 20
+)
+
+NCBI_bc_no0S <- gmm_site_selection(
+  Entrop_Vec_NCBI_no0S, transfr = bc_trans,
+  prob = 0.9, hist = TRUE, calc_gmm_orig = FALSE, calc_gmm_transfr = TRUE,
+  dataset_label = "NCBI \u2014 zeros and singletons removed", bins = 20
+)
+
+save_transformed_comparison_table(
+  GISAID_bc_no0S,
+  "Site selection \u2014 GISAID, zeros removed, Box-Cox (\u03bb = \u22120.05)",
+  table_path("BoxCox_GISAID_no0S.html"), important_sites_gisaid
+)
+
+save_transformed_comparison_table(
+  NCBI_bc_no0S,
+  "Site selection \u2014 NCBI, zeros and singletons removed, Box-Cox (\u03bb = \u22120.05)",
+  table_path("BoxCox_NCBI_no0S.html"), important_sites_ncbi
+)
+```
+
+## Log (natural log)
+
+```{r transf-log}
+GISAID_log_no0S <- gmm_site_selection(
+  Entrop_Vec_GISAID_no0S, transfr = scales::log_trans(),
+  prob = 0.9, hist = TRUE, calc_gmm_orig = FALSE, calc_gmm_transfr = TRUE,
+  dataset_label = "GISAID \u2014 zeros removed", bins = 20
+)
+
+NCBI_log_no0S <- gmm_site_selection(
+  Entrop_Vec_NCBI_no0S, transfr = scales::log_trans(),
+  prob = 0.9, hist = TRUE, calc_gmm_orig = FALSE, calc_gmm_transfr = TRUE,
+  dataset_label = "NCBI \u2014 zeros and singletons removed", bins = 20
+)
+
+save_transformed_comparison_table(
+  GISAID_log_no0S,
+  "Site selection \u2014 GISAID, zeros removed, Log",
+  table_path("Log_GISAID_no0S.html"), important_sites_gisaid
+)
+
+save_transformed_comparison_table(
+  NCBI_log_no0S,
+  "Site selection \u2014 NCBI, zeros and singletons removed, Log",
+  table_path("Log_NCBI_no0S.html"), important_sites_ncbi
+)
+```
+
+---
+
+---
+
+# Summary: % Overlap Across All Transformations
+
+The tables below consolidate the percentage of VOC reference sites recovered
+by each GMM subset across all transformations.  Cell colour intensity is
+proportional to overlap — deeper green indicates higher recovery.  The maximum
+value in each transformation column is shown in bold.
+
+## GISAID summary table
+
+```{r summary-gisaid}
+gisaid_results <- list(
+  "Untransformed"    = GISAID_gmm_no0S,
+  "Log1p"            = GISAID_log1p_no0S,
+  "Log1p\u2218Log1p" = GISAID_loglog_no0S,
+  "Square root"      = GISAID_sqrt_no0S,
+  "Reciprocal"       = GISAID_recip_no0S,
+  "Box-Cox"          = GISAID_bc_no0S,
+  "Log"              = GISAID_log_no0S
+)
+
+tbl_summary_gisaid <- generate_summary_table(
+  results_list    = gisaid_results,
+  important_sites = important_sites_gisaid,
+  table_caption   = "Summary: % overlap with GISAID VOC reference sites (Alpha / Beta / Gamma / Delta / Omicron) by GMM subset and transformation",
+  save_path       = table_path("Summary_GISAID.html")
+)
+tbl_summary_gisaid
+```
+
+## NCBI summary table
+
+```{r summary-ncbi}
+ncbi_results <- list(
+  "Untransformed"    = NCBI_gmm_no0S,
+  "Log1p"            = NCBI_log1p_no0S,
+  "Log1p\u2218Log1p" = NCBI_loglog_no0S,
+  "Square root"      = NCBI_sqrt_no0S,
+  "Reciprocal"       = NCBI_recip_no0S,
+  "Box-Cox"          = NCBI_bc_no0S,
+  "Log"              = NCBI_log_no0S
+)
+
+tbl_summary_ncbi <- generate_summary_table(
+  results_list    = ncbi_results,
+  important_sites = important_sites_ncbi,
+  table_caption   = "Summary: % overlap with NCBI VOC reference sites (Alpha / Beta / Gamma / Delta) by GMM subset and transformation",
+  save_path       = table_path("Summary_NCBI.html")
+)
+tbl_summary_ncbi
+```
+
+# Session Information
+
+```{r session-info}
+sessionInfo()
+```
+
+# References
