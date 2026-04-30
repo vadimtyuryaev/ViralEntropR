@@ -12,3 +12,6 @@ Compare/
 /Meta/
 output/
 analysis/simulation_study.R
+analysis/GISAID_data_preprocessing/*.rds
+analysis/GISAID_data_preprocessing/*.fasta
+analysis/GISAID_data_preprocessing/*.fasta.gz

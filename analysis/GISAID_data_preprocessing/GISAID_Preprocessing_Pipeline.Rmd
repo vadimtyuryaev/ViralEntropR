@@ -1,0 +1,805 @@
+---
+title: "Reproducible Preprocessing of 16.7 Million GISAID SARS-CoV-2 Spike Protein Sequences in R"
+author: "Vadim Tyuryaev, Jane Heffernan, Hanna Jankowski"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    includes:
+      in_header: meta_gisaid.html
+bibliography: references.bib
+nocite: '@*'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  eval    = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  comment = "#>"
+)
+```
+
+# Overview
+
+This document records the complete preprocessing pipeline applied to GISAID
+SARS-CoV-2 Spike protein sequences downloaded in April 2024. The goal is to
+produce a clean, integer-encoded amino acid data matrix in the format required
+by `partition_time_windows()` and the broader `ViralEntropR` detection
+pipeline.
+
+The pipeline proceeds in six stages:
+
+1. Load the GISAID fasta file and the reference sequence.
+2. Extract and validate collection dates and country annotations.
+3. Filter to United States sequences within a biologically justified date
+   window and sequence length range.
+4. Remove sequences containing ambiguous amino acid residues.
+5. Align short sequences (width < 1273 aa) against the reference using
+   ClustalOmega; merge with full-length sequences.
+6. Encode the aligned matrix and assemble the final data frame.
+
+Elapsed times are recorded at each stage using `tictoc` to provide an honest
+account of the computational cost of pre-processing at this scale.
+
+> **Computational note.** Estimated peak RAM consumption is approximately 40 GB.
+> Every effort has been made to release large intermediate objects explicitly
+> via `rm()` and `gc()` to minimise memory pressure throughout the pipeline. The
+> dominant wall-clock cost is the alignment step itself, which takes 
+> approximately 6 hours on a Linux server. 
+
+<!--
+RENDERING NOTE
+--------------
+Do NOT knit from the RStudio Server "Knit" button — the session may be
+aborted by the server, losing all progress after the last checkpoint save.
+
+Instead, render from the terminal via nohup so the process survives
+session disconnection:
+
+  nohup Rscript -e \
+    "rmarkdown::render('/home/path/to/GISAID_Preprocessing_Pipeline.Rmd')" \
+    > render_log.txt 2>&1 &
+
+Monitor progress:
+  tail -f render_log.txt
+
+If the knit is interrupted after Stage 5 has completed (i.e.
+seq_US_GISAID_aligned_merged_1273aa.rds exists on disk), resume from
+Stage 6 only by:
+  1. Uncommenting the readRDS() line in the reextract-metadata-final chunk.
+  2. Setting eval=FALSE on all Stage 1-5 chunks.
+  3. Re-rendering via nohup as above.
+-->
+
+---
+
+# Prerequisites
+
+## Data download
+
+The GISAID Spike protein dataset (`spikeprot0410.fasta`) must be downloaded
+manually before running this pipeline. GISAID data access requires
+registration and agreement to the GISAID Data Access Agreement.
+
+1. Visit the [GISAID EpiCov Database](https://www.epicov.org) and log in.
+2. Navigate to **EpiCov → Downloads**.
+3. Download the file named `spikeprot0410.fasta` (or the nearest equivalent
+   release).
+
+A reference sequence (`Ref_Seq.fasta`) corresponding to the canonical
+SARS-CoV-2 Spike protein [GenBank: YP_009724390.1, 1273 aa](https://www.ncbi.nlm.nih.gov/protein/1796318598) is also required.
+
+## Install BiocManager and relevant packages
+
+```{r, eval=FALSE}
+
+# Install BiocManager if you don't already have it
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("Biostrings")
+BiocManager::install("msa")
+BiocManager::install("DECIPHER")
+
+```
+
+## Libraries
+
+```{r libraries}
+library(Biostrings)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(msa)
+library(tictoc)
+library(zoo)
+library(ViralEntropR)
+```
+
+---
+
+# Stage 1: Load fasta_GISAID Data
+
+The raw GISAID file contains sequences from all countries with dates spanning
+the full pandemic period. We load the file and record the total sequence count 
+before any filtering.
+
+```{r load-fasta_GISAID}
+tic("Stage 1: Load fasta_GISAID")
+fasta_GISAID   <- readAAStringSet("spikeprot0410.fasta", format = "fasta")
+Ref_Seq <- readAAStringSet("Ref_Seq.fasta")
+toc()
+
+n_seq_orig <- length(fasta_GISAID)
+sprintf("Raw sequence count: %d", n_seq_orig)
+```
+
+---
+
+# Stage 2: Date and Country Extraction
+
+## Extract collection dates — first pass
+
+GISAID sequence headers follow the pipe-delimited format:
+
+```
+Spike|hCoV-19/USA/OH-PLMI-HCFL5-xxxxxx/2021|2021-xx-xx|EPI_ISL_xxxxxxx|Original|hCoV-19^^Ohio|Human|
+```
+
+`extract_fasta_dates()` parses the date field using the `yyyy-mm-dd` pattern.
+Dates where the day component is recorded as `00` (a common GISAID convention
+indicating unknown collection day) are corrected to `01` and stored in
+`$corrected_dates`. A leading zero for month or day is permitted.
+
+```{r extract-dates-pass1}
+tic("Stage 2a: Extract dates (pass 1)")
+dates_result <- extract_fasta_dates(fasta_GISAID, option = 1)
+toc()
+
+dates_result$message
+
+n_miss <- length(dates_result$missing_id)
+sprintf("Sequences with missing or unparseable dates: %d", n_miss)
+
+# Inspect a sample of headers with missing dates to confirm they are
+# year-only records (e.g. "2021") rather than structurally malformed entries
+sample(fasta_GISAID[dates_result$missing_id], 1000) %>% names() %>% head(10)
+```
+
+Sequences lacking complete month and day collection data (e.g., '2021-00-00') are
+removed prior to downstream analysis. Reliable monthly resolution is necessary 
+for downstream temporal partitioning.
+
+```{r remove-missing-dates}
+fasta_GISAID <- fasta_GISAID[-dates_result$missing_id]
+
+n_seq_filtered_1 <- length(fasta_GISAID)
+
+# Arithmetic sanity check: removed exactly n_miss sequences
+stopifnot(n_miss == n_seq_orig - n_seq_filtered_1)
+sprintf("Sequences remaining after date filtering: %d", n_seq_filtered_1)
+```
+
+## Extract country annotations
+
+Country labels are encoded in the third pipe-delimited field of the GISAID
+header. `extract_fasta_countries()` extracts this field for each sequence.
+Date vectors are discarded at this point and will be re-extracted after the
+country filter to ensure both metadata vectors remain aligned to the same
+fasta_GISAID object.
+
+```{r extract-countries}
+tic("Stage 2b: Extract countries")
+countries_result <- extract_fasta_countries(fasta_GISAID, position = 3)
+toc()
+
+countries_result$message
+countries_result$missing_id        # expect NA (no missing country fields)
+
+sum(is.na(countries_result$countries))             # 0 NAs
+sum(countries_result$countries == "USA")           # 5,081,078 labelled "USA"
+
+# Country distribution — reveals other US labels: "United States", "US"
+countries_result$countries %>%
+  table() %>%
+  sort(decreasing = TRUE)%>%head(50)
+```
+
+## Re-extract dates and perform thorough validation
+
+After country extraction, dates are re-extracted from the current fasta_GISAID object
+(which had missing-date sequences removed) to produce two fully aligned
+metadata vectors. Four independent NA checks confirm that the corrected date
+vector is complete and that the `dd=00` correction propagated correctly.
+
+```{r reextract-dates-validate}
+tic("Stage 2c: Re-extract dates and validate")
+dates_result <- extract_fasta_dates(fasta_GISAID, option = 1)
+toc()
+
+dates_result$message
+
+# Four-way NA check: raw strings, corrected strings, raw dates, corrected dates
+sum(is.na(dates_result$raw_date_strings))       # should be 0
+sum(is.na(dates_result$corrected_date_strings)) # should be 0
+sum(is.na(dates_result$raw_dates))              # non-zero: dd=00 entries
+sum(is.na(dates_result$corrected_dates))        # should be 0 — confirmed
+
+# Inspect headers where raw dates are NA (dd=00) to confirm the
+# corrected_dates field handles them appropriately
+# Set the seed using the date format YYYYMMDD (April 6, 1928)
+set.seed(19280406)
+sample(fasta_GISAID[which(is.na(dates_result$raw_dates))], 1000) %>% names() %>% head(5)
+
+# dd is labelled 00 --> corrected_dates replaces 00 with 01
+set.seed(19280406)
+sample(dates_result$corrected_date_strings[which(is.na(dates_result$raw_dates))], 1000)%>% head(5)
+
+sprintf("Date range: %s  to  %s",
+        min(dates_result$corrected_dates),
+        max(dates_result$corrected_dates))
+
+# Verify metadata vectors are aligned
+stopifnot(
+  length(fasta_GISAID) == length(dates_result$corrected_dates),
+  length(fasta_GISAID) == length(countries_result$countries)
+)
+```
+
+## Date range filter — remove pre-pandemic and out-of-window sequences
+
+The SARS-CoV-2 pandemic began in late 2019. Sequences dated before
+`2019-12-01` cannot be genuine SARS-CoV-2 Spike protein records. Similarly, 
+sequences beyond the date of data base download (`2024-04-10`) are out of scope. 
+Both are identified and removed.
+
+```{r date-range-filter}
+start_date <- as.Date("2019-12-01")
+end_date   <- as.Date("2024-04-10")
+
+# Identify out-of-window sequences and inspect their headers
+out_of_window_idx <- which(
+  dates_result$corrected_dates < start_date |
+  dates_result$corrected_dates > end_date
+)
+
+sprintf("Sequences outside the analysis window: %d", length(out_of_window_idx))
+
+# Inspect suspicious sequence headers
+if (length(out_of_window_idx) > 0) {
+  cat("Sample of out-of-window sequence headers:\n")
+  print(head(names(fasta_GISAID)[out_of_window_idx], 20))
+
+  # Remove out-of-window sequences
+  fasta_GISAID            <- fasta_GISAID[-out_of_window_idx]
+  dates_result     <- extract_fasta_dates(fasta_GISAID, option = 1)
+  countries_result <- extract_fasta_countries(fasta_GISAID, position = 3)
+}
+
+rm(out_of_window_idx)
+gc()
+
+sprintf("Sequences remaining after date range filter: %d", length(fasta_GISAID))
+```
+
+## Collection date distribution
+
+```{r date-distribution, fig.width=10, fig.height=4}
+date_df <- data.frame(
+  Date = as.Date(dates_result$corrected_dates)
+) %>%
+  mutate(YearMonth = format(Date, "%Y-%m"))
+
+p=ggplot(date_df, aes(x = YearMonth)) +
+  geom_bar(stat = "count", fill = "steelblue") +
+  theme_bw() +
+  theme(
+    axis.text.x  = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 7),
+    plot.title   = element_text(hjust = 0.5, face = "bold"),
+    plot.caption = element_text(hjust = 1, colour = "grey45", size = 8)
+  ) +
+  labs(
+    x       = "Collection Month",
+    y       = "Number of Sequences",
+    title   = "GISAID SARS-CoV-2 Spike Sequences — Collection Date Distribution",
+    caption = "Day-00 dates corrected to the first day of the recorded month."
+  )
+
+print(p)
+
+ggsave(filename = "GISAID_Collection_Distribution_Clean_All_Sequences.png", 
+       plot = p, 
+       width = 10,     # Width of the image in inches
+       height = 6,     # Height of the image in inches
+       dpi = 300,      # Resolution (300 is standard for publications)
+       bg = "white")   # Ensures the background is white, not transparent
+
+rm(date_df,p)
+gc()
+
+```
+
+---
+
+# Stage 3: Geographic and Length Filtering
+
+## Filter to United States sequences
+
+Analyses are restricted to United States sequences to minimise confounding
+from inter-country sampling heterogeneity and surveillance intensity
+differences. Analysis above reveals three country labels for the United States:
+`"USA"`, `"United States"`, and `"US"`. Combined, these account for
+5,081,317 sequences (5,081,078 + 121 + 118).
+
+```{r filter-usa}
+tic("Stage 3a: Filter to USA")
+us_idx <- which(countries_result$countries %in% c("USA", "United States", "US"))
+fasta_GISAID  <- fasta_GISAID[us_idx]
+toc()
+
+rm(us_idx)
+gc()
+
+# Re-align metadata
+dates_result     <- extract_fasta_dates(fasta_GISAID, option = 1)
+countries_result <- extract_fasta_countries(fasta_GISAID, position = 3)
+
+sprintf("US sequences: %d", length(fasta_GISAID))
+```
+
+## Filter by sequence length
+
+The canonical SARS-CoV-2 spike protein (`YP_009724390.1`) is 1273 amino acids in 
+length. GISAID sequences of width 1274 include a terminal stop codon (*), which 
+is removed during preprocessing. Sequences shorter than 1268 amino acids typically
+reflect large deletions relative to the reference and disrupt the positional 
+correspondence required by the fixed-width representation used in this pipeline,
+while sequences longer than 1274 amino acids contain insertions relative to the 
+reference. Both cases are excluded to preserve consistent site-wise comparability 
+across sequences.
+
+```{r filter-width}
+tic("Stage 3b: Filter by sequence length")
+fasta_GISAID <- fasta_GISAID[width(fasta_GISAID) >= 1268L & width(fasta_GISAID) <= 1274L]
+toc()
+
+# Re-align metadata
+dates_result     <- extract_fasta_dates(fasta_GISAID, option = 1)
+countries_result <- extract_fasta_countries(fasta_GISAID, position = 3)
+
+# Width distribution after length filter
+width(fasta_GISAID) %>% table() %>% sort(decreasing = TRUE)
+```
+
+## Remove sequences containing ambiguous residues
+
+Sequences containing ambiguous amino acid codes — B (Asp/Asn), J (Leu/Ile), 
+X (unknown), and Z (Glu/Gln) — are removed prior to analysis. These symbols 
+encode uncertainty rather than distinct residues and, if treated as separate 
+categories, can bias frequency-based measures such as Shannon entropy by 
+inflating the effective alphabet size. This introduces noise into downstream 
+distance calculations and clustering, potentially obscuring true patterns of 
+sequence variability.
+
+```{r filter-ambiguous-pre-alignment}
+tic("Stage 3c: Remove ambiguous residues")
+keep_idx <- !grepl("X|B|Z|J", as.character(fasta_GISAID), ignore.case = TRUE)
+fasta_GISAID    <- fasta_GISAID[keep_idx]
+toc()
+
+rm(keep_idx)
+gc()
+
+# Re-align metadata
+dates_result     <- extract_fasta_dates(fasta_GISAID, option = 1)
+countries_result <- extract_fasta_countries(fasta_GISAID, position = 3)
+
+# Width distribution after ambiguous residue removal
+width(fasta_GISAID) %>% table() %>% sort(decreasing = TRUE)
+
+saveRDS(fasta_GISAID,            "seqs_US_filtered_unaligned.rds")
+saveRDS(dates_result,     "metadata_dates_US_filtered_unaligned.rds")
+saveRDS(countries_result, "metadata_countries_US_filtered_unaligned.rds")
+```
+
+---
+
+# Stage 4: Deduplication and Stop Codon Removal
+
+Exact duplicate sequences provide no additional information for entropy
+calculations and inflate computation time substantially. We deduplicate
+separately for sequences requiring alignment (width ≤ 1273) and sequences of
+canonical width (1274, including the stop codon).
+
+```{r split-and-deduplicate}
+tic("Stage 4a: Split and deduplicate")
+fasta_GISAID_short   <- unique(fasta_GISAID[width(fasta_GISAID) != 1274L])
+fasta_GISAID_regular <- unique(fasta_GISAID[width(fasta_GISAID) == 1274L])
+toc()
+
+rm(fasta_GISAID)
+gc()
+
+sprintf("Unique short sequences (width 1268-1273): %d", length(fasta_GISAID_short))
+sprintf("Unique regular sequences (width 1274):    %d", length(fasta_GISAID_regular))
+```
+
+Terminal stop codons (*) are removed prior to alignment. While treated as valid 
+symbols by Clustal Omega, their presence introduces non-biological variation at 
+the C-terminus, which can lead to artificial mismatches and, in cases of 
+inconsistent sequence lengths, may contribute to spurious gap placement at
+terminal positions.
+
+The `endoapply` function is a specialized iteration method in R that applies a
+given function across all elements of a list-like object while returning an 
+output of the exact same S4 class as the original input.
+
+We utilize it in this step to ensure that removing the terminal stop codons 
+preserves the native Bioconductor sequence class (`AAStringSet`) of the data,
+preventing the sequences from being unintentionally coerced into a standard R list.
+
+```{r remove-stop-codons}
+remove_stop_codon <- function(seq) {
+  AAString(gsub("\\*", "", as.character(seq)))
+}
+
+tic("Stage 4b: Remove stop codons (short sequences)")
+fasta_GISAID_short <- endoapply(fasta_GISAID_short, remove_stop_codon)
+toc()
+
+tic("Stage 4c: Remove stop codons (regular sequences)")
+fasta_GISAID_regular <- endoapply(fasta_GISAID_regular, remove_stop_codon)
+toc()
+
+# Confirm stop codons removed from both sets
+stopifnot(!any(grepl("\\*", as.character(fasta_GISAID_short))))
+stopifnot(!any(grepl("\\*", as.character(fasta_GISAID_regular))))
+
+saveRDS(fasta_GISAID_short,   "seqs_US_GISAID_unaligned_unique_short.rds")
+saveRDS(fasta_GISAID_regular, "seqs_US_GISAID_unaligned_unique_1273aa.rds")
+```
+
+---
+
+# Stage 5: Multiple Sequence Alignment (MSA)
+
+## Rationale
+
+Sequences of width 1268–1273 carry one to five amino acid deletions relative to
+the reference. To assign site positions consistently across all sequences, each
+short sequence is aligned individually against the 1273-aa reference using 
+Clustal Omega in pairwise mode. The reference sequence serves as an anchor for 
+positional correspondence and is discarded from the output; only the aligned 
+form of each query sequence is retained.
+
+The parameter **threads = 1** is specified explicitly. For a two-sequence 
+alignment (one query and one reference), Clustal Omega constructs a trivial 
+guide tree and performs minimal profile alignment, resulting in a computational
+workload that is inherently sequential. In this setting, increasing the number 
+of threads provides no practical performance benefit and may introduce 
+unnecessary overhead.
+
+## Test run on 100 sequences
+
+To validate the alignment logic and forecast computational requirements, a 
+preliminary benchmark was conducted on a randomized sample of 100 sequences. 
+This approach yields a robust empirical average of the per-sequence runtime, 
+acknowledging that individual execution times may fluctuate depending on 
+sequence divergence (e.g., insertion/deletion events) and dynamic hardware
+allocation.
+
+```{r alignment-test}
+perform_alignment <- function(sequences, reference) {
+  combined <- c(reference, sequences)
+  env      <- environment()
+  capture.output(suppressMessages(
+    env$result <- msa(combined,
+                      method  = "ClustalOmega",
+                      order   = "input",
+                      type    = "protein",
+                      threads = 1L,
+                      verbose = FALSE,
+                      help    = FALSE)
+  ))
+  env$result@unmasked[-1L]
+}
+
+# 1. Set reproducible seed for the test sample
+set.seed(19760727) 
+
+# 2. Sample 100 distinct sequences
+test_seq <- sample(fasta_GISAID_short, 100L)
+
+# 3. Split into 100 individual chunks (each containing exactly 1 sequence)
+test_chunks <- split(test_seq, seq_along(test_seq))
+
+# 4. Time the one-by-one alignment process
+tic("Test: 100 individual sequence alignments")
+aligned_test <- lapply(test_chunks, perform_alignment, Ref_Seq)
+aligned_test <- Reduce(c, aligned_test)
+timer <- toc()
+
+# 5. Extract elapsed time to calculate the per-sequence average
+total_test_sec <- timer$toc - timer$tic
+sec_per_seq    <- total_test_sec / 100
+total_seqs     <- length(fasta_GISAID_short)
+
+est_total_seconds <- sec_per_seq * total_seqs
+est_total_hours   <- est_total_seconds / 3600
+
+# 6. Print the projection
+sprintf("Empirical average per sequence: %.4f seconds", sec_per_seq)
+sprintf("Estimated production time for %d sequences: %.2f hours", 
+            total_seqs, est_total_hours)
+
+rm(test_seq,test_chunks,aligned_test)
+gc()
+
+```
+
+## Production alignment (~6 hours)
+
+```{r alignment-production, eval=FALSE}
+
+tic("Stage 5 production: Align ~121,621 sequences")
+prod_chunks  <- split(fasta_GISAID_short, seq_along(fasta_GISAID_short))
+aligned_prod <- lapply(prod_chunks, perform_alignment, Ref_Seq)
+aligned_prod <- Reduce(c, aligned_prod)
+toc()
+
+saveRDS(aligned_prod, "seq_US_GISAID_pairwise_aligned_short_vs_Ref.rds")
+
+# Width distribution — note that some sequences may be longer than 1273 aa
+# due to insertions introduced relative to the reference during alignment
+width(aligned_prod) %>% table() %>% sort(decreasing = TRUE)
+
+```
+
+## Inspect alignment quality
+
+```{r alignment-quality, eval=FALSE}
+library(DECIPHER)
+
+# Combine your reference and a random sample of 100 sequences
+view_sample <- c(Ref_Seq, sample(aligned_prod, 100L))
+
+# Open in browser. Setting highlight = 1 colors only the mutations 
+# that differ from the first sequence (reference)!
+BrowseSeqs(view_sample, highlight = 1)
+```
+
+```{r restart-after-crash, echo=FALSE, eval=TRUE}
+aligned_prod <- readRDS("seq_US_GISAID_pairwise_aligned_short_vs_Ref.rds")
+```
+
+## Post-alignment width filter and merge
+
+After alignment, sequences at irregular widths (outside 1273 aa) are discarded
+— these are sequences for which ClustalOmega introduced an insertion relative
+to the reference, which cannot be accommodated by the fixed-width pipeline.
+The retained aligned sequences are merged with the full-length sequences.
+
+```{r merge-aligned}
+tic("Stage 5: Filter to width 1273 and merge")
+aligned_prod_1273 <- aligned_prod[width(aligned_prod) == 1273L]
+
+sprintf("Aligned short sequences retained at width 1273: %d",
+        length(aligned_prod_1273))
+
+fasta_GISAID_merged <- c(aligned_prod_1273, fasta_GISAID_regular)
+toc()
+
+# Confirm all merged sequences are width 1273
+width(fasta_GISAID_merged) %>% table()
+
+saveRDS(fasta_GISAID_merged, "seq_US_GISAID_aligned_merged_1273aa.rds")
+
+rm(fasta_GISAID_short, fasta_GISAID_regular, aligned_prod,
+   aligned_prod_1273, prod_chunks)
+gc()
+```
+
+---
+
+# Stage 6: Matrix Encoding and Data Frame Assembly
+
+## Re-extract metadata for merged sequences
+
+The merged fasta_GISAID object contains sequences from both the aligned-short and
+full-length pools. Metadata vectors are re-extracted to ensure they are
+aligned to the final merged sequence set. The reference sequence (Wuhan
+isolate, position 1) is removed — it is not part of the surveillance dataset.
+
+```{r reextract-metadata-final}
+
+tic("Stage 6a: Re-extract metadata for merged set")
+dates_final     <- extract_fasta_dates(fasta_GISAID_merged, option = 1)
+countries_final <- extract_fasta_countries(fasta_GISAID_merged, position = 3)
+toc()
+
+dates_final$message
+sprintf("Missing dates:     %d",
+        if (all(is.na(dates_final$missing_id))) 0L
+        else length(dates_final$missing_id))
+
+sprintf("Missing countries: %d",
+        if (all(is.na(countries_final$missing_id))) 0L
+        else length(countries_final$missing_id))
+
+sprintf("Final date range: %s  to  %s",
+        min(dates_final$corrected_dates),
+        max(dates_final$corrected_dates))
+```
+
+## Final date distribution
+
+```{r date-distribution-final, fig.width=10, fig.height=4}
+date_df_final <- data.frame(
+  Date = as.Date(dates_final$corrected_dates)
+) %>%
+  mutate(YearMonth = format(Date, "%Y-%m"))
+
+p=ggplot(date_df_final, aes(x = YearMonth)) +
+  geom_bar(stat = "count", fill = "steelblue") +
+  theme_bw() +
+  theme(
+    axis.text.x  = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 7),
+    plot.title   = element_text(hjust = 0.5, face = "bold"),
+    plot.caption = element_text(hjust = 1, colour = "grey45", size = 8)
+  ) +
+  labs(
+    x       = "Collection Month",
+    y       = "Number of Sequences",
+    title   = "GISAID USA Sequences — Final Date Distribution (Post-Processing)",
+    caption = "Day-00 dates corrected to the first day of the recorded month."
+  )
+
+print(p)
+
+ggsave(filename = "GISAID_Collection_Distribution_US_Seq_PostProcessing.png", 
+       plot = p, 
+       width = 10,     # Width of the image in inches
+       height = 6,     # Height of the image in inches
+       dpi = 300,      # Resolution (300 is standard for publications)
+       bg = "white")   # Ensures the background is white, not transparent
+
+rm(date_df_final,p)
+gc()
+
+```
+
+## Convert to character matrix
+
+Function `fasta_to_char_matrix()` converts the `AAStringSet` to a plain character
+matrix (rows = sequences, columns = sites 1–1273). All sequences at this
+stage have been verified to be 1273 aa.
+
+```{r fasta_GISAID-to-char-matrix}
+tic("Stage 6b: fasta_GISAID_to_char_matrix")
+char_mat <- fasta_to_char_matrix(fasta_GISAID_merged)
+rm(fasta_GISAID_merged)
+toc()
+
+gc()
+
+sprintf("Character matrix dimensions: %d sequences x %d sites",
+        nrow(char_mat), ncol(char_mat))
+```
+
+## Filter residual ambiguous residues
+
+A second pass of `filter_ambiguous_sequences()` catches any ambiguous residues
+or alignment gaps introduced during the ClustalOmega step. `option = 2`
+specifies a character matrix input.
+
+```{r filter-ambiguous-post-alignment}
+tic("Stage 6c: filter_ambiguous_sequences (post-alignment)")
+filtered <- filter_ambiguous_sequences(char_mat, option = 2)
+rm(char_mat)
+toc()
+
+gc()
+
+cat(filtered$OriginalDim,     "\n")
+cat(filtered$NewDim,          "\n")
+cat(filtered$NumberAmbiguous, "\n")
+
+clean_char_mat  <- filtered$FilteredMatrix
+deleted_rows    <- filtered$DeletedSeqId
+
+rm(filtered)
+gc()
+
+# Align metadata
+corrected_dates <- if (length(deleted_rows) > 0L) {
+  dates_final$corrected_dates[-deleted_rows]
+} else {
+  dates_final$corrected_dates
+}
+
+countries <- if (length(deleted_rows) > 0L) {
+  countries_final$countries[-deleted_rows]
+} else {
+  countries_final$countries
+}
+
+stopifnot(
+  nrow(clean_char_mat) == length(corrected_dates),
+  nrow(clean_char_mat) == length(countries)
+)
+```
+
+## Encode amino acids
+
+Function `encode_aa_sequence()` maps each single-letter amino acid code to its
+integer representation using the 25-character `ViralEntropR` alphabet. After 
+two-stage ambiguous residue filtering, only codes 1–20 (the 20 standard amino acids)
+and code 25 (alignment gap, `-`) should be present.
+
+```{r encode}
+tic("Stage 6d: encode_aa_sequence")
+int_mat <- encode_aa_sequence(clean_char_mat)
+rm(clean_char_mat)
+toc()
+
+gc()
+
+code_range <- range(int_mat)
+sprintf("Encoded value range: %d to %d", code_range[1], code_range[2])
+
+```
+
+## Assemble the final data frame
+
+The integer matrix is combined with aligned date and country metadata into a
+single data frame. Dates are standardised to the first of each collection
+month for compatibility with `partition_time_windows()`, and rows are sorted
+by date. The unfiltered matrix is saved as an intermediate checkpoint before
+the final cleaned object is written.
+
+```{r assemble-dataframe}
+tic("Stage 6e: Assemble data frame")
+n_seq   <- nrow(int_mat)
+n_sites <- ncol(int_mat)
+
+AL_df           <- as.data.frame(int_mat)
+colnames(AL_df) <- as.character(seq_len(n_sites))
+AL_df[]         <- lapply(AL_df, as.integer)
+
+AL_df$Date    <- as.Date(format(as.Date(corrected_dates), "%Y-%m-01"))
+AL_df$Country <- "USA"
+
+rownames(AL_df) <- as.character(seq_len(n_seq))
+
+AL_df <- AL_df[order(AL_df$Date), ]
+toc()
+
+# Apply final date-ordered row reset
+rownames(AL_df) <- NULL
+
+sprintf("Final data frame: %d sequences x %d columns (%d sites + Date + Country)",
+        nrow(AL_df), ncol(AL_df), n_sites)
+
+saveRDS(AL_df, "GISAID_US_aligned_feature_matrix_1273aa.rds")
+
+rm(int_mat)
+gc()
+```
+
+---
+
+# Session Information
+
+```{r session-info}
+sessionInfo()
+```
+
+# References
+
