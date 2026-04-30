@@ -1,4 +1,7 @@
 data-raw/sequences.fasta
+data-raw/spikeprot0410.fasta
+data-raw/Data_Matrix_Filtered_NCBI_Data_US
+data-raw/Data_Matrix_Filtered_GISAID_Data_US
 .Rproj.user
 .Rhistory
 .RData
@@ -8,3 +11,4 @@ Compare/
 /doc/
 /Meta/
 output/
+analysis/simulation_study.R
