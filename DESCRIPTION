@@ -1,6 +1,6 @@
 Package: ViralEntropR
 Title: Entropy-Informed Computational Analysis of Viral Evolution
-Version: 0.4.1
+Version: 0.4.5
 Authors@R: c(
               person("Vadim", "Tyuryaev", ,"vadim.tyuryaev@gmail.com", 
                       role = c("aut", "cre"), 
@@ -21,6 +21,7 @@ LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports: 
+    ggplot2 (>= 3.4.0),
     HDcpDetect,
     ecp,
     kableExtra,
@@ -28,6 +29,7 @@ Imports:
     lubridate,
     magrittr,
     mclust,
+    rlang,
     stats,
     stringr,
     utils,
@@ -36,7 +38,6 @@ Suggests:
     Biostrings,
     DT,
     dplyr,
-    ggplot2,
     here,
     readxl,
     rmarkdown,
