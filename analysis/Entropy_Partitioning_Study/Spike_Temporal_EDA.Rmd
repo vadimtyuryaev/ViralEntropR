@@ -1,0 +1,1133 @@
+---
+title: "Site-Specific Shannon Entropy Dynamics at SARS-CoV-2 Spike Protein Variant-Defining Mutation Sites: Temporal Partitioning and Gaussian Mixture Model Classification Across Alpha, Beta, Gamma, Delta, and Omicron Variants of Concern"
+author: "Vadim Tyuryaev, Jane Heffernan, Hanna Jankowski"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    includes:
+      in_header: meta_spike_temporal_eda.html
+bibliography: references_partitioning.bib
+nocite: '@*'
+---
+
+# Overview
+
+This script performs a systematic temporal analysis of Shannon entropy dynamics
+at SARS-CoV-2 Spike protein mutation sites across six variant groups: Alpha
+(B.1.1.7), Beta (B.1.351), Gamma (P.1), Delta (B.1.617.2), Omicron
+(B.1.1.529), and D614G. Two independent post-processed datasets are analysed in
+parallel — unaligned NCBI US sequences (January 2020 to September 2021,
+109,536 sequences; see the `preprocessing_pipeline` vignette for the full
+preprocessing workflow) and aligned GISAID US sequences (March 2020 to June
+2022, 129,371 sequences; see `analysis/GISAID_data_preprocessing/` for the
+GISAID preprocessing pipeline) — to assess consistency of findings across data
+sources.
+
+Three temporal partitioning strategies are applied to each dataset: cumulative
+windows expanding by one month from a fixed origin, 2-month sliding windows
+with one-month overlap, and non-overlapping 2-month disjoint windows. The
+cumulative strategy emulates the sequential accumulation of sequences in public
+databases, where each partition incorporates all data collected from the study
+origin to a given point in time. Under this scheme, entropy estimates are
+progressively shaped by the cumulative sequence composition up to each time
+point, with earlier and more prevalent variants contributing disproportionately
+as the window grows, making this approach well suited for identifying sustained,
+long-term shifts in amino acid diversity. The sliding and disjoint strategies,
+by contrast, restrict each partition to a fixed 2-month span, thereby limiting
+the influence of early-pandemic sequences on later time points. This temporal
+localisation enhances sensitivity to transient entropy changes associated with
+variant emergence and replacement events, although at the cost of increased
+variability due to smaller sample sizes within each window. This multi-strategy
+design allows robust findings to be distinguished from artefacts of a particular
+temporal aggregation scheme.
+
+Within each partition, per-site Shannon entropy is computed and sites are
+assigned to entropy classes via Gaussian mixture model (GMM) clustering. Class
+labels are relabeled so that class 1 consistently denotes the highest-entropy 
+group. The temporal evolution of these class assignments is the primary object 
+of study: a site transitioning into the highest-entropy class reflects the 
+emergence and coexistence of multiple amino acid states, where novel 
+substitutions initially coexist with ancestral residues before increasing in 
+prevalence and, in some cases, approaching fixation in the circulating 
+population.
+
+Four output types are produced per variant per partition strategy: (1) grouped
+entropy trajectory plots distinguishing defining amino acid substitution sites 
+(SNPs) from other mutation sites; (2) per-site GMM entropy class trajectory 
+plots on the raw Shannon entropy scale; (3) amino acid frequency tables 
+recording the observed residue distribution at each defining SNP site across all
+partitions; and (4) GMM class assignment tables summarizing the class label of 
+every site at every partition, with total sequence counts (`Nseq`) and fitted 
+GMM classes counts (`Nclust`) as summary rows.
+
+Memory usage is substantial with estimated peak consumption at approximately
+15 GB RAM when partitioning the full GISAID dataset. To support
+reproducibility and facilitate re-runs on memory-constrained systems, partition
+objects are serialized to disk immediately after construction and reloaded on
+demand; intermediate objects are explicitly removed via `rm()` and `gc()`
+throughout. Wall-clock runtime estimates for each partitioning call are
+recorded via `system.time()` and printed to the session log.
+
+<!--
+  Notes:
+  - Estimated peak RAM usage is substantial. Run on the server, not a local machine.
+  - Partitioning is checkpoint-based: if RDS files already exist they are loaded
+    directly, skipping the expensive re-partitioning step.
+  - The main analysis loop processes both datasets (NCBI US, GISAID US) and all
+    three windowing strategies for all VOCs (Alpha, Beta, Gamma, Delta, Omicron,
+    D614G). Relabeling is performed once per partition key and reused across
+    all variants to minimise peak memory consumption.
+  - D614G (site 614) is treated as a standalone variant with first US detection
+    hardcoded to March 2020. No entropy trajectory plot is generated for D614G
+    (single site, nothing to compare); only class trajectory, frequency table,
+    and class assignment table are produced.
+  - All other sites: detection lines are drawn for every VOC whose Mutation_Sites
+    include that site.
+  - Omicron entropy trajectory plots show defining SNP sites only (no
+    by-group stratification), due to the high number of SNP sites.
+  - Class trajectory plots use raw Shannon Entropy on the y-axis throughout.
+  - Entropy trajectory plots (grouped VOC sites) use 10 × ln(Shannon Entropy).
+  - All source() calls, require() calls, and references to legacy custom
+    functions have been eliminated. Only ViralEntropR package functions and
+    standard CRAN packages are used.
+-->
+
+# Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  warning = FALSE,
+  comment = "#>"
+)
+```
+
+## Libraries
+
+```{r libraries, message=FALSE, warning=FALSE}
+
+library(ViralEntropR)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(kableExtra)
+library(scales)
+library(here)
+
+```
+
+## Output Directories
+
+```{r output-dirs}
+
+out_root <- here("Temporal_Site_EDA", "outputs")
+
+# All partition and variant label combinations are generated programmatically
+# to ensure the folder structure is complete and consistent.
+partition_labels_all <- c(
+  "NCBI_US_cumulative_1m",   "NCBI_US_sliding_2m",   "NCBI_US_disjoint_2m",
+  "GISAID_US_cumulative_1m", "GISAID_US_sliding_2m", "GISAID_US_disjoint_2m"
+)
+voc_labels_all <- c("Alpha", "Beta", "Gamma", "Delta", "Omicron", "D614G")
+
+dirs <- c(
+  file.path(out_root, "partitions"),
+  file.path(out_root, "Entropy_Trajectories", partition_labels_all),
+  unlist(lapply(partition_labels_all, function(p)
+    file.path(out_root, "Class_Trajectories", p, voc_labels_all))),
+  file.path(out_root, "Class_Assignments", partition_labels_all),
+  unlist(lapply(partition_labels_all, function(p)
+    file.path(out_root, "Frequency_Tables", p, voc_labels_all)))
+)
+
+invisible(lapply(dirs, dir.create, recursive = TRUE, showWarnings = FALSE))
+
+```
+
+## Log Transformation for Entropy Trajectory Visualisation
+
+```{r transformation}
+
+# Defines the ln(x) * 10 transformation applied to the y-axis of grouped
+# entropy trajectory plots (VOC mutation sites). Multiplying the natural
+# logarithm of Shannon Entropy by 10 compresses the dynamic range and
+# improves visual separation of low-entropy sites while preserving
+# monotonicity. Class trajectory plots use raw Shannon Entropy.
+
+log10p_trans <- scales::trans_new(
+  name      = "ln_x10",
+  transform = function(x) log(x) * 10,
+  inverse   = function(x) exp(x / 10),
+  breaks    = scales::log_breaks()
+)
+
+```
+
+## Site Colour Map
+
+```{r site-colours}
+
+# Fixed color assignments for all defining SNP sites across Alpha, Beta,
+# Gamma, Delta, Omicron, and D614G. Sites are keyed by index (character);
+# values are color strings. All entries are consistent across all figures.
+
+site_colour_map <- c(
+
+  # Alpha, Beta, Gamma, Delta SNP sites
+  "18"   = "#E5C494",
+  "19"   = "#FFED6F",
+  "20"   = "#8DD3C7",
+  "26"   = "#BEBADA",
+  "80"   = "#80B1D3",
+  "138"  = "#FDB462",
+  "190"  = "#FCCDE5",
+  "215"  = "#D9D9D9",
+  "417"  = "#B3DE69",
+  "452"  = "#FF7F00",
+  "478"  = "#FFFFB3",
+  "484"  = "#FB8072",
+  "501"  = "#E41A1C",
+  "570"  = "#CCEBC5",
+  "614"  = "#8B2500",
+  "655"  = "#377EB8",
+  "681"  = "#984EA3",
+  "701"  = "#4DAF4A",
+  "716"  = "#BC80BD",
+  "950"  = "#F781BF",
+  "982"  = "#FFFF33",
+  "1027" = "#A65628",
+  "1118" = "#A6D854",
+
+  # Omicron-specific SNP sites
+  "76"   = "#1B9E77",
+  "95"   = "#D95F02",
+  "212"  = "#7570B3",
+  "339"  = "#E7298A",
+  "371"  = "#66A61E",
+  "373"  = "#E6AB02",
+  "375"  = "#A6761D",
+  "440"  = "#666666",
+  "446"  = "#A6CEE3",
+  "477"  = "#56B4E9",
+  "493"  = "#B2DF8A",
+  "496"  = "#33A02C",
+  "498"  = "#FB9A99",
+  "505"  = "#CAB2D6",
+  "547"  = "#6A3D9A",
+  "679"  = "#FF6347",
+  "764"  = "#20B2AA",
+  "796"  = "#DAA520",
+  "856"  = "#8B4513",
+  "954"  = "#00CED1",
+  "969"  = "#9ACD32",
+  "981"  = "#FF1493"
+
+)
+
+```
+
+## VOC Colour Map
+
+```{r voc-colours}
+
+# Colours for variant-specific detection vertical lines on class trajectory
+# plots, and for column highlighting in GMM class assignment tables.
+
+voc_colour_map <- c(
+  Alpha   = "#1F78B4",   # cerulean blue
+  Beta    = "#E31A1C",   # red
+  Gamma   = "#33A02C",   # dark green
+  Delta   = "#FF7F00",   # orange
+  Omicron = "#6A3D9A",   # deep violet
+  D614G   = "#8B2500"    # dark red
+)
+
+voc_table_colours <- c(
+  Alpha   = "#AED6F1",   # light blue
+  Beta    = "#F1948A",   # light salmon
+  Gamma   = "#A9DFBF",   # light green
+  Delta   = "#FFD700",   # gold
+  Omicron = "#D7BDE2",   # light purple
+  D614G   = "#F4A460"    # sandy brown
+)
+
+```
+
+# Variant Metadata
+
+```{r variants}
+
+# Extract metadata for all five VOCs from the ViralEntropR package dataset.
+# D614G is added as a standalone entry with hardcoded March 2020 US detection.
+
+alpha_idx   <- which(unlist(sarscov2_variants$WHO_Label) == "Alpha")
+beta_idx    <- which(unlist(sarscov2_variants$WHO_Label) == "Beta")
+gamma_idx   <- which(unlist(sarscov2_variants$WHO_Label) == "Gamma")
+delta_idx   <- which(unlist(sarscov2_variants$WHO_Label) == "Delta")
+omicron_idx <- which(unlist(sarscov2_variants$WHO_Label) == "Omicron")
+
+voc_list <- list(
+
+  Alpha = list(
+    label     = "Alpha",
+    pango     = sarscov2_variants$Pango_Lineage[[which(unlist(sarscov2_variants$WHO_Label=="Alpha"))]],
+    mut_sites = sarscov2_variants$Mutation_Sites[[alpha_idx]],
+    snp_sites = sarscov2_variants$Defining_SNP_Sites[[alpha_idx]],
+    snps      = sarscov2_variants$Defining_SNPs[[alpha_idx]],
+    us_date   = sarscov2_variants$Date_First_Detected_US[[alpha_idx]]
+  ),
+
+  Beta = list(
+    label     = "Beta",
+    pango     = sarscov2_variants$Pango_Lineage[[which(unlist(sarscov2_variants$WHO_Label=="Beta"))]],
+    mut_sites = sarscov2_variants$Mutation_Sites[[beta_idx]],
+    snp_sites = sarscov2_variants$Defining_SNP_Sites[[beta_idx]],
+    snps      = sarscov2_variants$Defining_SNPs[[beta_idx]],
+    us_date   = sarscov2_variants$Date_First_Detected_US[[beta_idx]]
+  ),
+
+  Gamma = list(
+    label     = "Gamma",
+    pango     = sarscov2_variants$Pango_Lineage[[which(unlist(sarscov2_variants$WHO_Label=="Gamma"))]],
+    mut_sites = sarscov2_variants$Mutation_Sites[[gamma_idx]],
+    snp_sites = sarscov2_variants$Defining_SNP_Sites[[gamma_idx]],
+    snps      = sarscov2_variants$Defining_SNPs[[gamma_idx]],
+    us_date   = sarscov2_variants$Date_First_Detected_US[[gamma_idx]]
+  ),
+
+  Delta = list(
+    label     = "Delta",
+    pango     = sarscov2_variants$Pango_Lineage[[which(unlist(sarscov2_variants$WHO_Label=="Delta"))]],
+    mut_sites = sarscov2_variants$Mutation_Sites[[delta_idx]],
+    snp_sites = sarscov2_variants$Defining_SNP_Sites[[delta_idx]],
+    snps      = sarscov2_variants$Defining_SNPs[[delta_idx]],
+    us_date   = sarscov2_variants$Date_First_Detected_US[[delta_idx]]
+  ),
+
+  Omicron = list(
+    label     = "Omicron",
+    pango     = sarscov2_variants$Pango_Lineage[[which(unlist(sarscov2_variants$WHO_Label=="Omicron"))]],
+    mut_sites = sarscov2_variants$Mutation_Sites[[omicron_idx]],
+    snp_sites = sarscov2_variants$Defining_SNP_Sites[[omicron_idx]],
+    snps      = sarscov2_variants$Defining_SNPs[[omicron_idx]],
+    us_date   = sarscov2_variants$Date_First_Detected_US[[omicron_idx]]
+  ),
+
+  # D614G: standalone entry. First detected in the US in March 2020, predating
+  # all named VOCs. No entropy trajectory plot is generated (single site).
+  D614G = list(
+    label     = "D614G",
+    pango     = NA_character_,
+    mut_sites = 614L,
+    snp_sites = 614L,
+    snps      = "D614G",
+    us_date   = "Mar-2020"
+  )
+
+)
+
+cat("VOC metadata summary:\n")
+for (vl in names(voc_list)) {
+  v <- voc_list[[vl]]
+  pango_str <- if (is.na(v$pango)) "standalone" else v$pango
+  cat(sprintf("  %-8s (%s), US detection: %s\n", vl, pango_str, v$us_date))
+  cat("    SNP sites:", paste(sort(v$snp_sites), collapse = ", "), "\n")
+}
+
+```
+
+# Data Partitioning (Checkpoint-Based)
+
+Partitioning is the most memory-intensive step. Each dataset is loaded,
+partitioned under all three windowing strategies, saved to disk as an RDS
+file, and immediately removed from memory before the next dataset is loaded.
+On subsequent runs the checkpoint files are detected and re-partitioning is
+skipped entirely.
+
+Three complementary windowing strategies are applied:
+
+- **Cumulative (1-month increments):** the start date is fixed at the study
+  origin and the window end expands by one calendar month per partition.
+- **Sliding (2-month windows):** a 2-month window advances one month at a
+  time, producing overlapping consecutive partitions.
+- **Disjoint (2-month windows):** consecutive non-overlapping 2-month
+  partitions covering the full study period without redundancy.
+
+## NCBI US Data
+
+```{r ncbi-us-partition}
+
+ncbi_rds <- file.path(out_root, "partitions", "NCBI_US_Part_List.rds")
+
+if (!file.exists(ncbi_rds)) {
+
+  message("Partitioning NCBI US data ...")
+  AL_df_NCBI <- readRDS(here("NCBI_US_unaligned_feature_matrix_1273aa.rds"))
+
+  # --- 1. Cumulative partitioning: 1-month increments ------------------------
+  t_ncbi_cumulative_1m <- system.time({
+    ncbi_us_cumulative_1m <- partition_time_windows(
+      data          = AL_df_NCBI,
+      n_sites       = 1273L,
+      window_length = 1L,
+      window_type   = 1L,
+      start_date    = "2020-01-01",
+      end_date      = "2021-09-01",
+      verbose       = FALSE
+    )
+  })
+  message("NCBI cumulative_1m partitioning: ",
+          round(t_ncbi_cumulative_1m["elapsed"], 1), "s")
+
+  # --- 2. Sliding window partitioning: 2-month windows -----------------------
+  t_ncbi_sliding_2m <- system.time({
+    ncbi_us_sliding_2m <- partition_time_windows(
+      data          = AL_df_NCBI,
+      n_sites       = 1273L,
+      window_length = 2L,
+      window_type   = 2L,
+      start_date    = "2020-01-01",
+      end_date      = "2021-09-01",
+      verbose       = FALSE
+    )
+  })
+  message("NCBI sliding_2m partitioning:    ",
+          round(t_ncbi_sliding_2m["elapsed"], 1), "s")
+
+  # --- 3. Disjoint window partitioning: 2-month windows ----------------------
+  t_ncbi_disjoint_2m <- system.time({
+    ncbi_us_disjoint_2m <- partition_time_windows(
+      data          = AL_df_NCBI,
+      n_sites       = 1273L,
+      window_length = 2L,
+      window_type   = 3L,
+      start_date    = "2020-01-01",
+      end_date      = "2021-09-01",
+      verbose       = FALSE
+    )
+  })
+  message("NCBI disjoint_2m partitioning:   ",
+          round(t_ncbi_disjoint_2m["elapsed"], 1), "s")
+
+  rm(AL_df_NCBI); gc()
+
+  NCBI_US_Part_List <- list(
+    cumulative_1m = ncbi_us_cumulative_1m,
+    sliding_2m    = ncbi_us_sliding_2m,
+    disjoint_2m   = ncbi_us_disjoint_2m
+  )
+  rm(ncbi_us_cumulative_1m, ncbi_us_sliding_2m, ncbi_us_disjoint_2m,
+     t_ncbi_cumulative_1m, t_ncbi_sliding_2m, t_ncbi_disjoint_2m); gc()
+
+  t_ncbi_save <- system.time({
+    saveRDS(NCBI_US_Part_List, ncbi_rds)
+  })
+  message("NCBI US serialisation:           ",
+          round(t_ncbi_save["elapsed"], 1), "s")
+  message("NCBI US partition list saved")
+  rm(NCBI_US_Part_List, t_ncbi_save); gc()
+
+} else {
+  message("NCBI US partition RDS found, skipping re-partitioning.")
+}
+
+```
+
+## GISAID US Data
+
+```{r gisaid-us-partition}
+
+gisaid_rds <- file.path(out_root, "partitions", "GISAID_US_Part_List.rds")
+
+if (!file.exists(gisaid_rds)) {
+
+  message("Partitioning GISAID US data ...")
+  AL_df_GISAID <- readRDS(here("GISAID_US_aligned_feature_matrix_1273aa.rds"))
+
+  # --- 1. Cumulative partitioning: 1-month increments ------------------------
+  t_gisaid_cumulative_1m <- system.time({
+    gisaid_us_cumulative_1m <- partition_time_windows(
+      data          = AL_df_GISAID,
+      n_sites       = 1273L,
+      window_length = 1L,
+      window_type   = 1L,
+      start_date    = "2020-03-01",
+      end_date      = "2022-06-01",
+      verbose       = FALSE
+    )
+  })
+  message("GISAID cumulative_1m partitioning: ",
+          round(t_gisaid_cumulative_1m["elapsed"], 1), "s")
+
+  # --- 2. Sliding window partitioning: 2-month windows -----------------------
+  t_gisaid_sliding_2m <- system.time({
+    gisaid_us_sliding_2m <- partition_time_windows(
+      data          = AL_df_GISAID,
+      n_sites       = 1273L,
+      window_length = 2L,
+      window_type   = 2L,
+      start_date    = "2020-03-01",
+      end_date      = "2022-06-01",
+      verbose       = FALSE
+    )
+  })
+  message("GISAID sliding_2m partitioning:    ",
+          round(t_gisaid_sliding_2m["elapsed"], 1), "s")
+
+  # --- 3. Disjoint window partitioning: 2-month windows ----------------------
+  t_gisaid_disjoint_2m <- system.time({
+    gisaid_us_disjoint_2m <- partition_time_windows(
+      data          = AL_df_GISAID,
+      n_sites       = 1273L,
+      window_length = 2L,
+      window_type   = 3L,
+      start_date    = "2020-03-01",
+      end_date      = "2022-06-01",
+      verbose       = FALSE
+    )
+  })
+  message("GISAID disjoint_2m partitioning:   ",
+          round(t_gisaid_disjoint_2m["elapsed"], 1), "s")
+
+  rm(AL_df_GISAID); gc()
+
+  GISAID_US_Part_List <- list(
+    cumulative_1m = gisaid_us_cumulative_1m,
+    sliding_2m    = gisaid_us_sliding_2m,
+    disjoint_2m   = gisaid_us_disjoint_2m
+  )
+  rm(gisaid_us_cumulative_1m, gisaid_us_sliding_2m, gisaid_us_disjoint_2m,
+     t_gisaid_cumulative_1m, t_gisaid_sliding_2m, t_gisaid_disjoint_2m); gc()
+
+  t_gisaid_save <- system.time({
+    saveRDS(GISAID_US_Part_List, gisaid_rds)
+  })
+  message("GISAID US serialisation:           ",
+          round(t_gisaid_save["elapsed"], 1), "s")
+  message("GISAID US partition list saved")
+  rm(GISAID_US_Part_List, t_gisaid_save); gc()
+
+} else {
+  message("GISAID US partition RDS found, skipping re-partitioning.")
+}
+
+```
+
+# VOC Detection Partition Indices and Analysis Configurations
+
+```{r detection-indices-and-configs}
+
+ncbi_labels   <- lapply(readRDS(ncbi_rds),   `[[`, "Dates_Labels")
+gisaid_labels <- lapply(readRDS(gisaid_rds), `[[`, "Dates_Labels")
+
+# Returns the index of the first partition whose label string contains the
+# target month-year string. Returns NA_integer_ when not found.
+find_partition_index <- function(labels, date_str) {
+  if (is.null(date_str) || is.na(date_str) || !nzchar(date_str))
+    return(NA_integer_)
+  idx <- which(vapply(labels, function(x) grepl(date_str, x, fixed = TRUE),
+                      logical(1L)))
+  if (length(idx) == 0L) NA_integer_ else idx[1L]
+}
+
+# Compute detection partition indices for all VOCs (including D614G) across
+# all three partition types for a given dataset's Dates_Labels list.
+compute_voc_detection <- function(labels_list) {
+  lapply(voc_list, function(v) {
+    lapply(labels_list, function(lbl) find_partition_index(lbl, v$us_date))
+  })
+}
+
+voc_detection_ncbi   <- compute_voc_detection(ncbi_labels)
+voc_detection_gisaid <- compute_voc_detection(gisaid_labels)
+
+build_partition_configs <- function(dataset_id, voc_detection, titles) {
+  partition_keys <- c("cumulative_1m", "sliding_2m", "disjoint_2m")
+  lapply(partition_keys, function(pk) {
+    list(
+      label       = paste0(dataset_id, "_", pk),
+      key         = pk,
+      title       = titles[[pk]],
+      voc_indices = vapply(voc_detection, function(v) {
+        idx <- v[[pk]]
+        if (is.null(idx) || length(idx) == 0L) NA_integer_
+        else as.integer(idx[1L])
+      }, NA_integer_)
+    )
+  })
+}
+
+ncbi_titles <- list(
+  cumulative_1m = "NCBI US, Cumulative Partitioning, 1-Month Increments",
+  sliding_2m    = "NCBI US, Sliding Window Partitioning, 2-Month Windows",
+  disjoint_2m   = "NCBI US, Disjoint Window Partitioning, 2-Month Windows"
+)
+gisaid_titles <- list(
+  cumulative_1m = "GISAID US, Cumulative Partitioning, 1-Month Increments",
+  sliding_2m    = "GISAID US, Sliding Window Partitioning, 2-Month Windows",
+  disjoint_2m   = "GISAID US, Disjoint Window Partitioning, 2-Month Windows"
+)
+
+ncbi_configs   <- build_partition_configs("NCBI_US",   voc_detection_ncbi,   ncbi_titles)
+gisaid_configs <- build_partition_configs("GISAID_US", voc_detection_gisaid, gisaid_titles)
+
+cat("VOC detection partition indices (cumulative | sliding | disjoint):\n\n")
+cat("NCBI US:\n")
+for (vl in names(voc_list)) {
+  vals <- vapply(ncbi_configs, function(c) {
+    xi <- c$voc_indices[[vl]]
+    if (is.na(xi)) "NA" else as.character(xi)
+  }, character(1L))
+  cat(sprintf("  %-8s: %s\n", vl, paste(vals, collapse = " | ")))
+}
+cat("\nGISAID US:\n")
+for (vl in names(voc_list)) {
+  vals <- vapply(gisaid_configs, function(c) {
+    xi <- c$voc_indices[[vl]]
+    if (is.na(xi)) "NA" else as.character(xi)
+  }, character(1L))
+  cat(sprintf("  %-8s: %s\n", vl, paste(vals, collapse = " | ")))
+}
+
+rm(ncbi_labels, gisaid_labels,
+   voc_detection_ncbi, voc_detection_gisaid); gc()
+
+```
+
+# Helper Functions
+
+## Partition Relabeling
+
+```{r relabel-helper}
+
+# Relabels all non-sentinel, non-empty cluster DataFrames within a
+# partition_time_windows() output so that class label 1 consistently denotes
+# the highest-entropy group. Max_Entropy[i] is updated to 1L accordingly.
+# Called once per partition key before iterating over all VOCs.
+
+relabel_part_data <- function(part_data) {
+  for (i in seq_len(part_data$N_partitions)) {
+    df_i <- part_data$Clusters[[i]]$DataFrame
+    if (!is.null(df_i) && nrow(df_i) > 0L &&
+        !all(df_i$class == 999L, na.rm = TRUE)) {
+      part_data$Clusters[[i]]$DataFrame <- relabel_entropy_classes(df_i)
+      part_data$Max_Entropy[i]           <- 1L
+    }
+  }
+  part_data
+}
+
+```
+
+## VOC Detection Vertical Lines
+
+```{r voc-vlines-helper}
+
+# Returns a list of geom_vline layers marking VOC first-US-detection
+# partitions on a class trajectory plot. One pair of dotted flanking lines
+# is drawn per VOC whose Mutation_Sites include the site, coloured by variant.
+# VOCs whose detection index is NA are silently skipped.
+# D614G is handled uniformly alongside the five named VOCs.
+# Note: this helper is retained for reference but is not called in the
+# class trajectory loop (detection lines have been removed from those plots).
+
+get_site_vlines <- function(site, voc_list, voc_partition_indices,
+                             voc_colour_map) {
+  layers <- list()
+  for (vl in names(voc_list)) {
+    if (!(vl %in% names(voc_partition_indices))) next
+    if (as.integer(site) %in% as.integer(voc_list[[vl]]$mut_sites)) {
+      xi  <- voc_partition_indices[[vl]]
+      if (!is.na(xi)) {
+        col <- voc_colour_map[[vl]]
+        layers <- c(layers, list(
+          ggplot2::geom_vline(xintercept = xi - 0.15,
+                              colour = col, linetype = "dotted", linewidth = 3),
+          ggplot2::geom_vline(xintercept = xi + 0.15,
+                              colour = col, linetype = "dotted", linewidth = 3)
+        ))
+      }
+    }
+  }
+  layers
+}
+
+```
+
+## SNP Name Lookup
+
+```{r snp-name-helper}
+
+# Returns the amino acid substitution string (e.g. "P681H") for a given
+# site within a VOC entry. Returns the site index as a string if not found.
+
+get_snp_name <- function(site, voc) {
+  idx <- which(as.integer(voc$snp_sites) == as.integer(site))
+  if (length(idx) == 0L) return(as.character(site))
+  voc$snps[idx[1L]]
+}
+
+```
+
+## GMM Class Assignment Table
+
+```{r classes-table-helper}
+
+# Constructs a wide-format site-by-partition GMM entropy class assignment
+# table and saves it as a styled HTML file.
+#
+# Layout:
+#   Rows    = Spike protein sites (sorted numerically), followed by Nseq and
+#             Nclust summary rows.
+#   Columns = Partition windows labelled by date range.
+#   Values  = GMM class labels after relabeling (class 1 = highest entropy).
+#             Em-dashes indicate partitions in which a site was absent.
+#   Nseq    = Total number of sequences in each partition window.
+#   Nclust  = Number of fitted GMM entropy components in each partition.
+#
+# Highlighting:
+#   VOC detection columns : each column highlighted in its variant colour.
+#   Defining SNP rows     : bold, marked with * in the Site column.
+#                           No background highlighting (avoids colour overload).
+#   Nseq row              : bold, light grey (#E8E8E8).
+#   Nclust row            : bold, medium grey (#D0D0D0).
+#
+# A footnote is appended listing the variant-to-colour correspondence and
+# noting that Beta and Gamma were detected in the US concurrently in
+# January 2021, causing their detection columns to coincide.
+
+make_classes_table <- function(data_frame, part_data,
+                               voc_indices = NULL,
+                               snp_sites   = NULL,
+                               voc_colours = NULL,
+                               save_path, table_name) {
+
+  df        <- data_frame
+  df$sites  <- as.integer(as.character(df$sites))
+  df$class  <- as.integer(as.character(df$class))
+  df$period <- as.integer(df$period)
+
+  wide <- tidyr::pivot_wider(
+    df[, c("sites", "period", "class")],
+    names_from  = "period",
+    values_from = "class"
+  )
+
+  period_cols    <- as.integer(colnames(wide)[-1L])
+  col_labels     <- part_data$Dates_Labels[period_cols]
+  colnames(wide) <- c("Site", col_labels)
+  wide           <- wide[order(wide$Site), ]
+
+  wide         <- as.data.frame(wide, stringsAsFactors = FALSE)
+  wide[, -1L]  <- lapply(wide[, -1L], as.character)
+  wide[is.na(wide)] <- "\u2014"
+
+  # Mark defining SNP sites with asterisk in the Site column.
+  # Applied before Nseq/Nclust rows are appended so that only site rows
+  # receive the marker. Rows are bolded (not highlighted) after kbl() is built.
+  if (!is.null(snp_sites) && length(snp_sites) > 0L) {
+    snp_site_chars    <- as.character(snp_sites)
+    is_snp            <- wide$Site %in% snp_site_chars
+    wide$Site[is_snp] <- paste0(wide$Site[is_snp], "*")
+  }
+
+  # Nseq: total sequences per partition.
+  nseq_vals <- vapply(period_cols, function(i) {
+    nrow(part_data$Partitions[[i]])
+  }, integer(1L))
+
+  # Nclust: number of fitted GMM components per partition.
+  nclust_vals <- vapply(period_cols, function(i) {
+    df_i <- part_data$Clusters[[i]]$DataFrame
+    if (is.null(df_i) || nrow(df_i) == 0L) return(0L)
+    cl <- df_i$class
+    if (all(cl == 999L, na.rm = TRUE)) return(1L)
+    length(unique(cl[cl != 999L]))
+  }, integer(1L))
+
+  nseq_row_df <- as.data.frame(
+    matrix(c("Nseq",   as.character(nseq_vals)),   nrow = 1L),
+    stringsAsFactors = FALSE
+  )
+  colnames(nseq_row_df) <- colnames(wide)
+
+  nclust_row_df <- as.data.frame(
+    matrix(c("Nclust", as.character(nclust_vals)), nrow = 1L),
+    stringsAsFactors = FALSE
+  )
+  colnames(nclust_row_df) <- colnames(wide)
+
+  wide        <- rbind(wide, nseq_row_df, nclust_row_df)
+  n_all_rows  <- nrow(wide)
+  n_site_rows <- n_all_rows - 2L
+
+  tbl <- kableExtra::kbl(
+    wide,
+    align   = "c",
+    escape  = FALSE,
+    caption = paste("GMM Entropy Class Assignments by Partition:", table_name)
+  ) |>
+    kableExtra::kable_styling(
+      bootstrap_options = c("striped", "hover", "condensed"),
+      full_width        = TRUE,
+      font_size         = 11
+    )
+
+  # Highlight each VOC detection column in its variant colour.
+  if (!is.null(voc_indices) && length(voc_indices) > 0L) {
+    for (vl in names(voc_indices)) {
+      xi <- voc_indices[[vl]]
+      if (!is.na(xi)) {
+        voc_col_pos <- which(period_cols == xi) + 1L
+        if (length(voc_col_pos) == 1L) {
+          bg <- if (!is.null(voc_colours) && vl %in% names(voc_colours))
+            voc_colours[[vl]] else "#FFD700"
+          tbl <- kableExtra::column_spec(tbl, voc_col_pos,
+                                         background = bg, bold = TRUE)
+        }
+      }
+    }
+  }
+
+  # Bold defining SNP site rows (marked with *).
+  snp_rows <- grep("\\*$", wide$Site[seq_len(n_site_rows)])
+  if (length(snp_rows) > 0L)
+    tbl <- kableExtra::row_spec(tbl, snp_rows, bold = TRUE)
+
+  # Style Nseq and Nclust summary rows.
+  tbl <- tbl |>
+    kableExtra::row_spec(n_all_rows - 1L,
+                         bold = TRUE, background = "#E8E8E8") |>
+    kableExtra::row_spec(n_all_rows,
+                         bold = TRUE, background = "#D0D0D0")
+
+  # Colour legend footnote.
+  if (!is.null(voc_colours) && length(voc_colours) > 0L) {
+    colour_items <- vapply(names(voc_colours), function(vl) {
+      sprintf(
+        paste0(
+          '<span style="display:inline-block;width:14px;height:14px;',
+          'background-color:%s;border:1px solid #999;margin-right:4px;',
+          'vertical-align:middle;"></span>&nbsp;%s'
+        ),
+        voc_colours[[vl]], vl
+      )
+    }, character(1L))
+    footnote_text <- paste0(
+      "Column highlight colours by variant: ",
+      paste(colour_items, collapse = " &nbsp; "),
+      ". Defining SNP sites are indicated with * and shown in bold. ",
+      "Note: Beta (B.1.351) and Gamma (P.1) were first detected in the ",
+      "US concurrently in January 2021; their detection columns coincide ",
+      "and one highlight colour overlays the other."
+    )
+    tbl <- tbl |>
+      kableExtra::footnote(general        = footnote_text,
+                           escape         = FALSE,
+                           general_title  = "")
+  }
+
+  if (!dir.exists(save_path))
+    dir.create(save_path, recursive = TRUE, showWarnings = FALSE)
+
+  file_name <- file.path(save_path,
+                          paste0(table_name, "_GMM_class_assignments.html"))
+  kableExtra::save_kable(tbl, file = file_name)
+  message("GMM class assignment table saved: ", file_name)
+
+  invisible(tbl)
+}
+
+```
+
+# Main Analysis: Entropy Trajectories, Class Trajectories, Frequency Tables,
+# and Class Assignment Tables
+
+All VOCs (Alpha, Beta, Gamma, Delta, Omicron, D614G) are analysed for both
+NCBI US and GISAID US data under all three windowing strategies.
+
+For each VOC the following outputs are generated:
+
+- **Entropy trajectory plot** (Alpha, Beta, Gamma, Delta, Omicron only): all
+  mutation sites, with defining SNPs as Group 1 and remaining sites as Group
+  2; for Omicron, defining SNP sites only without by-group stratification.
+  Y-axis:  10 x ln(Shannon Entropy) . Not produced for D614G (single site).
+- **Class trajectory plots** (all VOCs including D614G): one per defining SNP
+  site. Y-axis: raw Shannon Entropy.
+- **Amino acid frequency tables** (all VOCs including D614G): one HTML table
+  per defining SNP site, showing per-partition amino acid count distributions.
+- **GMM class assignment table** (all VOCs including D614G): wide-format
+  site-by-partition class label matrix with Nseq and Nclust summary rows and
+  a color legend footnote.
+
+```{r main-analysis, fig.width=20, fig.height=14, message=FALSE, warning=FALSE}
+
+analysis_datasets <- list(
+  list(label   = "NCBI_US",
+       rds     = ncbi_rds,
+       configs = ncbi_configs),
+  list(label   = "GISAID_US",
+       rds     = gisaid_rds,
+       configs = gisaid_configs)
+)
+
+for (ds in analysis_datasets) {
+
+  message("\n========================================")
+  message("Dataset: ", ds$label)
+  message("========================================")
+
+  Part_List <- readRDS(ds$rds)
+
+  for (cfg in ds$configs) {
+
+    message("\n  Partition strategy: ", cfg$label)
+
+    # Relabel once per partition key, reused across all VOCs.
+    part_data_rl <- relabel_part_data(Part_List[[cfg$key]])
+
+    for (voc_label in names(voc_list)) {
+
+      voc <- voc_list[[voc_label]]
+      pango_str <- if (is.na(voc$pango)) "" else paste0(" (", voc$pango, ")")
+      message("    VOC: ", voc_label, pango_str)
+
+      # ------------------------------------------------------------------
+      # Entropy trajectory parameters.
+      # D614G: no entropy trajectory plot.
+      # Omicron: SNP sites only, no by-group stratification.
+      # All others: mutation sites with SNPs as Group 1.
+      # ------------------------------------------------------------------
+      skip_entropy_plot <- voc_label == "D614G"
+
+      if (voc_label == "Omicron") {
+        et_sites   <- voc$snp_sites
+        et_bygroup <- FALSE
+        et_groups  <- NULL
+        et_ltypes  <- NULL
+        et_lsizes  <- NULL
+        et_lsize   <- 1.5
+        et_title   <- paste0(
+          "Omicron (", voc$pango, "): Defining SNP Sites\n", cfg$title
+        )
+      } else if (voc_label == "D614G") {
+        et_sites   <- voc$snp_sites
+        et_bygroup <- FALSE
+        et_groups  <- NULL
+        et_ltypes  <- NULL
+        et_lsizes  <- NULL
+        et_lsize   <- 1.5
+        et_title   <- NULL   # not used
+      } else {
+        et_sites   <- voc$mut_sites
+        et_bygroup <- TRUE
+        et_groups  <- list(voc$snp_sites)
+        et_ltypes  <- c("solid", "dashed")
+        et_lsizes  <- c(3, 1.5)
+        et_lsize   <- 1.5
+        et_title   <- paste0(
+          voc_label, pango_str,
+          ": Defining SNPs (Group 1) vs. All Mutation Sites (Group 2)\n",
+          cfg$title
+        )
+      }
+
+      # Call plot_entropy_trajectories to obtain traj$Data_Frame,
+      # traj$XBreaks, and traj$XLabels regardless of VOC — these are needed
+      # for class trajectories, frequency tables, and class assignment tables.
+      traj <- tryCatch(
+        plot_entropy_trajectories(
+          part_data        = part_data_rl,
+          sites            = et_sites,
+          site_colors      = site_colour_map[as.character(et_sites)],
+          by_group         = et_bygroup,
+          groups_list      = et_groups,
+          line_type_groups = et_ltypes,
+          line_size_groups = et_lsizes,
+          line_size        = et_lsize,
+          transformation   = if (skip_entropy_plot) NULL else log10p_trans,
+          legend           = TRUE,
+          # Increased legend text size for better legibility of
+          # site and group labels on the right-hand side of entropy plots.
+          legend_text_size = 14,
+          plot_title       = et_title
+        ),
+        error = function(e) {
+          message("      Skipping ", voc_label, " (", cfg$label, "): ",
+                  conditionMessage(e))
+          NULL
+        }
+      )
+
+      if (is.null(traj)) next
+
+      # ------------------------------------------------------------------
+      # Entropy trajectory plot: save for all VOCs except D614G.
+      # ------------------------------------------------------------------
+      if (!skip_entropy_plot) {
+
+        voc_xi       <- cfg$voc_indices[[voc_label]]
+        entropy_plot <- traj$Plot +
+          suppressWarnings(
+            ggplot2::scale_y_continuous(
+              trans  = log10p_trans,
+              name   = "10 \u00d7 ln(Shannon Entropy)",
+              expand = ggplot2::expansion(mult = c(0.05, 0.05))
+            )
+          ) +
+          ggplot2::xlab("Partition Window") +
+          ggplot2::theme(
+            plot.title   = ggplot2::element_text(size = 18, hjust = 0.5),
+            axis.title.x = ggplot2::element_text(size = 20),
+            axis.title.y = ggplot2::element_text(size = 20),
+            axis.text.x  = ggplot2::element_text(size = 14),
+            axis.text.y  = ggplot2::element_text(size = 14)
+          )
+
+        if (!is.na(voc_xi)) {
+          entropy_plot <- entropy_plot +
+            ggplot2::geom_vline(
+              xintercept = voc_xi,
+              colour     = voc_colour_map[[voc_label]],
+              linetype   = "longdash",
+              linewidth  = 5
+            )
+        }
+
+        ggplot2::ggsave(
+          filename = file.path(
+            out_root, "Entropy_Trajectories", cfg$label,
+            paste0(voc_label, "_entropy_trajectory.png")
+          ),
+          plot   = entropy_plot,
+          width  = 20, height = 15, dpi = 300
+        )
+        rm(entropy_plot); gc()
+      }
+
+      # ------------------------------------------------------------------
+      # Class trajectory plots: one per defining SNP site.
+      # Raw Shannon Entropy on y-axis (no log transform applied).
+      # y-axis label forced via suppressWarnings(scale_y_continuous)
+      # to override any label set inside plot_site_class_trajectory(),
+      # ensuring "Shannon Entropy" is displayed regardless of the installed
+      # function version.
+      # ------------------------------------------------------------------
+      df_cls <- traj$Data_Frame
+
+      for (site in voc$snp_sites) {
+
+        snp_name <- get_snp_name(site, voc)
+        safe_snp <- gsub("[^A-Za-z0-9]", "", snp_name)
+
+        p <- tryCatch(
+          plot_site_class_trajectory(
+            data_frame = df_cls,
+            site       = site,
+            site_color = site_colour_map[as.character(site)],
+            xbreaks    = traj$XBreaks,
+            xlabels    = traj$XLabels,
+            label_size = 5,
+            line_size  = 3,
+            plot_title = paste0(
+              "GMM Entropy Class Trajectory: Spike Site ", site,
+              " (", snp_name, "), ", voc_label, "\n", cfg$title
+            )
+          ) +
+            # Complete scale replacement — suppresses the expected
+            # "scale for y already present" warning produced by ggplot2 when
+            # a second scale_y_continuous is added. This guarantees the label
+            # reads "Shannon Entropy" regardless of the installed package version.
+            suppressWarnings(
+              ggplot2::scale_y_continuous(
+                name   = "Shannon Entropy",
+                expand = ggplot2::expansion(mult = c(0.4, 0.4))
+              )
+            ) +
+            ggplot2::xlab("Partition Window") +
+            ggplot2::theme(
+              plot.title   = ggplot2::element_text(size = 22, hjust = 0.5),
+              axis.title.x = ggplot2::element_text(size = 24),
+              axis.title.y = ggplot2::element_text(size = 24),
+              axis.text.x  = ggplot2::element_text(size = 16),
+              axis.text.y  = ggplot2::element_text(size = 16)
+            ),
+          error = function(e) {
+            message("      Skipping class trajectory site ", site, ": ",
+                    conditionMessage(e))
+            NULL
+          }
+        )
+
+        if (is.null(p)) next
+
+        ggplot2::ggsave(
+          filename = file.path(
+            out_root, "Class_Trajectories", cfg$label, voc_label,
+            paste0("Site_", site, "_", safe_snp, "_class_trajectory.png")
+          ),
+          plot   = p,
+          width  = 20, height = 15, dpi = 300
+        )
+        rm(p, snp_name, safe_snp); gc()
+      }
+
+      # ------------------------------------------------------------------
+      # Amino acid frequency tables.
+      # ------------------------------------------------------------------
+      for (site in voc$snp_sites) {
+        tabulate_site_evolution(
+          partitions     = part_data_rl$Partitions,
+          site_index     = site,
+          labels         = part_data_rl$Dates_Labels,
+          alphabet_size  = 25L,
+          zeros          = FALSE,
+          return_table   = FALSE,
+          save           = TRUE,
+          save_path      = file.path(out_root, "Frequency_Tables",
+                                     cfg$label, voc_label),
+          save_extension = ".html"
+        )
+      }
+
+      # ------------------------------------------------------------------
+      # GMM class assignment table.
+      # ------------------------------------------------------------------
+      make_classes_table(
+        data_frame  = traj$Data_Frame,
+        part_data   = part_data_rl,
+        voc_indices = cfg$voc_indices,
+        snp_sites   = voc$snp_sites,
+        voc_colours = voc_table_colours,
+        save_path   = file.path(out_root, "Class_Assignments", cfg$label),
+        table_name  = paste0(voc_label, "_", cfg$label)
+      )
+
+      rm(traj, df_cls); gc()
+
+    }  # end VOC loop
+
+    rm(part_data_rl); gc()
+
+  }  # end partition config loop
+
+  rm(Part_List); gc()
+
+}  # end dataset loop
+
+```
+
+# Session Information
+
+```{r session-info}
+
+sessionInfo()
+
+```
+
+# References
+
