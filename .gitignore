@@ -16,3 +16,4 @@ analysis/GISAID_data_preprocessing/*.rds
 analysis/GISAID_data_preprocessing/*.fasta
 analysis/GISAID_data_preprocessing/*.fasta.gz
 analysis/Entropy_Partitioning_Study/Temporal_Site_EDA/outputs/partitions/GISAID_US_Part_List.rds
+analysis/Sample_Size_Simulation_Study/
