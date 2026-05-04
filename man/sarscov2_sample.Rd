@@ -45,10 +45,9 @@ readable directly by \code{\link[Biostrings]{readAAStringSet}}
 
 \strong{Full dataset:}
 The complete 137,132-sequence dataset (173 MB, uncompressed FASTA) is
-archived on Zenodo (DOI: \doi{10.5281/zenodo.19040165}) and is
-programmatically accessible via \code{\link{download_sarscov2_data}}.
-The full file is stored uncompressed on Zenodo;
-\code{\link[Biostrings]{readAAStringSet}} reads it directly.
+archived on Zenodo (DOI: \doi{10.5281/zenodo.19040165}). The full file is
+stored uncompressed on Zenodo; \code{\link[Biostrings]{readAAStringSet}}
+reads it directly.
 
 \strong{Header format:}
 Sequence headers follow the NCBI Virus export format. Dates and countries
@@ -113,10 +112,10 @@ table(countries$countries)
 char_mat <- fasta_to_char_matrix(fasta)
 dim(char_mat)
 
-# Access the full 137,132-sequence dataset (one-time download, ~35 MB):
-full_path <- download_sarscov2_data()
-fasta_full <- Biostrings::readAAStringSet(full_path)
-length(fasta_full)
+# The full 137,132-sequence dataset (~173.1 MB) is available on Zenodo:
+# https://zenodo.org/records/19040165
+# Download sequences.fasta manually and load with:
+# fasta_full <- Biostrings::readAAStringSet("path/to/sequences.fasta")
 }
 }
 \references{
