@@ -201,7 +201,7 @@ Each matrix has rows = sequences, columns = integer-encoded amino acid sites
 ```{r load-data}
 AL_df_GISAID <- readRDS(here("analysis","GISAID_data_preprocessing", 
                              "GISAID_US_aligned_feature_matrix_1273aa.rds"))
-AL_df_NCBI   <- readRDS(here("data-raw", "Data_Matrix_Filtered_NCBI_Data_US"))
+AL_df_NCBI   <- readRDS(here("data-raw", "NCBI_US_unaligned_feature_matrix_1273aa.rds"))
 
 nr_gisaid <- nrow(AL_df_GISAID)
 nr_ncbi   <- nrow(AL_df_NCBI)
