@@ -123,7 +123,7 @@ throughout the returned \code{$Data_Frame} (e.g. before passing it to
 \code{\link{plot_site_class_trajectory}}), the user should call
 \code{\link{relabel_entropy_classes}} on each partition's
 \code{Clusters[[i]]$DataFrame} and update \code{Max_Entropy[i]} to
-\code{1L} prior to calling this function.  See the second example below.
+\code{1L} prior to calling this function.
 
 \strong{Colour scheme.}  Site colours are specified through
 \code{site_colors}, a named character vector whose names are site indices
@@ -184,29 +184,9 @@ part_data <- partition_time_windows(
 
 # Example 1: no relabeling — class labels are as assigned by Mclust.
 result <- plot_entropy_trajectories(
-  part_data  = part_data,
-  plot_title = "Shannon Entropy Trajectories \u2014 Raw GMM Classes"
+  part_data  = part_data
 )
 print(result$Plot)
-
-# Example 2: user relabels each partition so that class 1 denotes the
-# highest-entropy group throughout. Max_Entropy is updated to 1L for
-# each non-sentinel partition after relabeling.
-part_data_rl <- part_data
-for (i in seq_len(part_data_rl$N_partitions)) {
-  df_i <- part_data_rl$Clusters[[i]]$DataFrame
-  if (!is.null(df_i) && nrow(df_i) > 0L &&
-      !all(df_i$class == 999L, na.rm = TRUE)) {
-    part_data_rl$Clusters[[i]]$DataFrame <- relabel_entropy_classes(df_i)
-    part_data_rl$Max_Entropy[i]           <- 1L
-  }
-}
-result_rl <- plot_entropy_trajectories(
-  part_data   = part_data_rl,
-  site_colors = c("2" = "#E41A1C"),
-  plot_title  = "Shannon Entropy Trajectories \u2014 Relabeled GMM Classes"
-)
-print(result_rl$Plot)
 }
 \seealso{
 \code{\link{partition_time_windows}},

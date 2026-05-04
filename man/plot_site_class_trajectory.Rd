@@ -18,10 +18,10 @@ plot_site_class_trajectory(
   plot_title = NULL,
   save = FALSE,
   save_path = getwd(),
-  save_extension = ".jpeg",
+  save_extension = ".png",
   width = 20,
   height = 15,
-  dpi = 600
+  dpi = 300
 )
 }
 \arguments{
@@ -123,7 +123,7 @@ definition), and the sentinel \code{999L} is preserved unchanged.
 geom-label boxes at extreme entropy values or at the first and last
 partitions do not clip the panel border.  The returned \code{ggplot} object
 can be further adjusted by appending standard \code{ggplot2} layers with
-\code{+} before printing or saving.  See the third example below.
+\code{+} before printing or saving.
 }
 \examples{
 # Shared synthetic dataset used across all three examples.
@@ -166,45 +166,6 @@ p1 <- plot_site_class_trajectory(
   xlabels    = traj$XLabels
 )
 print(p1)
-
-# Example 2: with relabeling — the user relabels each partition so that
-# class 1 denotes the highest-entropy group, then updates Max_Entropy
-# accordingly before calling plot_entropy_trajectories().
-part_data_rl <- part_data
-for (i in seq_len(part_data_rl$N_partitions)) {
-  df_i <- part_data_rl$Clusters[[i]]$DataFrame
-  if (!is.null(df_i) && nrow(df_i) > 0L &&
-      !all(df_i$class == 999L, na.rm = TRUE)) {
-    part_data_rl$Clusters[[i]]$DataFrame <- relabel_entropy_classes(df_i)
-    part_data_rl$Max_Entropy[i]           <- 1L
-  }
-}
-traj_rl <- plot_entropy_trajectories(part_data_rl)
-p2 <- plot_site_class_trajectory(
-  data_frame = traj_rl$Data_Frame,
-  site       = 2L,
-  site_color = traj_rl$Colors["2"],
-  xbreaks    = traj_rl$XBreaks,
-  xlabels    = traj_rl$XLabels,
-  plot_title = "GMM Entropy Class Trajectory \u2014 Site 2 (Relabeled)"
-)
-print(p2)
-
-# Example 3: ggplot2 layer override — append a vertical marker and a
-# custom y-axis limit to the invisibly returned ggplot object.
-p3 <- plot_site_class_trajectory(
-  data_frame = traj_rl$Data_Frame,
-  site       = 2L,
-  site_color = traj_rl$Colors["2"],
-  xbreaks    = traj_rl$XBreaks,
-  xlabels    = traj_rl$XLabels
-)
-p3 + ggplot2::geom_vline(
-  xintercept = 3,
-  colour     = "darkorange",
-  linetype   = "dashed",
-  linewidth  = 1.5
-) + ggplot2::ylim(0, 1.5)
 }
 \seealso{
 \code{\link{plot_entropy_trajectories}},
