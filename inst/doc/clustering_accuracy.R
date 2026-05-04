@@ -7,9 +7,6 @@ knitr::opts_chunk$set(
   fig.height = 6
 )
 
-# Set working directory to package root for local knitting
-knitr::opts_knit$set(root.dir = "C:/YORK_PhD/RESEARCH/PAPERS/GitHub/ViralEntropR")
-
 library(ViralEntropR)
 library(dplyr)
 library(ggplot2)
@@ -44,13 +41,8 @@ TSNE_SEED       <- 42L
 # Parallelism (future.apply)
 N_WORKERS       <- max(1L, parallel::detectCores() - 1L)
 
-# -- Replace this path with your actual preprocessed data object -------------
-# AL_df <- readRDS("path/to/AL_Cat_preprocessed.rds")
-# For demonstration we load from the bundled sample -- for full results
-# use the complete preprocessed NCBI dataset.
-# ---------------------------------------------------------------------------
-
-fasta_path <- file.path("data-raw", "sequences.fasta")
+# Replace 'fasta_path' with the file path to your Zenodo download
+fasta_path <- file.path("data-raw", "sequences.fasta")              # replace(!)
 fasta      <- Biostrings::readAAStringSet(fasta_path)
 
 # --- Dates ------------------------------------------------------------------
@@ -123,7 +115,7 @@ part1 <- partition_time_windows(
   data          = AL_df,
   n_sites       = N_SITES,
   window_length = 2L,
-  window_type   = 2L,          # sliding (2-month window)
+  window_type   = 2L,           # single 2-month window (start_date to end_date)
   start_date    = PERIOD1_START,
   end_date      = PERIOD1_END,
   verbose       = FALSE
@@ -929,8 +921,8 @@ for (nm in names(overlap_full)) {
 AL_full_fac <- AL_df[, as.character(selected_sites_full), drop = FALSE]
 AL_full_fac[] <- lapply(AL_full_fac, function(x) as.factor(as.integer(x)))
 
-# Deduplicate before Gower: 109k sequences produce an infeasible distance
-# matrix (~48 GB). Unique sequences are sufficient for PAM/t-SNE and
+# Deduplicate before Gower: 109k sequences produce an infeasible (for laptop RAM)
+# distance matrix (~48 GB). Unique sequences are sufficient for PAM/t-SNE and
 # dramatically reduce computation while preserving the full sequence diversity.
 full_unique_idx  <- which(!duplicated(AL_full_fac))
 AL_full_fac_uniq <- AL_full_fac[full_unique_idx, , drop = FALSE]

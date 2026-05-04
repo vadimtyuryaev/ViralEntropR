@@ -5,9 +5,6 @@ knitr::opts_chunk$set(
   message  = FALSE
 )
 
-# Set working directory to package root for local knitting
-knitr::opts_knit$set(root.dir = "C:/YORK_PhD/RESEARCH/PAPERS/GitHub/ViralEntropR")
-
 library(ViralEntropR)
 library(dplyr)
 library(lubridate)
@@ -175,10 +172,10 @@ cp_m1 <- ks.cp3o(
   verbose = FALSE
 )
 
-print("Change Points estimated by method 1:")
+print("Optimal change point locations (cp_m1$estimates):")
 cp_m1$estimates
 
-print("Other change point locations:")
+print("Full solution matrix across k = 1 to K change points (cp_m1$cpLoc):")
 cp_m1$cpLoc
 
 lower     <- 1
@@ -187,25 +184,43 @@ timesteps <- nrow(dat_mat_t) - upper
 
 ECP_res <- detect_changepoints_ecp(
   data_matrix    = dat_mat_t,
-  min_window     = lower,      # window always starts at partition 1
-  max_window     = upper,      # initial window covers first 3 time points
-  n_timesteps    = timesteps,  # expand until all time points are included
-  rolling_window = FALSE,      # expanding (not rolling) window
-  dynamic_k      = TRUE,       # K set adaptively at each step
+  min_window     = lower,
+  max_window     = upper,
+  n_timesteps    = timesteps,
+  rolling_window = FALSE,
+  dynamic_k      = TRUE,
   minsize        = 2,
   verbose        = FALSE
 )
 
-# Collect all change point estimates across all window sizes,
-# keep those >= 1, deduplicate and sort.
+# Union of all change points detected across all window sizes.
+# Indicates which true change points the algorithm recovers
+# at any stage of data accumulation (overall sensitivity).
 ecp_indices <- ECP_res$ECP_est_list %>%
   unlist() %>%
-  .[. >= 1] %>%
+  .[. > 1] %>%
   unique() %>%
   sort()
 
-print("Change points estimated by method 2 (union across all window sizes):")
+print("Change points detected at any window size (union):")
 ecp_indices
+
+# Early detection timeline: for each expanding window size, which true
+# change points are detectable with the data available up to that point?
+# Ground truth: variants emerged at partition indices 3, 5, 7, 10,
+# corresponding to Hellinger change point indices 2, 4, 6, 9.
+true_cps <- c(2, 4, 6, 9)
+
+detection_timeline <- data.frame(
+  window_size  = seq(upper, nrow(dat_mat_t)),
+  detected_cps = sapply(ECP_res$ECP_est_list, function(cps) {
+    detected <- intersect(true_cps, cps[cps > 1])
+    if (length(detected) == 0L) "none" else paste(sort(detected), collapse = ", ")
+  })
+)
+
+print("Early detection timeline — true change points recovered per window size:")
+detection_timeline
 
 cp_m3 <- e.agglo(
   X       = dat_mat_t,

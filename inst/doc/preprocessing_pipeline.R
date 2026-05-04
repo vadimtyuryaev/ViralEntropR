@@ -5,27 +5,16 @@ knitr::opts_chunk$set(
   message  = FALSE
 )
 
-# Set working directory to package root for local knitting
-knitr::opts_knit$set(root.dir = "C:/YORK_PhD/RESEARCH/PAPERS/GitHub/ViralEntropR")
-
 library(ViralEntropR)
 library(Biostrings)
 library(dplyr)
 library(ggplot2)
 
-# # Run once -- downloads ~173 MB and caches locally.
-# # Subsequent calls return the cached path instantly.
-# fasta_path <- download_sarscov2_data()
-# fasta_path   # path to the cached file
-
-# -- TEMPORARY: read directly from data-raw/ until Zenodo DOI is finalized ---
-# Once download_sarscov2_data() is operational, replace these two lines with:
-#   fasta_path <- download_sarscov2_data()
-#   fasta      <- Biostrings::readAAStringSet(fasta_path)
 fasta_path <- file.path("data-raw", "sequences.fasta")
-fasta      <- Biostrings::readAAStringSet(fasta_path)
-# ---------------------------------------------------------------------------
 
+# fasta_path <- "path/to/sequences.fasta"   # update this
+
+fasta <- Biostrings::readAAStringSet(fasta_path)
 sprintf("Total sequences loaded:  %d", length(fasta))
 sprintf("Unique sequences:        %d", length(unique(fasta)))
 
@@ -33,8 +22,6 @@ sprintf("Unique sequences:        %d", length(unique(fasta)))
 set.seed(42)
 cat(paste(sample(names(fasta), 5), collapse = "\n\n"))
 
-
-# The sarscov2_variants object is available immediately after library(ViralEntropR).
 
 # --- Overview of all 12 variants -------------------------------------------
 
@@ -47,20 +34,11 @@ data.frame(
   First_US       = sarscov2_variants$Date_First_Detected_US
 )
 
-# --- Cross-reference mutation sites between variants -----------------------
-# Which VOCs/VOIs share mutation site 501 (N501Y -- key RBD mutation)?
-
-idx_501 <- which(sapply(sarscov2_variants$Mutation_Sites,
-                        function(s) 501 %in% s))
-
-cat("Variants carrying a mutation at site 501:\n")
-cat(paste(unlist(sarscov2_variants$WHO_Label)[idx_501], collapse = ", "), "\n")
-
 # # To learn more
 # ?sarscov2_variants
 
 # sarscov2_sample.fasta.gz contains 100 random sequences from the full NCBI dataset.
-# Useful for testing pipeline code without downloading the full 173 MB file.
+# Useful for testing pipeline code without downloading the full ~181.5 MB file.
 
 path_sample  <- system.file("extdata", "sarscov2_sample.fasta.gz",
                      package = "ViralEntropR")
@@ -260,6 +238,11 @@ sprintf("Date range: %s to %s",
 
 sprintf("Total sequences in final dataset: %d", nrow(AL_df))
 
+# AL_df_US <- AL_df[!is.na(AL_df$Country) & AL_df$Country == "USA", ]
+# sprintf("Sequences after country filter (%s): %d", "USA", nrow(AL_df_US))
+# 
+# saveRDS(AL_df_US, file.path("data-raw", "NCBI_US_unaligned_feature_matrix_1273aa.rds"))
+
 # Example: partition into non-overlapping 2-month windows
 part_data <- partition_time_windows(
   data          = AL_df,
@@ -278,5 +261,5 @@ cat("\nSite clustering for partition 1 (reference period):\n")
 part_data$Clusters[[1]]$DataFrame
 
 # Entropy-based site clustering for the last partition
-cat("\nSite clustering for partition 10 (reference period):\n")
+cat("\nSite clustering for partition 10 (final partition):\n")
 part_data$Clusters[[10]]$DataFrame

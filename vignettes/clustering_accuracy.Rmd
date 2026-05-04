@@ -1,210 +1,22 @@
 ---
-title: "Clustering Accuracy Estimation: Separating Wild-Type from Delta Variant Sequences"
+title: "Unsupervised Recovery of SARS-CoV-2 Variant Structure via Entropy-Driven Site Selection and PAM Clustering: Precision, Recall, and F1 Evaluation Across Wild-Type and Delta-Dominated Surveillance Periods"
 author: "Vadim Tyuryaev, Jane Heffernan, Hanna Jankowski"
 date: "`r Sys.Date()`"
 output:
   html_document:
     toc: true
+    toc_float: true
     toc_depth: 3
     number_sections: true
     df_print: paged
+    theme: flatly
+    highlight: tango
+bibliography: references_accuracy.bib
+nocite: '@*'
 vignette: >
-  %\VignetteIndexEntry{Clustering Accuracy Estimation: Separating Wild-Type from Delta Variant Sequences}
+  %\VignetteIndexEntry{Unsupervised Recovery of SARS-CoV-2 Variant Structure via Entropy-Driven Site Selection and PAM Clustering: Precision, Recall, and F1 Evaluation Across Wild-Type and Delta-Dominated Surveillance Periods}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
-references:
-- id: Kaufman1990
-  type: book
-  author:
-  - family: Kaufman
-    given: Leonard
-  - family: Rousseeuw
-    given: Peter J.
-  title: "Finding Groups in Data: An Introduction to Cluster Analysis"
-  publisher: Wiley
-  issued:
-    year: 1990
-  DOI: 10.1002/9780470316801
-  
-- id: Gower1971
-  type: article-journal
-  author:
-  - family: Gower
-    given: John C.
-  title: "A General Coefficient of Similarity and Some of Its Properties"
-  container-title: Biometrics
-  volume: 27
-  issue: 4
-  page: 857-871
-  issued:
-    year: 1971
-  DOI: 10.2307/2528823
-  
-- id: Rousseeuw1987
-  type: article-journal
-  author:
-  - family: Rousseeuw
-    given: Peter J.
-  title: "Silhouettes: A Graphical Aid to the Interpretation and Validation of Cluster Analysis"
-  container-title: Journal of Computational and Applied Mathematics
-  volume: 20
-  page: 53-65
-  issued:
-    year: 1987
-  DOI: 10.1016/0377-0427(87)90125-7
-  
-- id: vanderMaaten2008
-  type: article-journal
-  author:
-  - family: van der Maaten
-    given: Laurens
-  - family: Hinton
-    given: Geoffrey
-  title: "Visualizing Data using t-SNE"
-  container-title: Journal of Machine Learning Research
-  volume: 9
-  page: 2579-2605
-  issued:
-    year: 2008
-  
-- id: Shannon1948
-  type: article-journal
-  author:
-  - family: Shannon
-    given: Claude E.
-  title: A Mathematical Theory of Communication
-  container-title: Bell System Technical Journal
-  volume: 27
-  issue: 3
-  page: 379-423
-  issued:
-    year: 1948
-  DOI: 10.1002/j.1538-7305.1948.tb01338.x
-
-- id: Peacock2021
-  type: article-journal
-  author:
-  - family: Peacock
-    given: Thomas P.
-  - family: Goldhill
-    given: Daniel H.
-  - family: Barclay
-    given: Wendy S.
-  title: The furin cleavage site of SARS-CoV-2 spike protein is a key determinant
-    for transmission due to enhanced replication in airway cells
-  container-title: Nature Microbiology
-  volume: 6
-  page: 899-909
-  issued:
-    year: 2021
-  DOI: 10.1038/s41564-021-00908-w
-
-- id: Johnson2021
-  type: article-journal
-  author:
-  - family: Johnson
-    given: Bryan A.
-  - family: Xie
-    given: Xuping
-  - family: Menachery
-    given: Vineet D.
-  title: Loss of furin cleavage site attenuates SARS-CoV-2 pathogenesis
-  container-title: Nature
-  volume: 591
-  page: 293-299
-  issued:
-    year: 2021
-  DOI: 10.1038/s41586-021-03237-4
-
-- id: Korber2020
-  type: article-journal
-  author:
-  - family: Korber
-    given: Bette
-  - family: Fischer
-    given: Will M.
-  - family: Gnanakaran
-    given: Sandrasegaram
-  title: "Tracking Changes in SARS-CoV-2 Spike: Evidence that D614G Increases
-    Infectivity of the COVID-19 Virus"
-  container-title: Cell
-  volume: 182
-  issue: 4
-  page: 812-827
-  issued:
-    year: 2020
-  DOI: 10.1016/j.cell.2020.06.043
-
-- id: McCallum2021
-  type: article-journal
-  author:
-  - family: McCallum
-    given: Matthew
-  - family: De Marco
-    given: Anna
-  - family: Walls
-    given: Alexandra C.
-  - family: Veesler
-    given: David
-  title: "N-terminal domain antigenic mapping reveals a site of vulnerability for SARS-CoV-2"
-  container-title: Cell
-  volume: 184
-  issue: 9
-  page: 2332-2347
-  issued:
-    year: 2021
-  DOI: 10.1016/j.cell.2021.03.028
-
-- id: Liu2021NTD
-  type: article-journal
-  author:
-  - family: Liu
-    given: Lihong
-  - family: Iketani
-    given: Sho
-  - family: Guo
-    given: Yicheng
-  - family: Ho
-    given: David D.
-  title: "Striking antibody evasion manifested by the Omicron variant of SARS-CoV-2"
-  container-title: Nature
-  volume: 602
-  page: 676-681
-  issued:
-    year: 2022
-  DOI: 10.1038/s41586-021-04388-0
-
-- id: Wrobel2020
-  type: article-journal
-  author:
-  - family: Wrobel
-    given: Antoni G.
-  - family: Benton
-    given: Donald J.
-  - family: Bhatt
-    given: Saket
-  title: "SARS-CoV-2 and bat RaTG13 spike glycoprotein structures inform on virus evolution and furin-cleavage effects"
-  container-title: Nature Structural and Molecular Biology
-  volume: 27
-  page: 763-767
-  issued:
-    year: 2020
-  DOI: 10.1038/s41594-020-0468-x
-
-- id: CDC2022
-  type: article-journal
-  author:
-  - literal: CDC COVID-19 Response Team
-  title: "Effectiveness of COVID-19 mRNA Vaccines Against the Delta (B.1.617.2)
-    Variant Among Adults Aged 18-64 Years --- United States, April 4--July 17, 2021"
-  container-title: "MMWR Morbidity and Mortality Weekly Report"
-  volume: 71
-  issue: 6
-  page: 209-215
-  issued:
-    year: 2022
-  DOI: 10.15585/mmwr.mm7106a4
-  URL: https://www.cdc.gov/mmwr/volumes/71/wr/mm7106a4.htm
 ---
 
 ```{r setup, include=FALSE}
@@ -216,9 +28,6 @@ knitr::opts_chunk$set(
   fig.width = 9,
   fig.height = 6
 )
-
-# Set working directory to package root for local knitting
-knitr::opts_knit$set(root.dir = "C:/YORK_PhD/RESEARCH/PAPERS/GitHub/ViralEntropR")
 ```
 
 # Introduction
@@ -233,19 +42,74 @@ variant (*B.1.617.2*) was dominant --- and ask whether the sites selected by
 structure when the two groups are clustered together.
 
 Several terms are used throughout this vignette and are defined here for
-clarity. A **variant of concern (VOC)** is a SARS-CoV-2 lineage designated by
-the WHO as carrying mutations with demonstrated impact on transmissibility,
-disease severity, or immune evasion. A **variant of interest (VOI)** is a
-lineage under active monitoring for potentially similar properties but without
-yet sufficient evidence for VOC designation. A **single nucleotide polymorphism (SNP)**, 
-used here in the amino acid sense, refers to a specific substitution
-at a defined Spike protein site that is characteristic of a given lineage and
-used as a defining marker in surveillance catalogues. A **Gaussian mixture model (GMM)** 
-is a probabilistic model that represents a given distribution as a
-weighted sum of Gaussian components; here it is applied to the vector of
-per-site Shannon entropies to identify sites with unusually high variability
---- those sites form the discriminating feature set passed to the clustering
-step.
+clarity.
+
+## Definitions
+
+### Variants of Concern/Interest/Under Monitoring
+
+During the COVID-19 pandemic, the World Health Organization (WHO) established
+a variant classification framework to prioritise public health responses based 
+on the epidemiological and clinical significance of emerging SARS-CoV-2 lineages.
+Three principal designations were used in practice.
+
+A \textbf{Variant of Concern (VOC)} is a lineage for which there is evidence of 
+one or more of the following: increased transmissibility or a detrimental change 
+in COVID-19 epidemiology; increased virulence or change in clinical disease 
+presentation; or decreased effectiveness of public health measures, diagnostics,
+vaccines, or therapeutics. Five lineages were designated as VOCs during the 
+pandemic: Alpha (B.1.1.7), Beta (B.1.351), Gamma (P.1), Delta (B.1.617.2), 
+and Omicron (B.1.1.529).
+
+A \textbf{Variant of Interest (VOI)} is a lineage with genetic changes that are
+predicted or known to affect virus characteristics such as transmissibility, 
+disease severity, immune escape, or diagnostic and therapeutic performance, and
+which has been identified to cause significant community transmission or 
+multiple COVID-19 clusters in multiple countries. VOIs were monitored closely
+but had not yet accumulated sufficient evidence for VOC designation. Examples,
+at various points during the pandemic, included Lambda (C.37), Mu (B.1.621), 
+Kappa (B.1.617.1), Iota (B.1.526), and Epsilon (B.1.427/B.1.429).
+
+A \textbf{Variant Under Monitoring (VUM)} is a lineage carrying genetic changes
+suspected to affect virus characteristics but for which evidence of phenotypic 
+or epidemiological impact is limited, warranting enhanced surveillance without 
+immediate escalation to VOI or VOC status. Variant classifications were dynamic
+and subject to revision as new evidence became available.
+
+### Single Nucleotide Polymorphism (SNPs)
+
+A **single nucleotide polymorphism (SNP)** is formally defined as a single
+nucleotide substitution in the genome that is present at an appreciable
+frequency in a population, often operationally taken as at least 1%. In the 
+context of SARS-CoV-2 genomic surveillance, however, the term “SNP” has 
+frequently been used more loosely to refer to lineage-associated mutations, 
+including those described at the amino acid level. In this work, we retain 
+the term “SNP” for consistency with the surveillance literature, but use it 
+interchangeably with the more precise notion of a defining mutation at a site, 
+referring to amino acid substitutions in the Spike protein that characterize 
+specific viral lineages. 
+
+### Gaussian mixture models (GMM)
+
+A **Gaussian mixture model (GMM)** is a probabilistic model that represents a 
+given distribution as a weighted sum of Gaussian components; here it is applied 
+to the vector of per-site Shannon entropies to identify sites with high
+variability --- those sites form the discriminating feature set passed to the 
+clustering step.
+
+### Partitioning Around Medoids (PAM)
+
+A partitioning around medoids (PAM) algorithm is a deterministic clustering
+method that partitions observations into a fixed number of clusters by selecting
+representative data points, called medoids, and assigning each observation to
+the nearest medoid according to a specified dissimilarity measure. In this work,
+PAM is applied to the reduced sequence representation derived from high-entropy 
+sites, using the Gower distance to quantify pairwise dissimilarity between
+sequences. Unlike centroid-based methods such as k-means, PAM is robust to noise
+and accommodates mixed or non-Euclidean data, making it well suited to 
+categorical sequence data.
+
+## Accuracy Study Logic
 
 The pipeline mirrors the approach used in the main detection study, but applied
 retrospectively to a known ground truth. Because we know which sequences belong
@@ -277,9 +141,9 @@ The analysis proceeds in nine steps:
    layout and comparing their mutational profiles to cluster medoids.
 9. **Apply the pipeline at scale** to all ~109,536 available US sequences.
 
-**Positive class definition:** Period 1 (wild-type, May--June 2020) sequences
-correctly assigned to the cluster with the highest Period 1 purity.
-Precision, recall and F1 are computed for this positive class.
+> **Positive class definition:** Period 1 (wild-type, May--June 2020) sequences
+> correctly assigned to the cluster with the highest Period 1 purity.
+> Precision, recall and F1 are computed for this positive class.
 
 # Libraries
 
@@ -297,7 +161,8 @@ library(kableExtra)   # compact HTML tables
 # Global Parameters
 
 All user-facing parameters for steps 1---8 are gathered here. Adjust `COUNTRY`,
-the two time windows, and `K_HIGHLIGHT` before re-rendering; no other chunk needs to change.
+the two time windows, and `K_HIGHLIGHT` before re-rendering; no other chunk 
+needs to change.
 
 ```{r parameters}
 # ── User-modifiable parameters ───────────────────────────────────────────────
@@ -328,6 +193,11 @@ N_WORKERS       <- max(1L, parallel::detectCores() - 1L)
 
 # Load Preprocessed Data
 
+The preprocessing steps applied here follow the same pipeline described in 
+detail in the *NCBI SARS-CoV-2 Spike Protein Sequence Preprocessing: From Raw FASTA to an Analysis-Ready Integer-Encoded Matrix* vignette. Readers are referred to that 
+vignette for a full discussion of each step, including date extraction, 
+ambiguous residue filtering, integer encoding, and data frame assembly.
+
 The raw NCBI FASTA file is loaded and processed in a single pipeline. Dates are
 extracted from sequence headers using a two-pass regex strategy: a full `yyyy-mm-dd` 
 pass first, followed by a `yyyy-mm` pass to recover sequences with month-level
@@ -339,13 +209,8 @@ columns `1:N_SITES` plus `Date` and `Country` columns. Rows are sorted by date
 and the index is reset.
 
 ```{r load-data}
-# -- Replace this path with your actual preprocessed data object -------------
-# AL_df <- readRDS("path/to/AL_Cat_preprocessed.rds")
-# For demonstration we load from the bundled sample -- for full results
-# use the complete preprocessed NCBI dataset.
-# ---------------------------------------------------------------------------
-
-fasta_path <- file.path("data-raw", "sequences.fasta")
+# Replace 'fasta_path' with the file path to your Zenodo download
+fasta_path <- file.path("data-raw", "sequences.fasta")              # replace(!)
 fasta      <- Biostrings::readAAStringSet(fasta_path)
 
 # --- Dates ------------------------------------------------------------------
@@ -435,7 +300,7 @@ part1 <- partition_time_windows(
   data          = AL_df,
   n_sites       = N_SITES,
   window_length = 2L,
-  window_type   = 2L,          # sliding (2-month window)
+  window_type   = 2L,           # single 2-month window (start_date to end_date)
   start_date    = PERIOD1_START,
   end_date      = PERIOD1_END,
   verbose       = FALSE
@@ -491,7 +356,7 @@ print(sites_p2)
 > secretory pathway before virion release, substantially increasing the
 > efficiency of cell entry and facilitating airway tropism. This feature is
 > widely regarded as a key determinant of SARS-CoV-2's high transmissibility
-> in humans.
+> in humans [@Peacock2021].
 > 
 > Substitutions at position 681 subsequently became defining mutations of two
 > of the most consequential VOCs: **P681H** (proline to histidine) in Alpha
@@ -501,9 +366,7 @@ print(sites_p2)
 > in faster S1/S2 processing, more efficient membrane fusion, and increased
 > competitive fitness. The entropy signal at site 681 in the wild-type period
 > therefore reflects early, low-frequency variation at a position that was
-> already under strong positive selection pressure.
->
-> Key references: [@Peacock2021;@Johnson2021]
+> already under strong positive selection pressure [@Johnson2021].
 
 # Step 2: Combine Both Partitions
 
@@ -738,17 +601,17 @@ cat(sprintf("Optimal k by silhouette: %d  (width = %.4f)\n",
 
 ## t-SNE Embedding
 
-t-distributed Stochastic Neighbour Embedding (t-SNE) is a non-linear
+t-distributed Stochastic Neighbor Embedding (t-SNE) is a non-linear
 dimensionality reduction method that maps high-dimensional pairwise distances
-to a 2D layout by preserving local neighbourhood structure [@vanderMaaten2008].
+to a 2D layout by preserving local neighborhood structure [@vanderMaaten2008].
 Distances in the t-SNE plot are not interpretable in absolute terms --- only
 the relative proximity of points within and between clusters carries meaning
 --- and the same Gower distance matrix is used as input for both PAM and t-SNE
-to ensure consistency between the clustering and its visualisation.
+to ensure consistency between the clustering and its visualization.
 
 To reiterate, t-SNE is run once on the Gower distance matrix and the resulting 
-2D coordinatesare reused for all k values. This ensures that spatial positions
-are identicalacross plots so that differences in cluster boundaries are directly 
+2D coordinates are reused for all k values. This ensures that spatial positions
+are identical across plots so that differences in cluster boundaries are directly 
 comparable.
 
 Each plot uses three visual layers:
@@ -1511,8 +1374,8 @@ for (nm in names(overlap_full)) {
 AL_full_fac <- AL_df[, as.character(selected_sites_full), drop = FALSE]
 AL_full_fac[] <- lapply(AL_full_fac, function(x) as.factor(as.integer(x)))
 
-# Deduplicate before Gower: 109k sequences produce an infeasible distance
-# matrix (~48 GB). Unique sequences are sufficient for PAM/t-SNE and
+# Deduplicate before Gower: 109k sequences produce an infeasible (for laptop RAM)
+# distance matrix (~48 GB). Unique sequences are sufficient for PAM/t-SNE and
 # dramatically reduce computation while preserving the full sequence diversity.
 full_unique_idx  <- which(!duplicated(AL_full_fac))
 AL_full_fac_uniq <- AL_full_fac[full_unique_idx, , drop = FALSE]
@@ -1729,7 +1592,7 @@ print(metrics_df[, c("k", "positive_cluster", "TP", "FP", "FN",
 
 # Conclusions
 
-### Clustering Accuracy Study (Steps 1--8)
+## Clustering Accuracy Study (Steps 1--8)
 
 `ViralEntropR`'s entropy-driven dimensionality reduction, combined with PAM
 clustering on Gower distance, recovers the temporal structure of SARS-CoV-2
@@ -1778,14 +1641,22 @@ implicated in immune evasion and RBD conformational regulation. This
 convergence with independently established structural biology validates that
 the entropy pipeline captures genuine evolutionary signal.
 
-### Full-Dataset Clustering: Global Separation Patterns (Step 9)
+## Full-Dataset Clustering: Global Separation Patterns (Step 9)
 
-The full-dataset analysis (Step 9) is conceptually distinct from the accuracy
-study. It operates on all ~109,536 available USA sequences across the full
-surveillance timeline, with GMM site selection (`selected_sites_full`) performed
-on the entire dataset. The selected sites therefore reflect population-wide
-entropy rather than the contrast between two specific windows, and the two site
-sets are expected to differ --- this is by design.
+The full-dataset analysis (Step 9) is conceptually distinct from the 
+accuracy study. It operates on all ~109,536 available USA sequences across 
+the full surveillance timeline, with GMM site selection 
+(`selected_sites_full`) performed on the entire dataset. The selected sites 
+therefore reflect population-wide entropy rather than the contrast between 
+two specific windows, and the two site sets are expected to differ — this 
+is by design. Prior to Gower distance computation and PAM clustering, 
+sequences are deduplicated and only unique haplotypes are retained. This 
+step is computationally necessary: the full 109,536-sequence distance matrix 
+would require approximately 48 GB of RAM, which exceeds the capacity of a 
+typical workstation. Deduplication reduces the working set to a tractable 
+number of unique sequences while preserving the full haplotype diversity of 
+the dataset, since PAM medoids and t-SNE coordinates are determined by 
+sequence identity rather than sequence count.
 
 Across all values of k tried, the t-SNE plots show visible separation among
 clusters. At k = 9, the VOC SNP content of the medoid sequences confirms clear
@@ -1796,11 +1667,11 @@ entropy-GMM-PAM pipeline is capable of recovering the known variant structure of
 the pandemic without any labelled outcomes or restriction to time windows.
 
 `ViralEntropR` provides a transparent, reproducible, and computationally
-efficient framework for detecting and characterising viral variant structure
+efficient framework for detecting and characterizing viral variant structure
 in large sequence datasets, combining rigorous information theory with the
-interpretability required for epidemiological application.
+interpretability required for epidemiological application.The results confirm 
+that Shannon entropy, computed without any prior biological annotation, is 
+sufficient to select a compact site subset that recovers known variant structure
+at both the two-period and full-dataset scales.
 
 # References
-
-::: {#refs}
-:::

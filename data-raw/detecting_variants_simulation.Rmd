@@ -1,14 +1,19 @@
 ---
-title: "Simulation-Based Detection of Emerging Viral Variants"
+title: "Entropy Clustering, Hellinger Distance, and Change Point Analysis for Emerging Viral Variant Detection: A Simulation Study"
 author: "Vadim Tyuryaev, Jane Heffernan, Hanna Jankowski"
 date: "`r Sys.Date()`"
 output:
   html_document:
     toc: true
+    toc_float: true
     number_sections: true
     df_print: paged
+    theme: flatly
+    highlight: tango
+bibliography: references_detection.bib
+nocite: '@*'
 vignette: >
-  %\VignetteIndexEntry{Simulation-Based Detection of Emerging Viral Variants}
+  %\VignetteIndexEntry{Entropy Clustering, Hellinger Distance, and Change Point Analysis for Emerging Viral Variant Detection: A Simulation Study}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -20,16 +25,12 @@ knitr::opts_chunk$set(
   warning  = FALSE,
   message  = FALSE
 )
-
-# Set working directory to package root for local knitting
-knitr::opts_knit$set(root.dir = "C:/YORK_PhD/RESEARCH/PAPERS/GitHub/ViralEntropR")
 ```
 
 # Introduction
 
-This vignette provides a comprehensive, step-by-step walkthrough of the
-`ViralEntropR` pipeline. We reproduce the exact benchmark scenario from the
-study design:
+This vignette provides a comprehensive, reproducible, step-by-step walkthrough
+of the `ViralEntropR` pipeline:
 
 - Simulate a realistic viral evolutionary timeline with four competing variants
   (2020–2021).
@@ -62,7 +63,7 @@ ref_sequence <- "MKTIIALSYIFCLVFADYKDDDDK"
 sprintf("There are %d sites in the reference sequence", nchar(ref_sequence))
 ```
 
-# Simulation Function: `simulate_variant_evolution`
+# Simulation via `simulate_variant_evolution()` 
 
 | **Parameter**               | **Description**                                                                  | **Default** |
 |-----------------------------|----------------------------------------------------------------------------------|-------------|
@@ -365,11 +366,14 @@ windows give 12 partitions.
 > - **`entropies`** -- the Shannon entropy at that site for this partition
 > - **`class`** -- the raw GMM cluster label assigned by Mclust
 >
-> **Important:** At this stage `class` carries raw Mclust labels (arbitrary
-> integers). Class 1 is not necessarily the highest-entropy group until
-> `relabel_entropy_classes()` is applied downstream. Sites with zero entropy
-> (invariant across all sequences in the window) are excluded from clustering
-> and will not appear in the DataFrame.
+> **Important:** At this stage `class` carries raw Mclust labels ordered by
+> ascending component mean — class 1 corresponds to the lowest-entropy group
+> and the highest class integer corresponds to the highest-entropy group.
+> Function `relabel_entropy_classes()` inverts this convention so that
+> class 1 consistently denotes the highest-entropy group, making
+> cross-partition comparison of class labels unambiguous. Sites with zero
+> entropy (invariant across all sequences in the window) are excluded from
+> GMM clustering and will not appear in the DataFrame.
 >
 > **What to watch for:** As variants emerge and grow, their mutation sites
 > should accumulate increasing entropy across successive partitions, eventually
@@ -562,7 +566,7 @@ series are therefore at indices **2, 4, 6 and 9** (one step behind, since
 Hellinger at T_k measures the shift *relative to T1*, so the change appears
 one index before the partition where the variant is first detectable).
 
-### Method 1: Dynamic Programming via `ks.cp3o`
+### Method 1: Dynamic Programming via `ks.cp3o` applied to all availabe data
 
 `ks.cp3o` uses dynamic programming to find the globally optimal segmentation
 up to `K` change points. It is deterministic and exact but requires specifying
@@ -572,7 +576,7 @@ approximate number of variants is known.
 
 | **Parameter** | **Description**                                                              | **Default** |
 |---------------|------------------------------------------------------------------------------|-------------|
-| `Z`           | A `T x d` matrix: `T` time points, `d` features (sites).                    | --          |
+| `Z`           | A `T x d` matrix: `T` time points, `d` features (sites).                     | --          |
 | `K`           | Maximum number of change points to detect.                                   | 1           |
 | `minsize`     | Minimum segment length (number of time points per segment).                  | 30          |
 | `verbose`     | Print status updates during optimisation.                                    | FALSE       |
@@ -585,10 +589,10 @@ cp_m1 <- ks.cp3o(
   verbose = FALSE
 )
 
-print("Change Points estimated by method 1:")
+print("Optimal change point locations (cp_m1$estimates):")
 cp_m1$estimates
 
-print("Other change point locations:")
+print("Full solution matrix across k = 1 to K change points (cp_m1$cpLoc):")
 cp_m1$cpLoc
 ```
 
@@ -608,35 +612,55 @@ timesteps <- nrow(dat_mat_t) - upper
 
 ECP_res <- detect_changepoints_ecp(
   data_matrix    = dat_mat_t,
-  min_window     = lower,      # window always starts at partition 1
-  max_window     = upper,      # initial window covers first 3 time points
-  n_timesteps    = timesteps,  # expand until all time points are included
-  rolling_window = FALSE,      # expanding (not rolling) window
-  dynamic_k      = TRUE,       # K set adaptively at each step
+  min_window     = lower,
+  max_window     = upper,
+  n_timesteps    = timesteps,
+  rolling_window = FALSE,
+  dynamic_k      = TRUE,
   minsize        = 2,
   verbose        = FALSE
 )
 
-# Collect all change point estimates across all window sizes,
-# keep those >= 1, deduplicate and sort.
+# Union of all change points detected across all window sizes.
+# Indicates which true change points the algorithm recovers
+# at any stage of data accumulation (overall sensitivity).
 ecp_indices <- ECP_res$ECP_est_list %>%
   unlist() %>%
-  .[. >= 1] %>%
+  .[. > 1] %>%
   unique() %>%
   sort()
 
-print("Change points estimated by method 2 (union across all window sizes):")
+print("Change points detected at any window size (union):")
 ecp_indices
+
+# Early detection timeline: for each expanding window size, which true
+# change points are detectable with the data available up to that point?
+# Ground truth: variants emerged at partition indices 3, 5, 7, 10,
+# corresponding to Hellinger change point indices 2, 4, 6, 9.
+true_cps <- c(2, 4, 6, 9)
+
+detection_timeline <- data.frame(
+  window_size  = seq(upper, nrow(dat_mat_t)),
+  detected_cps = sapply(ECP_res$ECP_est_list, function(cps) {
+    detected <- intersect(true_cps, cps[cps > 1])
+    if (length(detected) == 0L) "none" else paste(sort(detected), collapse = ", ")
+  })
+)
+
+print("Early detection timeline — true change points recovered per window size:")
+detection_timeline
 ```
 
-### Method 3: Agglomerative Hierarchical ECP via `e.agglo` (preferred)
+### Method 3: Agglomerative Hierarchical ECP via `e.agglo`
 
-`e.agglo` uses agglomerative hierarchical clustering on the time series to
-find change points without requiring `K` to be specified. It is the preferred
-method for exploratory analysis because it is parameter-light and tends to be
-robust to the number of variants. The `penalty = function(cps) 0` setting
-applies no regularisation, allowing the algorithm to detect as many change
-points as the data supports.
+`e.agglo` applies agglomerative hierarchical clustering directly to the 
+multivariate time series, merging adjacent segments iteratively until a 
+global goodness-of-fit criterion is maximised. Unlike `ks.cp3o`, it does 
+not require the number of change points `K` to be specified in advance, 
+making it well suited to surveillance settings where the number of emerging 
+variants is unknown. Setting `penalty = function(cps) 0` imposes no 
+regularisation penalty on model complexity, allowing the segmentation to 
+be driven entirely by the energy distance signal in the data.
 
 The `cluster` output assigns each time point to a segment, providing an
 intuitive segmentation of the surveillance timeline that can be directly
@@ -644,7 +668,7 @@ compared to known variant emergence periods.
 
 | **Parameter** | **Description**                                                              | **Default**  |
 |---------------|------------------------------------------------------------------------------|--------------|
-| `X`           | A `T x d` matrix: `T` time points, `d` features (sites).                    | --           |
+| `X`           | A `T x d` matrix: `T` time points, `d` features (sites).                     | --           |
 | `member`      | Initial segment membership vector (one integer per time point).              | `1:nrow(X)`  |
 | `alpha`       | Moment index for the energy distance metric (1 = first moment).              | 1            |
 | `penalty`     | Penalty function applied to the goodness-of-fit statistic.                   | --           |
@@ -666,8 +690,59 @@ cp_m3$cluster
 
 ### Comparing Methods Against Ground Truth
 
-The expected change point indices (based on variant emergence months) are
-**2, 4, 6 and 9**. All three methods should recover these, possibly with some
-additional false positives from the random deletion events. Method 3 is
-generally the most reliable for an unknown number of variants, while Method 1
-gives a cleaner result when `K` is well-specified.
+Overall, no single method recovers all four true change points cleanly,
+which is expected given the simulation design: stochastic deletion events
+and the exponential growth competition model create a complex,
+heterogeneous signal. Method 3 is notable for detecting the latest true
+change point (9) which the other methods miss, while Method 1 provides
+the cleanest intermediate detection (4 and 6) and identifies latest change point 
+(9) one period later (10). 
+
+Method 2 detects indices 4 and 6 but only once a sufficient number of
+time points have accumulated in the expanding window — a direct
+consequence of sample size. This lag is not a failure of the algorithm but an 
+inherent property of prospective surveillance: reliable change point detection
+requires sufficient sample mass to warrant a shift in the multivariate 
+distribution. A formal analysis of the relationship between sample size and
+detection reliability, including scenario comparisons across varying sequence 
+counts and variant growth rates, is provided in 
+`analysis/Sample_Size_Simulation_Study/`.
+
+# Conclusion
+
+This vignette demonstrates the complete `ViralEntropR` detection pipeline
+on a fully controlled, traceable example. By constructing a synthetic
+evolutionary timeline with known variant emergence points, mutation sites,
+and stochastic perturbations, we establish a clear ground truth against
+which all pipeline components can be evaluated directly. The simulation
+output confirms that entropy-based site selection captures genuine
+evolutionary signal: mutation sites show measurably elevated entropy
+from the partition following their variant's emergence, progressively
+transitioning into higher GMM entropy classes as the variant grows in
+prevalence. This transition is not instantaneous — newly emerged variants
+contribute only a small number of sequences relative to the reference
+background, and their mutation sites require one to several partitions
+of growth before the entropy shift becomes large enough to enter the
+highest-entropy class. This detection lag is an inherent property of
+any population-level surveillance system and reflects the time required
+for a novel variant to accumulate sufficient frequency to perturb the
+site-level amino acid distribution. Once the shift is established, it
+propagates as a measurable, sustained increase in Hellinger distance that
+is recoverable by all three change point algorithms, with each method
+offering a different trade-off between sensitivity and specificity as
+shown above.
+
+The `simulate_variant_evolution()` function is designed to be a general-purpose
+benchmarking tool for bioinformatics researchers. The full parameter space, 
+including  number of variants, mutation counts per variant, emergence timing, 
+growth rates, stochastic deletion events, reference variability, and random 
+seeds allows the systematic generation of arbitrarily large scenario libraries. 
+Researchers can  use this infrastructure to stress-test detection algorithms 
+under varying levels of signal strength, variant competition, background noise, 
+and sampling density, and to compare the sensitivity and specificity of 
+alternative change point methods before applying them to real surveillance data. 
+The traceable ground  truth embedded in every simulation output makes formal 
+evaluation of detection accuracy straightforward, as demonstrated in the method
+comparison above.
+
+# References

@@ -1,5 +1,5 @@
 ---
-title: "Preprocessing SARS-CoV-2 Sequence Data for Variant Analysis"
+title: "NCBI SARS-CoV-2 Spike Protein Sequence Preprocessing: From Raw FASTA to an Analysis-Ready Integer-Encoded Matrix"
 author: "Vadim Tyuryaev, Jane Heffernan, Hanna Jankowski"
 date: "`r Sys.Date()`"
 output:
@@ -8,8 +8,12 @@ output:
     toc_depth: 3
     number_sections: true
     df_print: paged
+    theme: flatly
+    highlight: tango
+bibliography: references_preprocessing.bib
+nocite: '@*'
 vignette: >
-  %\VignetteIndexEntry{Preprocessing SARS-CoV-2 Sequence Data for Variant Analysis}
+  %\VignetteIndexEntry{NCBI SARS-CoV-2 Spike Protein Sequence Preprocessing: From Raw FASTA to an Analysis-Ready Integer-Encoded Matrix}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -21,9 +25,6 @@ knitr::opts_chunk$set(
   warning  = FALSE,
   message  = FALSE
 )
-
-# Set working directory to package root for local knitting
-knitr::opts_knit$set(root.dir = "C:/YORK_PhD/RESEARCH/PAPERS/GitHub/ViralEntropR")
 ```
 
 # Introduction
@@ -43,11 +44,8 @@ The pipeline consists of five steps:
 4. **Remove** sequences with missing or unparseable metadata.
 5. **Convert, filter, encode, and assemble** the final analysis-ready data frame.
 
-> **Reproducibility note:** The full 137,132-sequence dataset (~173 MB) is
-> archived on Zenodo (DOI: `10.5281/zenodo.19040165`) and can be downloaded
-> programmatically using `download_sarscov2_data()`. The data loading section
-> below shows both the download approach and how to read a locally cached copy
-> from `data-raw/`.
+> **Reproducibility note:** The full 137,132-sequence dataset (~181.5 MB) is
+> archived on Zenodo (DOI: `10.5281/zenodo.19040165`).
 
 # Setup
 
@@ -60,30 +58,27 @@ library(ggplot2)
 
 # Step 1: Load the FASTA Dataset
 
-## Download (Zenodo -- run once)
+## Download Data
 
-`download_sarscov2_data()` fetches the full dataset from Zenodo and caches it
-locally in a persistent user-level directory. Subsequent calls return the
-cached path immediately without re-downloading.
+The complete NCBI SARS-CoV-2 Spike protein dataset (137,132 sequences, ~181.5 MB) 
+is archived on Zenodo under DOI [10.5281/zenodo.19040165](https://zenodo.org/records/19040165).
+Download `sequences.fasta` manually from the Zenodo record and update the path 
+in the code chunk below to match your local copy. 
 
-```{r download, eval=FALSE}
-# Run once -- downloads ~173 MB and caches locally.
-# Subsequent calls return the cached path instantly.
-fasta_path <- download_sarscov2_data()
-fasta_path   # path to the cached file
+```{r fasta-path-local, eval=TRUE, include=FALSE}
+fasta_path <- file.path("data-raw", "sequences.fasta")
 ```
 
-## Read from Local File
+## Update Path
 
-```{r load-fasta}
-# -- TEMPORARY: read directly from data-raw/ until Zenodo DOI is finalized ---
-# Once download_sarscov2_data() is operational, replace these two lines with:
-#   fasta_path <- download_sarscov2_data()
-#   fasta      <- Biostrings::readAAStringSet(fasta_path)
-fasta_path <- file.path("data-raw", "sequences.fasta")
-fasta      <- Biostrings::readAAStringSet(fasta_path)
-# ---------------------------------------------------------------------------
+```{r fasta-path-fake, eval=FALSE}
+fasta_path <- "path/to/sequences.fasta"   # update this
+```
 
+## Read FASTA file
+
+```{r load-fasta-local}
+fasta <- Biostrings::readAAStringSet(fasta_path)
 sprintf("Total sequences loaded:  %d", length(fasta))
 sprintf("Unique sequences:        %d", length(unique(fasta)))
 ```
@@ -101,11 +96,9 @@ set.seed(42)
 cat(paste(sample(names(fasta), 5), collapse = "\n\n"))
 ```
 
-## Curated metadata for 12 SARS-CoV-2 VOCs and VOIs.
+## Curated metadata for 12 SARS-CoV-2 VOCs and VOIs
 
 ```{r variants}
-
-# The sarscov2_variants object is available immediately after library(ViralEntropR).
 
 # --- Overview of all 12 variants -------------------------------------------
 
@@ -119,17 +112,6 @@ data.frame(
 )
 ```
 
-```{r}
-# --- Cross-reference mutation sites between variants -----------------------
-# Which VOCs/VOIs share mutation site 501 (N501Y -- key RBD mutation)?
-
-idx_501 <- which(sapply(sarscov2_variants$Mutation_Sites,
-                        function(s) 501 %in% s))
-
-cat("Variants carrying a mutation at site 501:\n")
-cat(paste(unlist(sarscov2_variants$WHO_Label)[idx_501], collapse = ", "), "\n")
-```
-
 ```{r,eval=FALSE}
 # To learn more
 ?sarscov2_variants
@@ -139,7 +121,7 @@ cat(paste(unlist(sarscov2_variants$WHO_Label)[idx_501], collapse = ", "), "\n")
 
 ```{r sample}
 # sarscov2_sample.fasta.gz contains 100 random sequences from the full NCBI dataset.
-# Useful for testing pipeline code without downloading the full 173 MB file.
+# Useful for testing pipeline code without downloading the full ~181.5 MB file.
 
 path_sample  <- system.file("extdata", "sarscov2_sample.fasta.gz",
                      package = "ViralEntropR")
@@ -172,11 +154,9 @@ complete Spike protein sequences, which naturally match the canonical reference.
 > precursor protein, comprising the signal peptide, the S1 subunit (receptor
 > binding domain, N-terminal domain, and furin cleavage site), and the S2
 > subunit (fusion peptide, heptad repeats, transmembrane domain, and
-> cytoplasmic tail). Because NCBI complete sequences all share this length,
-> all site indices are directly comparable across sequences without any
-> multiple sequence alignment step -- site 501 in one sequence is the same
-> structural position as site 501 in any other, which is what makes
-> site-wise entropy and Hellinger distance calculations meaningful.
+> cytoplasmic tail). This fixed-length representation enforces positional 
+> homology by construction, allowing site indices to be interpreted consistently 
+> across sequences.
 
 ```{r confirm-length}
 sprintf("All sequences are length 1,273: %s",
@@ -469,6 +449,15 @@ sprintf("Date range: %s to %s",
 sprintf("Total sequences in final dataset: %d", nrow(AL_df))
 ```
 
+## Filter `US` Sequences and Save
+
+```{r save-post-processed-file, eval = FALSE}
+AL_df_US <- AL_df[!is.na(AL_df$Country) & AL_df$Country == "USA", ]
+sprintf("Sequences after country filter (%s): %d", "USA", nrow(AL_df_US))
+
+saveRDS(AL_df_US, file.path("data-raw", "NCBI_US_unaligned_feature_matrix_1273aa.rds"))
+```
+
 # Downstream Analysis
 
 The data frame `AL_df` is now ready for the full `ViralEntropR` pipeline. The
@@ -505,23 +494,20 @@ VOCs and VOIs:
   protein. The T95I substitution alters the topology of the NTD neutralization
   "supersite", reducing antibody recognition, and is associated with increased
   viral load. It is a defining mutation of the Iota (B.1.526) variant and also
-  appears in Delta and Kappa.
-  [[Magazine et al., 2022 -- *Viruses*]](https://pmc.ncbi.nlm.nih.gov/articles/PMC8949778/)
+  appears in Delta and Kappa [@Magazine2022].
 
 - **Site 655 (H655Y)** -- located immediately upstream of the furin cleavage
   site at the S1/S2 boundary. The H655Y substitution enhances spike protein
   cleavage efficiency and viral replication, and has been described as a
   "gateway mutation" that promotes fitness in emerging lineages. It is a
-  defining feature of Gamma (P.1) and Omicron.
-  [[Escalera et al., 2022 -- *Cell Host & Microbe*]](https://pmc.ncbi.nlm.nih.gov/articles/PMC8776496/)
+  defining feature of Gamma (P.1) and Omicron [@Escalera2022].
 
 - **Site 677 (Q677H/P)** -- situated only three residues upstream of the
   polybasic furin cleavage site (RRAR). Mutations at this position are thought
   to promote conformational changes that enhance accessibility of the S1/S2
   junction to proteolytic cleavage, increasing viral entry efficiency. Q677H
   independently evolved in at least six distinct US lineages in late 2020,
-  a striking example of convergent evolution under positive selection.
-  [[Zeng et al., 2021 -- *mBio*]](https://pmc.ncbi.nlm.nih.gov/articles/PMC8527387/)
+  a striking example of convergent evolution under positive selection [@Zeng2021].
 
 The early detection of these sites by entropy clustering -- before the variants
 carrying them were formally designated -- illustrates the prospective
@@ -529,24 +515,22 @@ surveillance potential of the `ViralEntropR` pipeline.
 
 ```{r}
 # Entropy-based site clustering for the last partition
-cat("\nSite clustering for partition 10 (reference period):\n")
+cat("\nSite clustering for partition 10 (final partition):\n")
 part_data$Clusters[[10]]$DataFrame
 ```
 
 From here, pass `part_data$Partitions` to `calculate_hellinger_matrix()` to
 compute Hellinger distances across time windows, then transpose and apply
 `detect_changepoints_ecp()` or `e.agglo()` for change point detection. See the
-companion vignette *"Simulation-Based Detection of Emerging Viral Variants
-Using Entropy Clustering and Change Point Analysis"* for a complete worked
-example.
+companion vignette *"Entropy Clustering, Hellinger Distance, and Change Point Analysis for Emerging Viral Variant Detection: A Simulation Study"* for a complete worked example.
 
 # Pipeline Summary
 
 ```
-download_sarscov2_data()          # Step 1: Fetch full dataset from Zenodo (once)
+Download sequences.fasta manually from Zenodo (https://zenodo.org/records/19040165)
   |
   v
-readAAStringSet()                 # Load FASTA into R
+readAAStringSet()                 # Step 1: Load FASTA into R
   |
   v
 Confirm width() == 1273L          # Step 2: All sequences match canonical Spike length
@@ -581,5 +565,7 @@ calculate_hellinger_matrix()      #             Hellinger distances (sites x par
   |
   v
 detect_changepoints_ecp()         #             Change point detection
-e.agglo()                         # (see companion simulation vignette)
 ```
+
+# References
+
