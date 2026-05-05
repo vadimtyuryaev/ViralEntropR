@@ -27,7 +27,7 @@
 #' }
 #'
 #' \strong{Full dataset:}
-#' The complete 137,132-sequence dataset (173 MB, uncompressed FASTA) is
+#' The complete 137,132-sequence dataset (~181.5 MB, uncompressed FASTA) is
 #' archived on Zenodo (DOI: \doi{10.5281/zenodo.19040165}). The full file is
 #' stored uncompressed on Zenodo; \code{\link[Biostrings]{readAAStringSet}} 
 #' reads it directly.
@@ -57,7 +57,7 @@
 #'   \item Nucleotide completeness: complete
 #'   \item Protein: surface glycoprotein
 #' }
-#' Result: \strong{n = 137,132 sequences}, file size ~173 MB (uncompressed).
+#' Result: \strong{n = 137,132 sequences}, file size ~181.5 MB (uncompressed).
 #'
 #' @section License:
 #' NCBI sequence data is a US Government work and is in the public domain
@@ -121,7 +121,7 @@
 #' char_mat <- fasta_to_char_matrix(fasta)
 #' dim(char_mat)
 #'
-#' # The full 137,132-sequence dataset (~173.1 MB) is available on Zenodo:
+#' # The full 137,132-sequence dataset (~181.5 MB) is available on Zenodo:
 #' # https://zenodo.org/records/19040165
 #' # Download sequences.fasta manually and load with:
 #' # fasta_full <- Biostrings::readAAStringSet("path/to/sequences.fasta")
