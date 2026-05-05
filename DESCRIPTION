@@ -1,5 +1,5 @@
 Package: ViralEntropR
-Title: Entropy-Informed Computational Analysis of Viral Evolution
+Title: A Computational Pipeline for Entropy-Informed Detection of Emerging Viral Variants
 Version: 0.5.1
 Authors@R: c(
               person("Vadim", "Tyuryaev", ,"vadim.tyuryaev@gmail.com", 
@@ -9,12 +9,31 @@ Authors@R: c(
                       role = c("aut")),
               person("Hanna", "Jankowski", , "hkj@yorku.ca", 
                       role = c("aut"))
-           )
-Description: Implements a pipeline for detecting evolutionary variants in viral 
-    sequence data. It utilizes Shannon entropy to cluster sites, Hellinger distances 
-    to measure distributional shifts over time, and Energy Change Point (ECP) 
-    analysis to detect temporal emergence events. Includes a full simulation engine 
-    for benchmarking detection power.
+             )
+Description: Description: Implements an entropy-informed pipeline for detecting
+    emerging variants in viral amino acid sequence data, extending
+    prior clustering-based approaches, including hemagglutinin
+    clustering methods (Li et al., 2015)
+    <doi:10.1142/9789814667944_0018>. The approach combines Gower
+    distance (Gower, 1971) <doi:10.2307/2528823> for categorical
+    sequence data, Partitioning Around Medoids clustering (Kaufman
+    and Rousseeuw, 1990) <doi:10.1002/9780470316801>, Hellinger
+    distance (van der Vaart, 1998) <doi:10.1017/CBO9780511802256>
+    for quantifying temporal distributional shifts, and
+    nonparametric multivariate change-point detection based on
+    energy statistics (Matteson and James, 2014)
+    <doi:10.1080/01621459.2013.849605> via 'ecp', with optional
+    wild binary segmentation (Fryzlewicz, 2014)
+    <doi:10.1214/14-AOS1245> via 'HDcpDetect'. A FASTA preprocessing
+    toolkit supports header parsing, ambiguous-residue filtering,
+    integer encoding, and temporal partitioning into expanding,
+    sliding, or disjoint windows. Mutation frequency tables and
+    Shannon entropy trajectory plots characterise sequence
+    composition and evolutionary dynamics across time. A curated
+    dataset of SARS-CoV-2 Variants of Concern and Variants of
+    Interest with associated metadata is included, along with a
+    bundled NCBI Spike protein sample and vignettes demonstrating
+    the full workflow.
 License: MIT + file LICENSE
 URL: https://github.com/vadimtyuryaev/ViralEntropR, https://doi.org/10.5281/zenodo.19040165
 BugReports: https://github.com/vadimtyuryaev/ViralEntropR/issues
