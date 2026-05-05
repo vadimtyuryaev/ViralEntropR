@@ -15,52 +15,107 @@ detect_changepoints_ecp(
 )
 }
 \arguments{
-\item{data_matrix}{A numeric matrix (Time x Features). Usually a transposed
-Hellinger distance matrix.}
+\item{data_matrix}{A numeric matrix (Time x Features). Rows are time
+points, columns are features (e.g. Hellinger distances per site).}
 
 \item{min_window}{Integer. Starting row index of the initial window.}
 
-\item{max_window}{Integer. Ending row index of the initial window.}
+\item{max_window}{Integer. Ending row index of the initial window. Must
+not exceed \code{nrow(data_matrix)}.}
 
-\item{n_timesteps}{Integer. Number of additional steps to iterate forward.}
+\item{n_timesteps}{Integer >= 0. Number of \emph{additional} detections
+to run after the initial window. The function performs
+\code{n_timesteps + 1} detections in total. Set to \code{0} for a
+single detection on the initial window.}
 
-\item{rolling_window}{Logical. If \code{TRUE}, both start and end advance by
-1 each step (sliding). If \code{FALSE} (default), start is fixed and end
-expands.}
+\item{rolling_window}{Logical. If \code{TRUE}, both window endpoints
+advance per step (sliding window of constant length). If \code{FALSE}
+(default), only the end advances (expanding window).}
 
 \item{dynamic_k}{Logical. If \code{TRUE}, sets \code{K} to
-\code{nrow(subset) - 2} dynamically for each step.}
+\code{nrow(subset) - 2L} at each step, so the algorithm considers
+the maximum number of change points permitted by the window length
+(subject to \code{minsize}). Useful for exploratory analysis where
+the true number of change points is unknown a priori. Most idiomatic
+when combined with \code{n_timesteps > 0}, where the maximum
+admissible K legitimately scales with window size, but also valid
+for single-window exploratory use. If \code{FALSE} (default), the
+value of \code{K} supplied via \code{...} is honoured at every step;
+if no \code{K} is supplied, the \code{ks.cp3o} default of 1 is used.}
 
-\item{...}{Additional arguments passed to \code{\link[ecp]{ks.cp3o}}.}
+\item{...}{Additional arguments passed to \code{\link[ecp]{ks.cp3o}}.
+Common choices include \code{K} (maximum number of change points,
+default 1) and \code{minsize} (minimum segment size, default 30).
+Note that \code{K} is overridden when \code{dynamic_k = TRUE}; a
+warning is emitted in that case.}
 }
 \value{
-A named list matching the original \code{generate_ECP_list_modified}
-structure:
-\item{Points_List}{List of integer vectors \code{c(start, end)} giving the
-row index window used at each step.}
-\item{ECP_list}{List of full \code{ks.cp3o} result objects, one per step.}
-\item{ECP_est_list}{List of change point estimate vectors, one per step.}
+A named list:
+\item{Points_List}{List of integer vectors \code{c(start, end)} giving
+the row index window used at each step.}
+\item{ECP_list}{List of full \code{ks.cp3o} result objects, one per
+step. Inspect \code{$cpLoc} for the optimal change-point locations
+at each candidate count, and \code{$gofM} for the goodness-of-fit
+curve, to apply post-hoc filtering.}
+\item{ECP_est_list}{List of change-point estimate vectors (the
+algorithm's own selection, equivalent to \code{$estimates}).}
 }
 \description{
 Runs Energy Change Point detection on time-series matrices
-(typically Hellinger distance matrices).
+(typically Hellinger distance matrices) over one or more time windows.
 }
 \details{
-Iterates through time steps using an expanding or rolling window and applies
-the \code{\link[ecp]{ks.cp3o}} algorithm to detect distributional changes.
+The function applies \code{\link[ecp]{ks.cp3o}} repeatedly to slices of
+\code{data_matrix}, advancing the slice forward by one row at each step.
+A total of \code{n_timesteps + 1} detections are performed: one on the
+initial window \code{[min_window, max_window]}, then \code{n_timesteps}
+additional detections on subsequent windows.
+
+Two window-advancement modes are supported:
+\itemize{
+\item \strong{Expanding} (\code{rolling_window = FALSE}, default): the
+start index is fixed at \code{min_window}; the end index grows by 1
+each step. Each iteration uses one more row than the previous.
+Natural for online surveillance, where change-point detection is
+re-run as new data accumulates.
+\item \strong{Rolling} (\code{rolling_window = TRUE}): both start and
+end indices advance by 1 each step, keeping the window length
+constant. Natural for retrospective windowed analysis, where local
+change-point structure is examined in fixed-size segments.
 }
+}
+\section{Warnings and errors}{
+
+\describe{
+\item{\code{stop()}}{Triggered if \code{max_window} exceeds
+\code{nrow(data_matrix)}: the initial window cannot be
+constructed and no detection can run.}
+\item{\code{warning()}}{Triggered (and execution continues) if
+(a) \code{max_window + n_timesteps} exceeds
+\code{nrow(data_matrix)}, in which case the offending later
+iterations are skipped and \code{NULL} entries appear in the
+result lists; (b) \code{dynamic_k = TRUE} and \code{K} is also
+supplied via \code{...}, in which case the user-supplied
+\code{K} is silently overridden by \code{nrow(subset) - 2L}.}
+}
+}
+
 \examples{
 set.seed(123)
 baseline = matrix(rnorm(50, mean = 0, sd = 0.1), nrow = 10, ncol = 5)
 variant  = matrix(rnorm(50, mean = 3, sd = 0.1), nrow = 10, ncol = 5)
 data_mat = rbind(baseline, variant)
 
+# Single-window detection: one true change point at row 11.
 res = detect_changepoints_ecp(
   data_matrix = data_mat,
   min_window  = 1,
   max_window  = 20,
   n_timesteps = 0,
-  minsize     = 2
+  minsize     = 5
 )
 print(res$ECP_est_list[[1]])
+
+# Strongest single change point: inspect $cpLoc[[1]] in the full result.
+print(res$ECP_list[[1]]$cpLoc[[1]])
 }
