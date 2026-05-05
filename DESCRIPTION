@@ -10,7 +10,7 @@ Authors@R: c(
               person("Hanna", "Jankowski", , "hkj@yorku.ca", 
                       role = c("aut"))
              )
-Description: Description: Implements an entropy-informed pipeline for detecting
+Description: Implements an entropy-informed pipeline for detecting
     emerging variants in viral amino acid sequence data, extending
     prior clustering-based approaches, including hemagglutinin
     clustering methods (Li et al., 2015)
@@ -41,6 +41,7 @@ Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
+Additional_repositories: https://bioconductor.org/packages/release/bioc
 Imports: 
     ggplot2 (>= 3.4.0),
     grDevices,
@@ -65,6 +66,5 @@ Suggests:
     rmarkdown,
     R.rsp,
     testthat (>= 3.0.0)
-Additional_repositories: https://bioconductor.org/packages/release/bioc
 Config/testthat/edition: 3
 VignetteBuilder: knitr, R.rsp
