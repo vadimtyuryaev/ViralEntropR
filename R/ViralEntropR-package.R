@@ -1,0 +1,86 @@
+#' @title ViralEntropR: A Computational Pipeline for Entropy-Informed Detection of Emerging Viral Variants
+#'
+#' @description
+#' A computational pipeline for detecting emerging variants in viral amino
+#' acid sequence data, combining per-site Shannon entropy, Gaussian mixture
+#' model site selection, Gower-distance Partitioning Around Medoids
+#' clustering, Hellinger-distance quantification of distributional shifts,
+#' and multivariate non-parametric change-point detection.
+#'
+#' @section Pipeline overview:
+#' The package supports a four-stage workflow:
+#' \itemize{
+#'   \item \strong{Preprocessing.} Parse FASTA headers, filter ambiguous
+#'     residues, and convert between integer and character representations
+#'     of amino acid sequences under a 25-symbol alphabet. See
+#'     \code{\link{extract_fasta_dates}},
+#'     \code{\link{extract_fasta_countries}},
+#'     \code{\link{fasta_to_char_matrix}},
+#'     \code{\link{filter_ambiguous_sequences}},
+#'     \code{\link{encode_aa_sequence}}, and
+#'     \code{\link{decode_aa_sequence}}.
+#'   \item \strong{Site selection.} Compute per-site Shannon entropy across
+#'     temporal partitions and cluster sites by entropy via Gaussian
+#'     mixture models. See \code{\link{calculate_entropy}},
+#'     \code{\link{partition_time_windows}},
+#'     \code{\link{cluster_sites_by_entropy}}, and
+#'     \code{\link{relabel_entropy_classes}}.
+#'   \item \strong{Distributional analysis.} Quantify residue-composition
+#'     shifts between time windows using the Hellinger distance. See
+#'     \code{\link{calculate_hellinger_matrix}}.
+#'   \item \strong{Change-point detection.} Identify temporal change points
+#'     non-parametrically using energy statistics or wild binary
+#'     segmentation. See \code{\link{detect_changepoints_ecp}} and
+#'     \code{\link{detect_changepoints_hdcp}}.
+#' }
+#'
+#' @section Visualisation and tabulation:
+#' \itemize{
+#'   \item \code{\link{plot_entropy_trajectories}} — customizable multi-site 
+#'     Shannon entropy trajectories, summarizing evolutionary dynamics 
+#'     across time.
+#'   \item \code{\link{plot_site_class_trajectory}} — single-site entropy
+#'     trajectory with class-change markers for inspecting individual
+#'     residues of interest.
+#'   \item \code{\link{tabulate_site_evolution}} — per-site amino acid
+#'     count and proportion tables across partitions, optionally
+#'     rendered as styled HTML.
+#' }
+#'
+#' @section Simulation:
+#' \code{\link{simulate_variant_evolution}} provides a configurable
+#' multi-variant simulation engine with user-specified emergence
+#' schedules, growth rates, mutation-rate variability, and
+#' deleterious-mutation injection. Generates synthetic time-series data
+#' with known ground truth for benchmarking detection pipelines.
+#'
+#' @section Bundled data:
+#' \itemize{
+#'   \item \code{\link{sarscov2_variants}} — curated metadata for twelve
+#'     SARS-CoV-2 Variants of Concern and Variants of Interest, including
+#'     WHO labels, Pango lineages, GISAID and Nextstrain clades, dates
+#'     and countries of first detection, defining Spike-protein
+#'     mutations and SNP sites, and 21 peer-reviewed references with DOIs.
+#'   \item \code{\link{sarscov2_sample}} — a random sample of 100 NCBI Spike 
+#'     protein sequences for end-to-end testing without external downloads.
+#' }
+#' 
+#' @section External data:
+#' The complete preprocessed NCBI Spike protein dataset (137,132
+#' sequences, ~181.5 MB uncompressed FASTA) underlying the package's
+#' real-data pre-processing vignette is archived on Zenodo:
+#' \doi{10.5281/zenodo.19040165}. The dataset can be read directly with
+#' \code{\link[Biostrings]{readAAStringSet}} and processed end-to-end
+#' using the preprocessing toolkit; see
+#' \code{vignette("preprocessing_pipeline", "ViralEntropR")} for the
+#' full workflow.
+#'
+#' @section Vignettes:
+#' Three pre-rendered vignettes walk through the full workflow on real
+#' and simulated data: \code{vignette("preprocessing_pipeline",
+#' "ViralEntropR")}, \code{vignette("detecting_variants_simulation",
+#' "ViralEntropR")}, and \code{vignette("clustering_accuracy",
+#' "ViralEntropR")}.
+#'
+#' @keywords internal
+"_PACKAGE"
