@@ -19,3 +19,4 @@ analysis/Entropy_Partitioning_Study/Temporal_Site_EDA/outputs/partitions/GISAID_
 analysis/Sample_Size_Simulation_Study/
 inst/doc/
 data-raw/*_cache/
+data-raw/pre-build-vignettes.R
