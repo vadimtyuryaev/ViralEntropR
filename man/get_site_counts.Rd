@@ -31,7 +31,7 @@ parts = list(p1, p2)
 
 # 2. Get counts for Site 1
 # Note: Since this is internal, we call it directly if loaded, 
-# or use ViralEntroR:::get_site_counts if installed.
+# or use ViralEntropR:::get_site_counts if installed.
 counts = ViralEntropR:::get_site_counts(parts, site_index = 1, alphabet_size = 25)
 
 # Expect Row 1 (A) to be [3, 1]
