@@ -1,6 +1,6 @@
 Package: ViralEntropR
 Title: Entropy-Informed Computational Analysis of Viral Evolution
-Version: 0.4.7
+Version: 0.4.9
 Authors@R: c(
               person("Vadim", "Tyuryaev", ,"vadim.tyuryaev@gmail.com", 
                       role = c("aut", "cre"), 
@@ -41,7 +41,8 @@ Suggests:
     knitr,
     readxl,
     rmarkdown,
+    R.rsp,
     testthat (>= 3.0.0)
 Additional_repositories: https://bioconductor.org/packages/release/bioc
 Config/testthat/edition: 3
-VignetteBuilder: knitr
+VignetteBuilder: knitr, R.rsp
