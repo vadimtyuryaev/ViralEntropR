@@ -1,6 +1,6 @@
 Package: ViralEntropR
 Title: Entropy-Informed Computational Analysis of Viral Evolution
-Version: 0.4.9
+Version: 0.5.1
 Authors@R: c(
               person("Vadim", "Tyuryaev", ,"vadim.tyuryaev@gmail.com", 
                       role = c("aut", "cre"), 
@@ -16,12 +16,15 @@ Description: Implements a pipeline for detecting evolutionary variants in viral
     analysis to detect temporal emergence events. Includes a full simulation engine 
     for benchmarking detection power.
 License: MIT + file LICENSE
+URL: https://github.com/vadimtyuryaev/ViralEntropR, https://doi.org/10.5281/zenodo.19040165
+BugReports: https://github.com/vadimtyuryaev/ViralEntropR/issues
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports: 
     ggplot2 (>= 3.4.0),
+    grDevices,
     HDcpDetect,
     ecp,
     kableExtra,
