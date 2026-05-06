@@ -15,56 +15,95 @@ detect_changepoints_hdcp(
 )
 }
 \arguments{
-\item{data_matrix}{A numeric matrix (Time x Features). Rows are time points,
-columns are features (e.g. Hellinger distances per site).}
+\item{data_matrix}{A numeric matrix (Time x Features). Rows are time
+points, columns are features (e.g. Hellinger distances per site).}
 
 \item{min_window}{Integer. Starting row index of the initial window.}
 
-\item{max_window}{Integer. Ending row index of the initial window.}
+\item{max_window}{Integer. Ending row index of the initial window. Must
+not exceed \code{nrow(data_matrix)}.}
 
-\item{n_timesteps}{Integer. Number of additional steps to iterate forward.}
+\item{n_timesteps}{Integer >= 0. Number of \emph{additional} detections
+to run after the initial window. The function performs
+\code{n_timesteps + 1} detections in total. Set to \code{0} for a
+single detection on the initial window.}
 
-\item{rolling_window}{Logical. If \code{TRUE}, the window slides. If
-\code{FALSE} (default), the window expands.}
+\item{rolling_window}{Logical. If \code{TRUE}, both window endpoints
+advance per step (sliding window of constant length). If \code{FALSE}
+(default), only the end advances (expanding window).}
 
 \item{wild}{Logical. If \code{TRUE}, uses
-\code{\link[HDcpDetect]{wild.binary.segmentation}}. If \code{FALSE}
-(default), uses \code{\link[HDcpDetect]{binary.segmentation}}.}
+\code{\link[HDcpDetect]{wild.binary.segmentation}}; if \code{FALSE}
+(default), uses \code{\link[HDcpDetect]{binary.segmentation}}. See
+Details for the methodological distinction.}
 
-\item{...}{Additional arguments passed to the chosen segmentation function.}
+\item{...}{Additional arguments passed to the chosen segmentation
+function. Note that \code{M} (number of random intervals) is only
+accepted by \code{wild.binary.segmentation}; passing it with
+\code{wild = FALSE} produces an "unused argument" error.}
 }
 \value{
-A named list matching the original \code{generate_HDcp_list}
-structure:
-\item{Points_List}{List of integer vectors \code{c(start, end)} giving the
-row index window used at each step.}
-\item{HDcp_list}{List of full segmentation result objects, one per step.
-Steps where \code{end_idx} exceeds the matrix rows return \code{NULL}
-with a warning.}
+A named list:
+\item{Points_List}{List of integer vectors \code{c(start, end)} giving
+the row index window used at each step.}
+\item{HDcp_list}{List of full segmentation result objects, one per
+step. Steps where \code{end_idx} exceeds the matrix rows return
+\code{NULL} with a warning.}
 }
 \description{
 Runs high-dimensional change point detection on time-series
-matrices using either Binary Segmentation or Wild Binary Segmentation.
+matrices (typically Hellinger distance matrices) over one or more time
+windows, using either binary segmentation or wild binary segmentation.
 }
 \details{
-Iterates through time steps using an expanding or rolling window and applies
-either \code{\link[HDcpDetect]{binary.segmentation}} or
-\code{\link[HDcpDetect]{wild.binary.segmentation}}.
+The function applies \code{\link[HDcpDetect]{binary.segmentation}} or
+\code{\link[HDcpDetect]{wild.binary.segmentation}} repeatedly to slices of
+\code{data_matrix}, advancing the slice forward by one row at each step.
+A total of \code{n_timesteps + 1} detections are performed: one on the
+initial window \code{[min_window, max_window]}, then \code{n_timesteps}
+additional detections on subsequent windows.
 
-Window behaviour mirrors \code{\link{detect_changepoints_ecp}}:
+Two window-advancement modes are supported, mirroring
+\code{\link{detect_changepoints_ecp}}:
 \itemize{
-\item \strong{Expanding} (\code{rolling_window = FALSE}): start index is
-fixed at \code{min_window}; end index grows by 1 each step.
-\item \strong{Rolling} (\code{rolling_window = TRUE}): both start and end
-advance by 1 each step, keeping the window length constant.
+\item \strong{Expanding} (\code{rolling_window = FALSE}, default): the
+start index is fixed at \code{min_window}; the end index grows by 1
+each step. Each iteration uses one more row than the previous.
+Natural for online surveillance, where change-point detection is
+re-run as new data accumulates.
+\item \strong{Rolling} (\code{rolling_window = TRUE}): both start and
+end indices advance by 1 each step, keeping the window length
+constant. Natural for retrospective windowed analysis.
+}
+
+\strong{Choice of segmentation method.} Binary segmentation
+(\code{wild = FALSE}, default) is the classical recursive method: it
+finds the most likely change point, splits the series, and recurses.
+Wild binary segmentation (\code{wild = TRUE}) is the variant of
+Fryzlewicz (2014) that draws random subintervals to improve detection
+of multiple closely-spaced change points; it accepts an additional
+\code{M} argument controlling the number of random intervals.
+}
+\section{Warnings and errors}{
+
+\describe{
+\item{\code{stop()}}{Triggered if \code{max_window} exceeds
+\code{nrow(data_matrix)}: the initial window cannot be
+constructed and no detection can run.}
+\item{\code{warning()}}{Triggered (and execution continues) if
+\code{max_window + n_timesteps} exceeds \code{nrow(data_matrix)},
+in which case the offending later iterations are skipped and
+\code{NULL} entries appear in \code{HDcp_list}.}
 }
 }
+
 \examples{
 set.seed(42)
 baseline = matrix(rnorm(50, mean = 0, sd = 0.1), nrow = 10, ncol = 5)
 variant  = matrix(rnorm(50, mean = 3, sd = 0.1), nrow = 10, ncol = 5)
 data_mat = rbind(baseline, variant)
 
+# Single-window detection with the default binary segmentation.
 res = detect_changepoints_hdcp(
   data_matrix = data_mat,
   min_window  = 1,
@@ -72,4 +111,20 @@ res = detect_changepoints_hdcp(
   n_timesteps = 0
 )
 print(res$HDcp_list[[1]])
+
+# Wild binary segmentation with a custom number of random intervals.
+res_wild = detect_changepoints_hdcp(
+  data_matrix = data_mat,
+  min_window  = 1,
+  max_window  = 20,
+  n_timesteps = 0,
+  wild        = TRUE,
+  M           = 100
+)
+print(res_wild$HDcp_list[[1]])
+}
+\seealso{
+\code{\link{detect_changepoints_ecp}} for the energy-statistic
+alternative; \code{\link{calculate_hellinger_matrix}} for the typical
+upstream input.
 }
