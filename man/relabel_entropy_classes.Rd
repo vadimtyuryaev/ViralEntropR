@@ -8,23 +8,72 @@ relabel_entropy_classes(df)
 }
 \arguments{
 \item{df}{A data frame containing clustering results. Must have columns
-\code{class} and \code{entropies}.}
+\code{class} (integer cluster labels from
+\code{\link{cluster_sites_by_entropy}}) and \code{entropies}
+(numeric Shannon entropy values per row).}
 }
 \value{
-The data frame with a relabeled \code{class} column (integer) and a
-\code{num_classes} column. Returned unchanged in four no-op cases: missing
-columns, zero rows, all class \code{999} (sentinel), or a single class.
+The data frame with a relabeled \code{class} column (integer)
+and an added \code{num_classes} column reporting the count of
+distinct labels present after relabeling.
 }
 \description{
 Relabels GMM cluster labels so that class 1 is always the
-highest entropy group, class 2 the second highest, and so on.
+highest-entropy group, class 2 the second highest, and so on.
+}
+\details{
+For univariate input (the package's typical use case), \code{\link[mclust]{Mclust}}
+orders cluster components by increasing mean. Applied to per-site Shannon
+entropy values, this places the highest-entropy group at the highest
+label number (label \code{G} for \code{G} fitted components). This
+function flips that convention so that label \code{1} always denotes
+the highest-entropy group, which is more natural for downstream
+filtering ("class 1 = top") and visual labeling. Cluster identities
+and means are unchanged; only the integer labels are remapped.
+
+\strong{Sentinel preservation.} The class label \code{999L} marks
+undifferentiated groups (all entropies equal in
+\code{\link{cluster_sites_by_entropy}}) and is never relabeled. If a
+data frame contains a mixture of real GMM labels and one or more
+\code{999} entries, only the real labels are ranked and overwritten;
+the \code{999} rows pass through unchanged.
+
+\strong{No-op return paths.} The input is returned unchanged (with at
+most a \code{num_classes} column added) in four situations:
+\itemize{
+\item Missing required columns (\code{class} or \code{entropies}) —
+warns and returns input.
+\item Zero rows.
+\item All rows already carry the sentinel \code{999L}.
+\item Only one class label is present (relabeling is a no-op).
+}
 }
 \examples{
+# Standard case: three classes, ranked by mean entropy.
 df <- data.frame(
   sites     = 1:6,
   entropies = c(0.1, 0.1, 0.5, 0.5, 1.2, 1.3),
-  class     = c(1, 1, 2, 2, 3, 3)
+  class     = c(1L, 1L, 2L, 2L, 3L, 3L)
 )
-# Class 3 (highest entropy) -> 1, Class 1 (lowest entropy) -> 3
 relabel_entropy_classes(df)
+# Class 3 (highest mean entropy 1.25) -> 1; class 2 (0.5) -> 2;
+# class 1 (0.1) -> 3.
+
+# Sentinel preservation: 999 rows pass through unchanged even when
+# mixed with real classes.
+df_mixed <- data.frame(
+  sites     = 1:4,
+  entropies = c(0.5, 1.2, 0.3, 0.4),
+  class     = c(1L, 2L, 999L, 1L)
+)
+relabel_entropy_classes(df_mixed)
+# Class 2 (highest) -> 1; class 1 -> 2; class 999 stays 999.
+}
+\seealso{
+\code{\link{cluster_sites_by_entropy}} for the upstream
+clustering step; \code{\link{plot_entropy_trajectories}} and
+\code{\link{plot_site_class_trajectory}} for downstream consumers
+that rely on the relabeled class convention;
+\code{\link{partition_time_windows}} which calls
+\code{cluster_sites_by_entropy} per window.
 }
