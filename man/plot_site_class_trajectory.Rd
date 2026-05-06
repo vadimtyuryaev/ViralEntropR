@@ -153,7 +153,7 @@ part_data <- partition_time_windows(
   window_length = 1L,
   window_type   = 3L,
   start_date    = "2020-01-01",
-  end_date      = "2020-05-01"
+  end_date      = "2020-04-01"
 )
 
 # Example 1: without relabeling — class labels are as assigned by Mclust.

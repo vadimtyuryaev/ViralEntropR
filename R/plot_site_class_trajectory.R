@@ -120,7 +120,7 @@
 #'   window_length = 1L,
 #'   window_type   = 3L,
 #'   start_date    = "2020-01-01",
-#'   end_date      = "2020-05-01"
+#'   end_date      = "2020-04-01"
 #' )
 #'
 #' # Example 1: without relabeling — class labels are as assigned by Mclust.
@@ -162,10 +162,10 @@ plot_site_class_trajectory <- function(data_frame,
     stop("`data_frame` is missing required columns: ",
          paste(missing_cols, collapse = ", "),
          ". Ensure `data_frame` is the `$Data_Frame` element returned by ",
-         "plot_entropy_trajectories().")
+         "plot_entropy_trajectories().", call. = FALSE)
 
   if (length(site) != 1L || !is.numeric(site))
-    stop("`site` must be a single numeric site index.")
+    stop("`site` must be a single numeric site index.", call. = FALSE)
   site <- as.integer(site)
 
   # Subset to the requested site.
@@ -177,7 +177,7 @@ plot_site_class_trajectory <- function(data_frame,
   if (nrow(df_site) == 0L)
     stop("Site ", site, " is not present in `data_frame`. ",
          "Verify the site index and ensure it was included when calling ",
-         "plot_entropy_trajectories().")
+         "plot_entropy_trajectories().", call. = FALSE)
 
   # Coerce class and max_class to integer for unambiguous label display.
   # data_frame$class is a factor; as.character() recovers the actual label
@@ -190,11 +190,13 @@ plot_site_class_trajectory <- function(data_frame,
   # 2. Validate xbreaks / xlabels
   # ---------------------------------------------------------------------------
   if (missing(xbreaks) || is.null(xbreaks))
-    stop("`xbreaks` is required. Pass `plot_entropy_trajectories()$XBreaks`.")
+    stop("`xbreaks` is required. Pass `plot_entropy_trajectories()$XBreaks`.", 
+         call. = FALSE)
   if (missing(xlabels) || is.null(xlabels))
-    stop("`xlabels` is required. Pass `plot_entropy_trajectories()$XLabels`.")
+    stop("`xlabels` is required. Pass `plot_entropy_trajectories()$XLabels`.", 
+         call. = FALSE)
   if (length(xbreaks) != length(xlabels))
-    stop("`xbreaks` and `xlabels` must have equal length.")
+    stop("`xbreaks` and `xlabels` must have equal length.", call. = FALSE)
 
   # ---------------------------------------------------------------------------
   # 3. Plot title
