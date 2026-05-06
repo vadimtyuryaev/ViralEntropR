@@ -17,16 +17,22 @@ partition_time_windows(
 )
 }
 \arguments{
-\item{data}{Data frame. Must contain a \code{Date} column coercible to
-\code{Date}, plus numeric site columns.}
+\item{data}{Data frame. Must contain a column named \code{Date}
+coercible to \code{Date}. Columns \code{1} through \code{n_sites}
+must be the numeric site columns; any additional columns (such as
+\code{Country} or other per-sequence metadata) may follow.}
 
-\item{n_sites}{Integer. Number of site columns (assumed to be columns
-\code{1:n_sites} of \code{data}).}
+\item{n_sites}{Integer. Number of site columns. Site columns must
+occupy positions \code{1} through \code{n_sites} of \code{data};
+any other columns (\code{Date}, optionally \code{Country}, etc.)
+must come after.}
 
-\item{window_length}{Integer. Window duration in months. Default is \code{1}.}
+\item{window_length}{Integer. Window duration in months.
+Default is \code{1}.}
 
-\item{window_type}{Integer. Windowing strategy: \code{1} = Cumulative,
-\code{2} = Sliding, \code{3} = Non-overlapping. Default is \code{3}.}
+\item{window_type}{Integer (1, 2, or 3). Windowing strategy:
+\code{1} = Cumulative, \code{2} = Sliding, \code{3} = Disjoint.
+Default is \code{3}.}
 
 \item{start_date}{Date or character. Window start. Defaults to earliest date
 in \code{data}.}
@@ -59,27 +65,58 @@ Splits a data frame of time-stamped sequences into discrete time
 windows, computes per-site entropy and Mclust clustering for each window.
 }
 \details{
-Three windowing strategies are supported via \code{window_type}:
+Three windowing strategies are supported via \code{window_type}.
+Throughout the descriptions below, \code{T} denotes the number of whole
+months between \code{start_date} and \code{end_date}, and \code{w}
+denotes \code{window_length}:
 \itemize{
 \item \strong{1 — Cumulative}: Start is fixed; end expands by
-\code{window_length} months each step.
-\item \strong{2 — Sliding}: A window of \code{window_length} months slides
-one month at a time. Produces
-\code{total_months - window_length + 1} chunks.
-\item \strong{3 — Non-overlapping (Jumping)}: Consecutive non-overlapping
-windows of \code{window_length} months.
+\code{w} months each step. Each window includes all prior data
+plus one more period. Produces \code{floor(T / w)} chunks.
+\item \strong{2 — Sliding}: A window of \code{w} months slides one
+month at a time. Produces \code{T - w + 1} chunks.
+\item \strong{3 — Disjoint}: Consecutive non-overlapping windows of
+\code{w} months. Produces \code{floor(T / w)} chunks. Default.
 }
+
+For example, with \code{T = 12} months and \code{w = 2}: cumulative
+produces 6 chunks (each progressively larger); sliding produces 11
+chunks (overlapping, each 2 months wide); disjoint produces 6 chunks
+(each exactly 2 months, non-overlapping).
+
+\strong{Empty windows.} When a window contains no observations, the
+corresponding entries in the returned lists carry placeholder values:
+\code{Entropies} is a zero-vector of length \code{n_sites};
+\code{Clusters} is a schema-consistent empty result matching
+\code{cluster_sites_by_entropy}'s empty-input return; \code{Max_Entropy}
+is \code{NA_integer_}. Downstream consumers can guard on
+\code{nrow(Partitions[[i]]) > 0} or \code{!is.na(Max_Entropy[i])}.
+
+\strong{Column layout requirement.} The function extracts site columns
+as \code{data[, seq_len(n_sites), drop = FALSE]}. The site columns
+must therefore occupy positions \code{1} through \code{n_sites}.
+\code{Date} (and any other metadata columns such as \code{Country})
+must come after the site columns. A common error is to place
+\code{Date} first; this will produce incorrect entropy values.
 }
 \examples{
 dates <- seq(as.Date("2020-01-01"), as.Date("2020-06-01"), by = "month")
 df <- data.frame(
-  Date = rep(dates, each = 5),
-  s1 = 1L,
-  s2 = c(rep(1L, 15), rep(2L, 15))
+  s1   = 1L,
+  s2   = c(rep(1L, 15), rep(2L, 15)),
+  Date = rep(dates, each = 5)
 )
 res <- partition_time_windows(df, n_sites = 2, window_length = 2,
                               window_type = 3, verbose = TRUE)
 print(res$Dates_Labels)
 print(res$Max_Entropy)
 
+}
+\seealso{
+\code{\link{calculate_entropy}} for the per-site entropy
+computation; \code{\link{cluster_sites_by_entropy}} for the GMM
+clustering applied per window; \code{\link{relabel_entropy_classes}}
+for standardizing the cluster labels in downstream consumers; and
+\code{\link{calculate_hellinger_matrix}} for typical downstream use
+of the \code{Partitions} output.
 }

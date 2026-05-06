@@ -3,24 +3,53 @@
 #'   windows, computes per-site entropy and Mclust clustering for each window.
 #'
 #' @details
-#' Three windowing strategies are supported via \code{window_type}:
+#' Three windowing strategies are supported via \code{window_type}.
+#' Throughout the descriptions below, \code{T} denotes the number of whole
+#' months between \code{start_date} and \code{end_date}, and \code{w}
+#' denotes \code{window_length}:
 #' \itemize{
 #'   \item \strong{1 — Cumulative}: Start is fixed; end expands by
-#'     \code{window_length} months each step.
-#'   \item \strong{2 — Sliding}: A window of \code{window_length} months slides
-#'     one month at a time. Produces
-#'     \code{total_months - window_length + 1} chunks.
-#'   \item \strong{3 — Non-overlapping (Jumping)}: Consecutive non-overlapping
-#'     windows of \code{window_length} months.
+#'     \code{w} months each step. Each window includes all prior data
+#'     plus one more period. Produces \code{floor(T / w)} chunks.
+#'   \item \strong{2 — Sliding}: A window of \code{w} months slides one
+#'     month at a time. Produces \code{T - w + 1} chunks.
+#'   \item \strong{3 — Disjoint}: Consecutive non-overlapping windows of
+#'     \code{w} months. Produces \code{floor(T / w)} chunks. Default.
 #' }
 #'
-#' @param data Data frame. Must contain a \code{Date} column coercible to
-#'   \code{Date}, plus numeric site columns.
-#' @param n_sites Integer. Number of site columns (assumed to be columns
-#'   \code{1:n_sites} of \code{data}).
-#' @param window_length Integer. Window duration in months. Default is \code{1}.
-#' @param window_type Integer. Windowing strategy: \code{1} = Cumulative,
-#'   \code{2} = Sliding, \code{3} = Non-overlapping. Default is \code{3}.
+#' For example, with \code{T = 12} months and \code{w = 2}: cumulative
+#' produces 6 chunks (each progressively larger); sliding produces 11
+#' chunks (overlapping, each 2 months wide); disjoint produces 6 chunks
+#' (each exactly 2 months, non-overlapping).
+#' 
+#' \strong{Empty windows.} When a window contains no observations, the
+#' corresponding entries in the returned lists carry placeholder values:
+#' \code{Entropies} is a zero-vector of length \code{n_sites};
+#' \code{Clusters} is a schema-consistent empty result matching
+#' \code{cluster_sites_by_entropy}'s empty-input return; \code{Max_Entropy}
+#' is \code{NA_integer_}. Downstream consumers can guard on
+#' \code{nrow(Partitions[[i]]) > 0} or \code{!is.na(Max_Entropy[i])}.
+#'
+#' \strong{Column layout requirement.} The function extracts site columns
+#' as \code{data[, seq_len(n_sites), drop = FALSE]}. The site columns
+#' must therefore occupy positions \code{1} through \code{n_sites}.
+#' \code{Date} (and any other metadata columns such as \code{Country})
+#' must come after the site columns. A common error is to place
+#' \code{Date} first; this will produce incorrect entropy values.
+#'
+#' @param data Data frame. Must contain a column named \code{Date}
+#'   coercible to \code{Date}. Columns \code{1} through \code{n_sites}
+#'   must be the numeric site columns; any additional columns (such as
+#'   \code{Country} or other per-sequence metadata) may follow.
+#' @param n_sites Integer. Number of site columns. Site columns must
+#'   occupy positions \code{1} through \code{n_sites} of \code{data};
+#'   any other columns (\code{Date}, optionally \code{Country}, etc.)
+#'   must come after.
+#' @param window_length Integer. Window duration in months. 
+#'   Default is \code{1}.
+#' @param window_type Integer (1, 2, or 3). Windowing strategy:
+#'  \code{1} = Cumulative, \code{2} = Sliding, \code{3} = Disjoint. 
+#'  Default is \code{3}.
 #' @param start_date Date or character. Window start. Defaults to earliest date
 #'   in \code{data}.
 #' @param end_date Date or character. Window end (cutoff). Defaults to latest
@@ -41,6 +70,13 @@
 #'   (equals number of clusters found; \code{NA} if window was empty).}
 #' \item{Dates_Labels}{Character vector of window label strings.}
 #' \item{N_partitions}{Integer. Total number of windows.}
+#' 
+#' @seealso \code{\link{calculate_entropy}} for the per-site entropy
+#'   computation; \code{\link{cluster_sites_by_entropy}} for the GMM
+#'   clustering applied per window; \code{\link{relabel_entropy_classes}}
+#'   for standardizing the cluster labels in downstream consumers; and
+#'   \code{\link{calculate_hellinger_matrix}} for typical downstream use
+#'   of the \code{Partitions} output.
 #'
 #' @importFrom lubridate %m+% interval period
 #' @importFrom utils txtProgressBar setTxtProgressBar
@@ -48,9 +84,9 @@
 #' @examples
 #' dates <- seq(as.Date("2020-01-01"), as.Date("2020-06-01"), by = "month")
 #' df <- data.frame(
-#'   Date = rep(dates, each = 5),
-#'   s1 = 1L,
-#'   s2 = c(rep(1L, 15), rep(2L, 15))
+#'   s1   = 1L,
+#'   s2   = c(rep(1L, 15), rep(2L, 15)),
+#'   Date = rep(dates, each = 5)
 #' )
 #' res <- partition_time_windows(df, n_sites = 2, window_length = 2,
 #'                               window_type = 3, verbose = TRUE)
@@ -70,8 +106,19 @@ partition_time_windows <- function(data,
   
   # --- 1. Validation ---------------------------------------------------------
   if (!"Date" %in% names(data)) {
-    stop("The column with dates is missing or is not properly named.")
+    stop("The column with dates is missing or is not properly named.", 
+         call. = FALSE)
   }
+  
+  if (!window_type %in% 1:3)
+    stop("`window_type` must be 1 (cumulative), 2 (sliding), or 3 (disjoint).",
+         call. = FALSE)
+  
+  if (n_sites > ncol(data) - 1L)
+    stop(sprintf("`n_sites` (%d) exceeds available non-Date columns (%d). ",
+                 n_sites, ncol(data) - 1L),
+         "Site columns must occupy positions 1 through n_sites.",
+         call. = FALSE)
   
   data <- data[order(data$Date), ]
   
@@ -79,6 +126,13 @@ partition_time_windows <- function(data,
   if (is.null(end_date))   end_date   <- max(data$Date)
   start_date <- as.Date(start_date)
   end_date   <- as.Date(end_date)
+  
+  if (start_date < min(data$Date))
+    warning("`start_date` is earlier than the earliest date in the data; ",
+            "early windows will be empty.", call. = FALSE)
+  if (end_date > max(data$Date))
+    warning("`end_date` is later than the latest date in the data; ",
+            "late windows will be empty.", call. = FALSE)
   
   start_date_dspl <- format(start_date, format = date_format)
   
@@ -99,6 +153,14 @@ partition_time_windows <- function(data,
     n_chunks <- total_months %/% window_length
   }
   
+  if (n_chunks < 1L)
+    stop(sprintf("Computed n_chunks = %d for window_type %d with window_length = %d ",
+                 n_chunks, window_type, window_length),
+         sprintf("over a %d-month range (%s to %s). ",
+                 total_months, format(start_date), format(end_date)),
+         "The date range is too short for the chosen windowing parameters.",
+         call. = FALSE)
+  
   # --- 3. Per-window processing ----------------------------------------------
   extra_args <- list(...)
   
@@ -117,7 +179,7 @@ partition_time_windows <- function(data,
     window_type_name <- switch(as.character(window_type),
                                "1" = "cumulative",
                                "2" = "sliding",
-                               "3" = "non-overlapping",
+                               "3" = "disjoint",
                                "unknown")
     message(sprintf("Partitioning %d %s window%s ...",
                     n_chunks, window_type_name,
