@@ -1,20 +1,65 @@
 #' @title Encode Amino Acid Sequences
-#' @description Converts character matrices of amino acids to numeric representations.
+#' @description Converts a character matrix of amino acid codes to its
+#'   integer-encoded representation under the package's 25-symbol alphabet.
+#'   Inverse of \code{\link{decode_aa_sequence}}.
+#'
+#' @details
+#' Encoding is a single vectorised lookup against a fixed named map. The
+#' input matrix is flattened, normalised to uppercase, indexed against the
+#' alphabet's name vector in one operation, and reshaped — there is no
+#' per-row or per-element loop.
+#'
+#' The 25-symbol alphabet covers the twenty standard residues
+#' (\code{A=1, R=2, N=3, D=4, C=5, Q=6, E=7, G=8, H=9, I=10, L=11, K=12,
+#' M=13, F=14, P=15, S=16, T=17, W=18, Y=19, V=20}), the three IUPAC
+#' ambiguous codes \code{B=21, Z=22, X=23}, the stop codon \code{*=24},
+#' and the alignment gap \code{-=25}.
+#'
+#' Any character outside this alphabet — including \code{NA}, the empty
+#' string, lowercase letters not in the standard set after uppercasing
+#' (e.g. \code{J} for leucine/isoleucine), and non-letter symbols — maps
+#' to the sentinel \code{0}. This sentinel is recognised by downstream
+#' functions: \code{\link{filter_ambiguous_sequences}} treats \code{0}
+#' as ambiguous (alongside \code{B}, \code{X}, \code{Z}) and removes
+#' affected sequences, and \code{\link{decode_aa_sequence}} round-trips
+#' it back to the string \code{"0"}.
+#'
+#' Row and column names of the input matrix are preserved on the output.
+#'
+#' @param matrix_input A character matrix of amino acid codes, typically
+#'   produced by \code{\link{fasta_to_char_matrix}}. A non-matrix input is
+#'   coerced via \code{\link[base]{as.matrix}}. Lowercase input is
+#'   accepted; characters are uppercased before lookup.
+#'
+#' @return A numeric matrix of the same dimensions as \code{matrix_input},
+#'   with the same \code{dimnames}. Each cell is either an integer in
+#'   \code{1:25} from the alphabet table above, or \code{0} for any input
+#'   not in the alphabet (including \code{NA} and the empty string).
+#'
+#' @seealso \code{\link{decode_aa_sequence}} for the inverse operation;
+#'   \code{\link{fasta_to_char_matrix}} for the FASTA-to-character-matrix
+#'   step that typically precedes encoding;
+#'   \code{\link{filter_ambiguous_sequences}} for downstream removal of
+#'   sequences containing ambiguous or unrecognised residues.
+#'
 #' @export
 #'
-#' @param matrix_input A character matrix of amino acid codes.
-#' @return A numeric matrix of the same dimensions as input, where mapped values
-#'   are 1-25 and any character not in the standard alphabet maps to 0.
-#'
 #' @examples
-#' # 1. Encode a simple matrix of sequences
+#' # 1. Encode a simple matrix of sequences.
 #' seq_mat = matrix(c("A", "R", "N", "D"), nrow = 2, byrow = TRUE)
 #' encoded = encode_aa_sequence(seq_mat)
+#' print(encoded)
 #'
-#' # 2. Handle gaps and unknown characters
-#' # '-' maps to 25, '?' (not in alphabet) maps to 0
+#' # 2. Gaps and unknown characters.
+#' # '-' maps to 25; '?' is not in the alphabet and maps to the sentinel 0.
 #' gapped_mat = matrix(c("A", "-", "G", "?"), nrow = 1)
 #' encode_aa_sequence(gapped_mat)
+#'
+#' # 3. Lowercase input is accepted (uppercased before lookup).
+#' encode_aa_sequence(matrix(c("a", "r", "n", "d"), nrow = 2))
+#'
+#' # 4. NA and empty string both map to 0.
+#' encode_aa_sequence(matrix(c("A", NA, "G", ""), nrow = 2))
 encode_aa_sequence = function(matrix_input) {
   # Internal mapping - 25 standard/ambiguous codes
   aa_map = c(
