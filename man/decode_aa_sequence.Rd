@@ -7,24 +7,59 @@
 decode_aa_sequence(matrix_input)
 }
 \arguments{
-\item{matrix_input}{Numeric matrix.}
+\item{matrix_input}{Numeric matrix of integer-encoded amino acids,
+typically the output of \code{\link{encode_aa_sequence}}. Values
+outside \code{1:25} (including \code{0} and \code{NA}) decode to
+the sentinel string \code{"0"}. A non-matrix input is coerced via
+\code{\link[base]{as.matrix}}.}
 }
 \value{
-Character matrix. Values outside 1-25 (including 0) are returned as
-\code{"0"}, matching the behaviour of the original \code{numbers_to_letters_vectorized}.
+A character matrix of the same dimensions as \code{matrix_input},
+with the same \code{dimnames}. Each cell is either a one-character
+amino acid code from the 25-symbol alphabet, or the sentinel
+\code{"0"} for out-of-range and missing values.
 }
 \description{
-Converts numeric matrices back to amino acid characters.
+Converts an integer-encoded matrix of amino acids back to its
+character representation under the package's 25-symbol alphabet. Inverse
+of \code{\link{encode_aa_sequence}}.
+}
+\details{
+Decoding is a single vectorised lookup against the fixed alphabet
+(\code{A, R, N, D, C, Q, E, G, H, I, L, K, M, F, P, S, T, W, Y, V} for
+the twenty standard residues, then \code{B, Z, X, *, -} for ambiguous
+codes, stop codons, and gaps). The input matrix is flattened, indexed
+against the alphabet vector in one operation, and reshaped — there is
+no per-row or per-element loop.
+
+Values outside the valid range \code{1:25} (including \code{0}, which
+\code{\link{encode_aa_sequence}} produces for unrecognised characters)
+are returned as the sentinel string \code{"0"}. This preserves
+round-trip consistency with the encoder: encoding then decoding any
+character originally outside the alphabet yields \code{"0"} rather
+than throwing an error. \code{NA} values are also mapped to
+\code{"0"}.
+
+Row and column names of the input matrix are preserved on the output.
 }
 \examples{
-# 1. Decode a numeric matrix
+# 1. Decode a numeric matrix.
 num_mat = matrix(c(1, 2, 25, 10), nrow = 2, byrow = TRUE)
 decoded = decode_aa_sequence(num_mat)
 print(decoded)
+# 1 -> "A", 2 -> "R", 25 -> "-", 10 -> "I"
 
-# 2. Round-trip consistency check (excluding unknowns)
+# 2. Round-trip consistency check (excluding unknowns).
 orig = matrix(c("A", "C", "W", "G"), nrow = 2)
-enc = encode_aa_sequence(orig)
-dec = decode_aa_sequence(enc)
+enc  = encode_aa_sequence(orig)
+dec  = decode_aa_sequence(enc)
 all.equal(orig, dec)
+
+# 3. Out-of-range and NA values both decode to the sentinel "0".
+decode_aa_sequence(matrix(c(0, NA, 30, 5), nrow = 2))
+}
+\seealso{
+\code{\link{encode_aa_sequence}} for the inverse operation;
+\code{\link{fasta_to_char_matrix}} for the FASTA-to-character-matrix
+step that typically precedes encoding.
 }
