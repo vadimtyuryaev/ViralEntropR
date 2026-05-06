@@ -5,7 +5,8 @@
 \alias{sarscov2_variants}
 \title{SARS-CoV-2 VOC/VOI Curated Variant Metadata}
 \format{
-A named list of length 13. See Details for element descriptions.
+A named list of 13 elements (12 metadata fields plus a structured
+References object). See Details for per-element descriptions.
 }
 \source{
 Compiled from 21 peer-reviewed and surveillance sources; see
