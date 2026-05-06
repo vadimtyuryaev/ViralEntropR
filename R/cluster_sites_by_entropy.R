@@ -1,12 +1,17 @@
-#' @title Cluster Sequence Sites by Entropy
-#' @description Identifies groups of sites with similar variability using
-#'   Gaussian Mixture Models (GMM).
+#' @title Cluster a Univariate Numeric Vector by Gaussian Mixture Model
+#' @description Wraps \code{\link[mclust]{Mclust}} for unsupervised clustering
+#'   of a univariate numeric vector, with preprocessing rules and edge-case
+#'   handling tailored to per-site Shannon entropy values from viral sequence
+#'   data, which is the package's primary use case, but applicable to any
+#'   univariate data the user wishes to cluster by GMM.
 #'
 #' @details
-#' Groups sites based on their Shannon entropy values via
-#' \code{\link[mclust]{Mclust}}. Preprocessing steps remove invariant sites
-#' (entropy = 0) and/or singleton sites (entropy corresponding to exactly one
-#' differing sequence across \code{nr} rows).
+#' In the package's typical use, sites are clustered by their Shannon entropy
+#' to identify groups of residue positions with similar variability across
+#' a sequence collection. Two preprocessing rules apply when clustering
+#' entropies: \code{removez = TRUE} drops invariant sites (entropy = 0), and
+#' \code{removesngl = TRUE} drops singleton sites whose entropy corresponds
+#' to exactly one differing sequence across \code{nr} rows.
 #'
 #' Class assignment rules (applied in priority order):
 #' \itemize{
@@ -17,25 +22,18 @@
 #'   \item \strong{All entropies identical}: class \code{999} for all sites
 #'     (sentinel — one undifferentiated group).
 #'   \item \strong{Normal Mclust result}: raw class labels \code{1, 2, ..., G}.
-#'     Note these are Mclust's own arbitrary integer labels — call
+#'     These are Mclust's own arbitrary integer labels — call
 #'     \code{\link{relabel_entropy_classes}} on the returned DataFrame to
-#'     standardize so that class 1 = highest entropy group.
-#'   \item \strong{Genuine Mclust failure}: empty DataFrame returned (same
-#'     schema as the no-rows case). Treats the partition as uninformative,
-#'     which is scientifically correct — a failed clustering produces no
-#'     classifiable information.
+#'     standardise so that class 1 = highest-entropy group.
+#'   \item \strong{Mclust failure}: empty DataFrame returned (same schema as
+#'     the no-rows case), treating the partition as uninformative.
 #' }
 #'
-#' \strong{Note on \code{mclustBIC}:} \code{mclust::Mclust} internally calls
-#' \code{mclustBIC} via character-string dispatch in a context that searches
-#' the calling package's namespace rather than mclust's own. The
-#' \code{@importFrom mclust Mclust mclustBIC} directive pulls both symbols
-#' into this package's namespace, making \code{mclustBIC} findable without
-#' any \code{library(mclust)} call by the user.
-#'
-#' @param entropies Numeric vector of entropy values, one per site.
-#' @param nr Integer. Total number of sequences used to compute the entropies.
-#'   Required when \code{removesngl = TRUE}.
+#' @param entropies Numeric vector to cluster. In the package's primary use
+#'   case these are per-site Shannon entropy values, but any univariate
+#'   numeric vector is accepted.
+#' @param nr Integer. Total number of sequences from which the entropies
+#'   were computed. Required only when \code{removesngl = TRUE}.
 #' @param nsites Integer. Expected number of sites. If it mismatches
 #'   \code{length(entropies)}, the actual length is used with a warning.
 #'   Default is \code{length(entropies)}.
@@ -66,7 +64,13 @@
 #'   \strong{always} present in every return path, including zero-row
 #'   DataFrames. Downstream consumers need only guard on \code{nrow(df) > 0}
 #'   before accessing class values. Raw Mclust labels are returned as-is;
-#'   call \code{\link{relabel_entropy_classes}} to standardize label ordering.}
+#'   call \code{\link{relabel_entropy_classes}} to standardise label ordering.}
+#'
+#' @seealso
+#' \code{\link{calculate_entropy}} for computing per-site entropy values,
+#'   \code{\link{relabel_entropy_classes}} for standardising the returned
+#'   class labels, and \code{\link{partition_time_windows}}, which calls
+#'   this function on each temporal partition.
 #'
 #' @importFrom mclust Mclust mclustBIC
 #' @export
@@ -76,17 +80,16 @@
 #' set.seed(42)
 #' entropies <- c(rnorm(5, mean = 0.1, sd = 0.01),
 #'                rnorm(5, mean = 1.5, sd = 0.1))
-#' result <- cluster_sites_by_entropy(entropies, nr = 100,
-#'                                    removez = FALSE, removesngl = FALSE)
+#' result <- cluster_sites_by_entropy(entropies, removez = FALSE,
+#'                                    removesngl = FALSE)
 #' print(result$DataFrame)
 #'
 #' # Single-row edge case: class = 1 assigned directly.
-#' res1 <- cluster_sites_by_entropy(0.35, nr = 50, removesngl = FALSE)
+#' res1 <- cluster_sites_by_entropy(0.35, removesngl = FALSE)
 #' print(res1$DataFrame)
 #'
 #' # All-identical edge case: class = 999 (sentinel, one undifferentiated group).
-#' res2 <- cluster_sites_by_entropy(c(0.35, 0.35, 0.35), nr = 50,
-#'                                  removesngl = FALSE)
+#' res2 <- cluster_sites_by_entropy(c(0.35, 0.35, 0.35), removesngl = FALSE)
 #' print(res2$DataFrame)
 cluster_sites_by_entropy <- function(entropies,
                                      nr,
@@ -99,10 +102,6 @@ cluster_sites_by_entropy <- function(entropies,
                                      ...) {
 
   # --- Helper: empty result with consistent schema ---------------------------
-  # Used for the no-rows-remaining case and genuine Mclust failure.
-  # The class column is always a zero-length integer vector so downstream
-  # consumers can rely on a consistent DataFrame schema and only need to
-  # guard on nrow(df) > 0, not also on "class" %in% names(df).
   empty_result <- function(df) {
     df$class <- integer(0L)
     list(FitObject = list(classification = integer(0L)),
@@ -122,16 +121,13 @@ cluster_sites_by_entropy <- function(entropies,
   df <- data.frame(sites = seq_len(nsites), entropies = entropies)
   df <- df[order(df$entropies), , drop = FALSE]
 
-  # --- 3. Remove invariant sites (entropy ~ 0) --------------------------------
-  # Tolerance-based: absorbs floating-point near-zeros that behave as invariant
-  # sites (e.g., entropy = 1.2e-10 from rounding in calculate_entropy).
+  # --- 3. Remove invariant sites (entropy ~ 0) -------------------------------
   if (removez) {
     df <- df[df$entropies > 1e-9, , drop = FALSE]
   }
 
   # --- 4. Remove singleton sites ---------------------------------------------
   # Singleton entropy = H when exactly 1 sequence out of nr differs.
-  # Tolerance-based comparison avoids floating-point false negatives.
   if (removesngl) {
     if (missing(nr))
       stop("`nr` must be provided when `removesngl = TRUE`.")
@@ -154,8 +150,7 @@ cluster_sites_by_entropy <- function(entropies,
   }
 
   # --- 6. Strip non-finite values --------------------------------------------
-  # Inf / NaN / NA cause Mclust to fail with an uninformative error.
-  # Arises when a transformation amplifies near-zero entropies.
+  # Inf / NaN / NA would otherwise cause Mclust to fail with an opaque error.
   bad <- !is.finite(df$entropies)
   if (any(bad)) {
     if (verbose)
@@ -179,10 +174,8 @@ cluster_sites_by_entropy <- function(entropies,
   }
 
   # --- 9. Edge case: all remaining entropies identical -----------------------
-  # Round before uniqueness check to absorb floating-point noise.
-  # Sentinel class 999: one undifferentiated group — structurally valid but
-  # uninformative for variant detection. Preserved as-is by
-  # relabel_entropy_classes so the sentinel meaning is never lost.
+  # Class 999 is the sentinel for an undifferentiated group; preserved as-is
+  # by relabel_entropy_classes so the sentinel meaning is never lost.
   if (length(unique(round(df$entropies, precision))) == 1L) {
     df$class <- 999L
     return(list(FitObject = list(classification = rep(999L, nrow(df))),
@@ -190,27 +183,8 @@ cluster_sites_by_entropy <- function(entropies,
   }
 
   # --- 10. Cluster with Mclust -----------------------------------------------
-  # mclustBIC is imported explicitly via @importFrom mclust Mclust mclustBIC.
-  # This resolves the "could not find function 'mclustBIC'" error that occurs
-  # when mclust is in Imports but not attached: in certain mclust versions,
-  # Mclust calls mclustBIC via character-string dispatch in a context that
-  # searches the calling package's namespace. Importing mclustBIC makes it
-  # findable there without any library(mclust) call by the user.
-  #
-  # suppressWarnings: Mclust emits EM convergence warnings on difficult data;
-  # these flood the console during simulation studies with many calls.
-  #
-  # On genuine failure after the namespace fix (truly degenerate or pathological
-  # input), tryCatch returns NULL and step 11 returns an empty DataFrame —
-  # treating the partition as uninformative, which is scientifically correct.
-  
-  # fit <- tryCatch({
-  #   suppressWarnings(mclust::Mclust(df$entropies, ...))
-  # }, error = function(e) {
-  #   if (verbose) warning("Mclust error: ", conditionMessage(e))
-  #   NULL
-  # })
-  
+  # suppressWarnings: silence Mclust EM convergence warnings during heavy use.
+  # capture.output: silence Mclust's internal cat() during BIC search.
   fit <- tryCatch({
     suppressWarnings({
       utils::capture.output(
@@ -224,9 +198,6 @@ cluster_sites_by_entropy <- function(entropies,
   })
 
   # --- 11. Handle genuine Mclust failure -------------------------------------
-  # NULL fit = genuine failure. After the @importFrom fix the namespace error
-  # no longer triggers, so reaching here means truly degenerate input data.
-  # Return empty DataFrame — treat partition as uninformative.
   if (is.null(fit)) {
     if (verbose)
       warning("Mclust returned NULL; treating partition as uninformative.")
@@ -234,8 +205,6 @@ cluster_sites_by_entropy <- function(entropies,
   }
 
   # --- 12. Safety check on classification length ----------------------------
-  # fit$classification is a named integer vector of length nrow(df) in all
-  # modern mclust versions. This guard is a safety net only.
   if (is.null(fit$classification) ||
       length(fit$classification) != nrow(df)) {
     if (verbose)
@@ -244,8 +213,7 @@ cluster_sites_by_entropy <- function(entropies,
   }
 
   # --- 13. Attach classification — guaranteed present -----------------------
-  # Raw Mclust labels (arbitrary integers 1..G). Call relabel_entropy_classes
-  # on the returned DataFrame to standardize so that class 1 = highest entropy.
+  # Raw Mclust labels (1..G); call relabel_entropy_classes() to standardise.
   df$class <- fit$classification
 
   list(FitObject = fit, DataFrame = df)
