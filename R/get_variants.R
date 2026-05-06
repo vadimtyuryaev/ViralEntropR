@@ -251,7 +251,7 @@ get_variants = function(tibble, check = FALSE) {
   
   defining_snps_sites <- lapply(
     defining_snps,
-    function(x) ifelse(is.na(x), NA, get_sites(x))
+    function(x) if (length(x) == 1L && is.na(x)) NA else get_sites(x)
   )
   
   # -- Integrity check (optional) -----------------------------------------------
@@ -263,7 +263,7 @@ get_variants = function(tibble, check = FALSE) {
       US_detection_date, mutations, sites, defining_snps, defining_snps_sites
     )
     if (length(unique(sapply(vec_list, length))) != 1L)
-      stop("Vectors have unequal lengths -- check Excel sheet dimensions.")
+      stop("Vectors have unequal lengths -- check Excel sheet dimensions.", call. = FALSE)
   }
   
   # -- Reference table ----------------------------------------------------------
@@ -490,8 +490,8 @@ get_variants = function(tibble, check = FALSE) {
       "Omicron",                                                                               # 17
       "Omicron",                                                                               # 18
       "Alpha, Beta, Delta, Gamma",                                                             # 19
-       NA_character_,                                                                           # 20
-      "Alpha, Beta, Delta, Epsilon, Eta, Gamma, Iota, Kappa, Lambda, Theta, Zeta"             # 21
+       NA_character_,                                                                          # 20
+      "Alpha, Beta, Delta, Epsilon, Eta, Gamma, Iota, Kappa, Lambda, Theta, Zeta"              # 21
     ),
     
     Data_Field = c(
@@ -555,7 +555,8 @@ get_variants = function(tibble, check = FALSE) {
     if (!is.null(variant)) {
       keep <- grepl(variant, df$Variants_Covered, fixed = TRUE)
       if (!any(keep))
-        stop(sprintf("No references found for variant '%s'.", variant))
+        stop(sprintf("No references found for variant '%s'.", variant), 
+             call. = FALSE)
       df <- df[keep, ]
     }
     
@@ -602,7 +603,7 @@ get_variants = function(tibble, check = FALSE) {
   cite_refs <- function(variant) {
     keep <- grepl(variant, refs_data$Variants_Covered, fixed = TRUE)
     if (!any(keep))
-      stop(sprintf("No references found for variant '%s'.", variant))
+      stop(sprintf("No references found for variant '%s'.", variant), call. = FALSE)
     refs_data$Citation[keep]
   }
   
