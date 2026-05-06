@@ -153,7 +153,7 @@
 #'   window_length = 1L,
 #'   window_type   = 3L,
 #'   start_date    = "2020-01-01",
-#'   end_date      = "2020-05-01"
+#'   end_date      = "2020-04-01"
 #' )
 #'
 #' # Example 1: no relabeling — class labels are as assigned by Mclust.
@@ -186,12 +186,14 @@ plot_entropy_trajectories <- function(part_data,
   if (length(missing_fields) > 0L)
     stop("`part_data` is missing required fields: ",
          paste(missing_fields, collapse = ", "),
-         ". Ensure `part_data` is the direct output of partition_time_windows().")
+         ". Ensure `part_data` is the direct output of partition_time_windows().", 
+         call. = FALSE)
 
   n_part <- part_data$N_partitions
 
   if (n_part < 1L)
-    stop("`part_data$N_partitions` is 0. There are no partitions to plot.")
+    stop("`part_data$N_partitions` is 0. There are no partitions to plot.", 
+         call. = FALSE)
 
   # ---------------------------------------------------------------------------
   # 2. Partition labels
@@ -201,7 +203,8 @@ plot_entropy_trajectories <- function(part_data,
   } else {
     labels <- as.character(labels)
     if (length(labels) != n_part)
-      stop("`labels` must have length equal to `N_partitions` (", n_part, ").")
+      stop("`labels` must have length equal to `N_partitions` (", n_part, ").", 
+           call. = FALSE)
   }
 
   # ---------------------------------------------------------------------------
@@ -210,7 +213,8 @@ plot_entropy_trajectories <- function(part_data,
   if (!is.null(transformation)) {
     if (!inherits(transformation, c("transform", "trans")))
       stop("`transformation` must be an object of class 'transform' produced by ",
-           "scales::trans_new(), or NULL for the identity (no transformation).")
+           "scales::trans_new(), or NULL for the identity (no transformation).", 
+           call. = FALSE)
   }
 
   # ---------------------------------------------------------------------------
@@ -219,7 +223,7 @@ plot_entropy_trajectories <- function(part_data,
   if (isTRUE(by_group)) {
     if (is.null(groups_list) || !is.list(groups_list) || length(groups_list) == 0L)
       stop("`groups_list` must be a non-empty list of integer vectors ",
-           "when `by_group = TRUE`.")
+           "when `by_group = TRUE`.", call. = FALSE)
   }
 
   # ---------------------------------------------------------------------------
@@ -251,7 +255,8 @@ plot_entropy_trajectories <- function(part_data,
   frames <- Filter(Negate(is.null), frames)
 
   if (length(frames) == 0L)
-    stop("No data are available for plotting: all partitions are empty.")
+    stop("No data are available for plotting: all partitions are empty.", 
+         call. = FALSE)
 
   df_all           <- do.call(rbind, frames)
   rownames(df_all) <- NULL
@@ -274,7 +279,7 @@ plot_entropy_trajectories <- function(part_data,
   }
 
   if (length(sites) == 0L)
-    stop("No requested sites are present in any partition.")
+    stop("No requested sites are present in any partition.", call. = FALSE)
 
   df_all <- df_all[df_all$sites %in% sites, , drop = FALSE]
 
@@ -297,7 +302,8 @@ plot_entropy_trajectories <- function(part_data,
   if (!is.null(site_colors)) {
     if (!is.character(site_colors) || is.null(names(site_colors)))
       stop("`site_colors` must be a named character vector with site indices as ",
-           "names (e.g. c(\"681\" = \"#FB8072\", \"501\" = \"#80B1D3\")).")
+           "names (e.g. c(\"681\" = \"#FB8072\", \"501\" = \"#80B1D3\")).", 
+           call. = FALSE)
     sc_keys <- as.character(names(site_colors))
     matches <- intersect(sc_keys, existing_sites)
     if (length(matches) > 0L)
@@ -332,7 +338,7 @@ plot_entropy_trajectories <- function(part_data,
 
     if (n_groups > 6L)
       stop("Total number of groups (explicit + automatic remainder) is ",
-           n_groups, ". Maximum allowed is 6.")
+           n_groups, ". Maximum allowed is 6.", call. = FALSE)
 
     # Default line types: solid for group 1, dashed for all others.
     if (is.null(line_type_groups)) {
@@ -340,7 +346,8 @@ plot_entropy_trajectories <- function(part_data,
     } else {
       if (length(line_type_groups) != n_groups)
         stop("`line_type_groups` must have length ", n_groups,
-             " (number of explicit groups plus the automatic remainder group).")
+             " (number of explicit groups plus the automatic remainder group).", 
+             call. = FALSE)
     }
 
     # Default line widths: 2 for group 1, 1 for all others.
@@ -349,7 +356,8 @@ plot_entropy_trajectories <- function(part_data,
     } else {
       if (length(line_size_groups) != n_groups)
         stop("`line_size_groups` must have length ", n_groups,
-             " (number of explicit groups plus the automatic remainder group).")
+             " (number of explicit groups plus the automatic remainder group).", 
+             call. = FALSE)
     }
 
     # Assign group integer to each row, matched on the sites factor level.
