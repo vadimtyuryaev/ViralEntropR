@@ -25,8 +25,13 @@ simulate_variant_evolution(
 )
 }
 \arguments{
-\item{ref_sequences}{Character string (single reference sequence) or
-data.frame with a \code{Date} column and site columns.}
+\item{ref_sequences}{Either a single character string giving the reference
+amino-acid sequence, or a data.frame with a \code{Date} column and site
+columns named with integer position labels (\code{"1"}, \code{"2"},
+..., \code{as.character(L)}; one column per site). The sequence length
+\code{L} must be at least 3, since variant mutations and random
+substitution events are sampled from sites \eqn{>2} (sites 1 and 2 are
+reserved for reference variability when \code{ref_variability = TRUE}).}
 
 \item{n_ref_months}{Integer. Duration of the initial reference phase
 (months). Default \code{3}.}
@@ -38,88 +43,131 @@ data.frame with a \code{Date} column and site columns.}
 \item{variants_config}{Integer vector. Number of mutations per variant,
 e.g., \code{c(2, 6)}.}
 
-\item{variant_intervals}{Integer vector. Months between consecutive variant
-emergences (length \code{length(variants_config) - 1}).}
+\item{variant_intervals}{Integer vector. Months between consecutive
+variant emergences (length \code{length(variants_config) - 1}).}
 
-\item{n_new_mutations}{Integer. De-novo sequences produced at a variant's
-first appearance. Default \code{1}.}
+\item{n_new_mutations}{Integer. Number of de-novo sequence \emph{copies}
+introduced at a variant's first appearance. Despite the name, this
+controls the count of seeded sequences, not the number of mutations
+carried by the variant (which is set per-variant by
+\code{variants_config}). Default \code{1}.}
 
-\item{mutation_rate}{Numeric scalar or vector. Monthly growth multiplier per
-variant. Default \code{2}.}
+\item{mutation_rate}{Numeric scalar or vector. Monthly growth multiplier
+per variant. Default \code{2}.}
 
 \item{mutation_rate_variability}{Numeric in \code{[0, 1)}. Fractional
 spread around \code{mutation_rate}: growth is drawn from
-\code{Uniform(mult*(1-v), mult*(1+v))}. Set to \code{0} for deterministic
-growth. Default \code{0.25}.}
+\code{Uniform(mult*(1-v), mult*(1+v))}. Set to \code{0} for
+deterministic growth. Default \code{0.25}.}
 
 \item{deleterious_rate}{Numeric in \code{[0, 1]}. Per-mutation probability
-of being deleterious. Default \code{0}.}
+of being flagged as "deleterious". Default \code{0}.}
 
-\item{n_deleterious_limit}{Integer. Maximum sequences allowed to carry a
-deleterious mutation. Default \code{1}.}
+\item{n_deleterious_limit}{Integer. Per-site cap on the number of variant
+rows allowed to retain a flagged ("deleterious") allele in a given
+month; overflow is reverted to the reference allele at the flagged
+site only. See \strong{Capped "Deleterious" Sites} in Details.
+Default \code{1}.}
 
 \item{n_sequences_total}{Integer. Total sequences generated over the full
 mutation phase (spread evenly per month). Default \code{140}.}
 
 \item{ref_variability}{Logical. If \code{TRUE}, introduces low-level
-variability at sites 1 and 2 of the reference pool. Default \code{FALSE}.}
+variability at sites 1 and 2 of the reference pool. Requires
+\code{n_ref_sequences >= 6 * n_ref_months} for the variability rows
+to be correctly captured by the multi-variant fill pool; smaller
+values trigger a warning. Default \code{FALSE}.}
 
 \item{n_ref_sequences}{Integer. When \code{ref_sequences} is a single
 string, the number of reference rows to create. Default \code{100}.}
 
 \item{prob_deletion_event}{Numeric in \code{[0, 1]}. Per-month probability
-of injecting a block of sequences with a random deletion at one site.
+of triggering a substitution event affecting \code{n_rows_to_delete}
+rows. (Parameter name retained for backward compatibility; the
+operation is substitution, not literal deletion. See Details.)
 Default \code{0}.}
 
-\item{n_rows_to_delete}{Integer. Sequences affected when a deletion event
-fires. Default \code{0}.}
+\item{n_rows_to_delete}{Integer. Number of rows affected when a
+substitution event fires (see \code{prob_deletion_event}). Default
+\code{0}.}
 
 \item{seed}{Integer or \code{NULL}. Random seed for reproducibility.
 Default \code{NULL}.}
 }
 \value{
 An object of class \code{"viralSim"}, a named list:
-\item{Simulation_Output}{Data frame of all sequences with columns for each
-site plus \code{Variant}, \code{Phase}, \code{Date}, \code{Period},
-\code{Delet}.}
-\item{Variant_Details}{List of per-variant metadata (emergence month,
-mutated positions, flags, sequence, growth rate).}
+\item{Simulation_Output}{Data frame of all sequences, one column per site
+(named \code{"1"}, ..., \code{as.character(L)}) plus \code{Variant}
+(per-row strain label), \code{Phase} (\code{"R"} or \code{"RV"} for
+reference rows depending on whether the row matches the wild-type
+sequence; \code{"M1"}, \code{"M2"}, ... in mutation-phase months —
+note that \code{"Mn"} is a \emph{month label} and applies to every
+row in that month regardless of strain), \code{Date}, \code{Period}
+(1-indexed month), and \code{Delet} (\code{"Yes"} for rows affected
+by substitution events, \code{"No"} otherwise).}
+\item{Variant_Details}{List of per-variant metadata. Each element has
+\code{em} (emergence-month index), \code{pos} (mutated site indices),
+\code{flags} (logical vector of "deleterious" flags per mutated site),
+\code{vseq} (full mutated reference sequence as character vector),
+\code{mult} (growth multiplier), \code{last} (count in the most recent
+month), \code{cum} (cumulative count), and \code{repl} (logical flag
+set when the variant has been displaced by its successor).}
 \item{Simulation_Dates}{Date vector of all simulated months.}
 \item{Baseline_Ref_Sequence}{Character. The wild-type reference string.}
-\item{Delet_Records}{Named list of deletion events, one entry per affected
-month.}
-\item{Pool}{The fill pool data frame from the final multi-variant
-competition period (includes \code{._weight} column); \code{NULL} if
-only one variant was ever active.}
+\item{Delet_Records}{Named list of substitution events keyed by date
+(\code{"YYYY-MM-DD"}). Each entry holds \code{period}, \code{date},
+\code{site}, \code{old_aa}, \code{new_aa}, and \code{rows} (absolute
+row indices in \code{Simulation_Output} that were modified).}
+\item{Pool}{Fill-pool data frame from the final multi-variant competition
+period (includes \code{._weight} column); \code{NULL} if at most one
+variant was ever active.}
 }
 \description{
-Generates synthetic time-series of viral sequences evolving from
-a reference strain, with realistic stochastic growth and multi-variant
-competition dynamics.
+Generates a synthetic, ground-truth-traceable time series of
+viral amino-acid sequences in which a reference strain is progressively
+challenged by emerging variants under stochastic growth and pairwise
+competition. Designed as a controllable signal generator for benchmarking
+the entropy, Hellinger, and change-point components of the
+\pkg{ViralEntropR} pipeline; the dynamics are deliberately simplified
+rather than a faithful biological model of evolutionary fitness.
 }
 \details{
-Simulates the evolutionary dynamics of a viral population over discrete
-monthly time steps.
+Simulates the trajectory of a viral population over discrete monthly time
+steps. All stochastic components are reproducible under a fixed
+\code{seed} and are designed to expose a known emergence pattern that
+downstream detection methods can be evaluated against.
 
 \strong{Simulation Phases:}
 \enumerate{
-\item \strong{Reference Phase:} A stable period where only the reference
-strain exists. Reference months are sampled randomly from the reference
-pool to introduce baseline variability.
-\item \strong{Variant Emergence:} New variants are introduced at specified
-monthly intervals.
-\item \strong{Competition and Growth:} Each month the newest variant
-competes directly against its immediate predecessor ("pairwise"
-competition). Growth is stochastic — each variant's count is drawn from
-\code{Uniform(mult*(1-variability), mult*(1+variability))} — so setting
-\code{mutation_rate_variability > 0} introduces realistic fluctuation.
-Older (non-competing) variants contribute to the fill pool with
-exponentially increasing sampling weights.
-\item \strong{Deleterious Mutations:} Variants can carry fitness-reducing
-mutations capped at \code{n_deleterious_limit} sequences.
-\item \strong{Random Deletion Events:} Each month independently draws a
-Bernoulli coin flip; if it fires, \code{n_rows_to_delete} sequences at a
-randomly chosen site receive a random amino acid substitution.
+\item \strong{Reference Phase:} A stable period in which only the
+reference strain exists. Reference months are resampled with
+replacement to assemble \code{n_ref_months} monthly batches.
+\item \strong{Variant Emergence:} New variants are introduced at the
+monthly intervals specified by \code{variant_intervals}.
+\item \strong{Pairwise Growth:} Each month the newest variant grows
+alongside its immediate predecessor. Both grow stochastically: each
+variant's next-month count is its previous-month count times
+\code{Uniform(mult*(1-variability), mult*(1+variability))}. The two
+are not coupled by a shared frequency constraint — only by the hard
+monthly quota
+\code{ceiling(n_sequences_total / (n_periods - n_ref_months))} that
+trims any overshoot. Older, non-paired variants enter the fill pool
+with sampling weights \code{2^(i+1)}.
+\item \strong{Capped "Deleterious" Sites:} A Bernoulli-random subset of
+each variant's mutated positions is flagged with probability
+\code{deleterious_rate}. At each post-emergence month the count of
+variant rows still carrying the flagged allele is capped at
+\code{n_deleterious_limit} by reverting overflow sequences to the
+reference allele \emph{at the flagged site only}. This is a
+per-site cap, not a genotype-level fitness penalty.
+\item \strong{Random Substitution Events:} Each month independently
+fires a Bernoulli coin flip with probability
+\code{prob_deletion_event}. If it fires, the last
+\code{n_rows_to_delete} rows of that month's batch receive a single
+non-reference amino-acid substitution at a randomly chosen site
+(sites 1 and 2 excluded), and those rows are flagged with
+\code{Delet = "Yes"}. Parameter names retain "deletion" / "delete"
+for backward compatibility; the operation itself is a substitution.
 }
 }
 \examples{
@@ -137,4 +185,10 @@ sim <- simulate_variant_evolution(
   seed            = 123
 )
 head(sim$Simulation_Output)
+}
+\seealso{
+\code{\link{partition_time_windows}},
+\code{\link{calculate_hellinger_matrix}},
+\code{\link{detect_changepoints_ecp}},
+\code{\link{detect_changepoints_hdcp}}
 }
