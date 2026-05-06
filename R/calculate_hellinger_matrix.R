@@ -10,55 +10,76 @@
 #' the distance to \eqn{[0, 1]}. Otherwise the range is \eqn{[0, \sqrt{2}]}.
 #'
 #' Internally, amino acid counts per site per partition are tabulated using
-#' \code{\link{get_site_counts}}, which uses \code{\link[base]{tabulate}} for fast
-#' integer counting. Column-wise proportions are then computed with
-#' \code{\link[base]{sweep}} and distances with \code{\link[base]{colSums}} —
-#' fully vectorized over partitions for each site.
+#' \code{\link{get_site_counts}} (built on \code{\link[base]{tabulate}}).
+#' Per-partition proportions and Hellinger distances are then computed by
+#' fully vectorised matrix operations — no inner loop over partitions.
 #'
-#' @param partitions A list of data frames (one per time window). Each data frame
+#' @param partitions A list of data frames, one per time window. Each data frame
 #'   must have numeric-encoded amino acid sequences as columns (integers 1 to
-#'   \code{aa_levels}).
+#'   \code{aa_levels}). This is typically the \code{$Partitions} element 
+#'   returned by \code{\link{partition_time_windows}}.
 #' @param sites Integer vector. Indices of the sites to analyse. Defaults to all
 #'   sites (\code{seq_len(ncol(partitions[[1]]))}).
-#' @param aa_levels Integer. Alphabet size (e.g. 25 for standard amino acid
-#'   encoding). Default is 25.
+#' @param aa_levels Integer. Alphabet size. Must match the encoding used
+#'   when the partitions were created: \code{\link{encode_aa_sequence}}
+#'   produces values 1–25 by default (20 standard residues, three
+#'   ambiguous codes, \code{*}, \code{-}). Default is \code{25L}.
 #' @param normalized Logical. If \code{TRUE}, scales distances by
 #'   \eqn{1/\sqrt{2}} to bound the result in \eqn{[0, 1]}. Default is
 #'   \code{FALSE}.
 #' @param labels Character vector of partition labels. Length must equal
-#'   \code{length(partitions)}. Defaults to \code{"T1"}, \code{"T2"}, …
-#' @param save_freq_tables Logical. If \code{TRUE}, the return value also
+#'   \code{length(partitions)}. The first label names the reference
+#'   partition; subsequent labels become column names of the returned
+#'   matrix. Defaults to \code{"T1"}, \code{"T2"}, …
+#' @param include_freq_tables Logical. If \code{TRUE}, the return value also
 #'   includes raw count tables and proportion tables for each site. Default is
 #'   \code{FALSE}.
 #'
-#' @return When \code{save_freq_tables = FALSE} (default): a numeric matrix with
-#'   rows = sites and columns = time steps T2, T3, … (distances relative to T1).
-#'   Row names are the site indices; column names are taken from
-#'   \code{labels[-1]}.
+#' @return When \code{include_freq_tables = FALSE} (default): a numeric matrix
+#'   with rows corresponding to \code{sites} and columns corresponding to
+#'   \code{labels[-1]}, each entry being the Hellinger distance from the
+#'   reference partition (\code{labels[1]}) at that site. Row names are
+#'   the site indices; column names are taken from \code{labels[-1]}.
+#'   With default labels, the reference partition is \code{"T1"} and the
+#'   matrix has columns \code{"T2"}, \code{"T3"}, ….
 #'
-#'   When \code{save_freq_tables = TRUE}: a named list with elements
+#'   When \code{include_freq_tables = TRUE}: a named list with elements
 #'   \code{Sites}, \code{Hellinger_Distances}, \code{Frequency_Tables}, and
 #'   \code{Proportions_Tables}.
+#'   
+#' @seealso
+#' \code{\link{partition_time_windows}} for producing temporally
+#'   partitioned data, \code{\link{encode_aa_sequence}} for integer
+#'   encoding consistent with \code{aa_levels}, and
+#'   \code{\link{detect_changepoints_ecp}} or
+#'   \code{\link{detect_changepoints_hdcp}} for downstream change-point
+#'   detection on the returned matrix.
 #'
 #' @examples
-#' p1 = data.frame(s1 = c(1, 1, 1, 1, 1), s2 = c(20, 20, 20, 20, 20))
+#' # Toy 3-partition data: site 1 starts homogeneous (all Alanine, 1),
+#' # acquires Valine (20) across two later partitions; site 2 stays
+#' # constant (all Valine throughout).
+#' p1 = data.frame(s1 = c(1, 1, 1, 1, 1),  s2 = c(20, 20, 20, 20, 20))
 #' p2 = data.frame(s1 = c(20, 20, 20, 20, 20), s2 = c(20, 20, 20, 20, 20))
 #' p3 = data.frame(s1 = c(1, 1, 20, 20, 20), s2 = c(20, 20, 20, 20, 20))
 #' parts = list(T1 = p1, T2 = p2, T3 = p3)
 #'
 #' result = calculate_hellinger_matrix(parts, sites = 1:2)
 #' print(result)
+#' # Site 1 has nonzero distance in T2 and T3 (composition shift).
+#' # Site 2 has zero distance throughout (constant).
 #'
+#' # With raw frequency tables for inspection.
 #' result2 = calculate_hellinger_matrix(parts, sites = 1:2,
-#'                                       save_freq_tables = TRUE)
-#' print(result2$Hellinger_Distances)
+#'                                       include_freq_tables = TRUE)
+#' print(result2$Frequency_Tables[[1]])
 #' @export
 calculate_hellinger_matrix = function(partitions,
                                       sites            = seq_len(ncol(partitions[[1]])),
                                       aa_levels        = 25L,
                                       normalized       = FALSE,
                                       labels           = paste0("T", seq_along(partitions)),
-                                      save_freq_tables = FALSE) {
+                                      include_freq_tables = FALSE) {
   
   # --- 1. Input validation ---------------------------------------------------
   n_partitions = length(partitions)
@@ -99,7 +120,7 @@ calculate_hellinger_matrix = function(partitions,
   storage.mode(dist_matrix) <- "double"           # ensure pure numeric for ecp/ks.cp3o
   
   # --- 5. Return -------------------------------------------------------------
-  if (save_freq_tables) {
+  if (include_freq_tables) {
     list(
       Sites               = sites,
       Hellinger_Distances = dist_matrix,
