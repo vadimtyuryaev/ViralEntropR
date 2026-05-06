@@ -12,23 +12,25 @@ extract_fasta_countries(sequence, position, problematic_characters = FALSE)
 \item{position}{Integer (1–4). Location of the country field within the
 sequence name string:
 \itemize{
-\item \strong{1} — before the first \code{|} (e.g.
+\item \strong{1} — text before the first \code{|} (e.g.
 \code{SouthKorea|...}).
-\item \strong{2} — between pipe characters \code{|...|}.
-\item \strong{3} — between forward slashes \code{/.../}.
-\item \strong{4} — after the last \code{|}.
+\item \strong{2} — text between the first and second \code{|}.
+\item \strong{3} — text between the first and second \code{/}.
+\item \strong{4} — text after the last \code{|}.
 }}
 
 \item{problematic_characters}{Logical. If \code{TRUE}, sequence names are
-re-encoded to UTF-8, replacing non-representable bytes with their escaped
-form. Useful for FASTA files with non-ASCII characters in headers.
-Default is \code{FALSE}.}
+re-encoded to UTF-8, replacing non-representable bytes with their
+escaped form. Useful for FASTA files with non-ASCII characters in
+headers. Default is \code{FALSE}.}
 }
 \value{
 A named list with three elements:
 \item{countries}{Character vector of extracted country strings, one per
-sequence. \code{NA} where extraction failed.}
-\item{message}{A single character string summarising extraction success.}
+sequence. \code{NA} where extraction failed (no match against the
+chosen pattern).}
+\item{message}{A single character string summarising extraction
+success.}
 \item{missing_id}{Integer vector of indices where extraction failed, or
 \code{NA} if all extractions succeeded.}
 }
@@ -39,19 +41,43 @@ Extracts country names from the sequence name strings of an
 \code{UK}), hyphenated (e.g. \code{Timor-Leste}), and multi-word (e.g.
 \code{United States of America}) country names.
 }
+\details{
+The function selects one of four regex patterns based on \code{position}
+and applies it to each sequence name via
+\code{\link[stringr]{str_extract}}. \strong{Only the first match per
+header is returned.} If a header contains multiple delimited fields,
+the country must be in the first such field for the corresponding
+\code{position} value to extract it correctly. For example, with a
+GISAID-style header
+\code{Spike|hCoV-19/USA/OH/.../2021|2021-05-15|EPI_ISL_...|},
+\code{position = 3} (between slashes) returns \code{USA}, but
+\code{position = 2} (between pipes) returns \code{hCoV-19/USA/OH/...},
+not \code{USA}. Inspect representative headers with
+\code{names(sequence)[1]} before choosing \code{position}.
+
+\strong{Encoding.} FASTA files with non-ASCII characters in headers
+(accented characters, byte-order marks, etc.) can break regex
+extraction. Setting \code{problematic_characters = TRUE} re-encodes
+headers to UTF-8 with non-representable bytes escaped, allowing the
+regex to proceed.
+}
 \examples{
 \dontrun{
 path_sample  <- system.file("extdata", "sarscov2_sample.fasta.gz",
                              package = "ViralEntropR")
 fasta_sample <- Biostrings::readAAStringSet(path_sample)
 
-# Inspect header structure to confirm field positions
+# Inspect header structure to confirm field positions before extraction.
 sample(names(fasta_sample), 1)
 
-# Extract countries (position 2 = between first and second pipe)
+# Extract countries (position 2 = between first and second pipe).
 result <- extract_fasta_countries(fasta_sample, position = 2)
 result$message
 sort(table(result$countries), decreasing = TRUE)
 }
-
+}
+\seealso{
+\code{\link{extract_fasta_dates}} for the date-extraction
+companion; \code{\link[Biostrings]{readAAStringSet}} for loading the
+input \code{AAStringSet}.
 }
