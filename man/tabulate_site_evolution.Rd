@@ -10,7 +10,7 @@ tabulate_site_evolution(
   labels = NULL,
   alphabet_size = 25L,
   zeros = TRUE,
-  letters = TRUE,
+  use_letters = TRUE,
   relative = FALSE,
   digits = 2L,
   col_width = "100px",
@@ -25,70 +25,101 @@ tabulate_site_evolution(
 }
 \arguments{
 \item{partitions}{A list of data frames, typically produced by
-\code{\link{partition_time_windows}}.}
+\code{\link{partition_time_windows}}. Each data frame must contain
+integer-encoded amino acid sequences as columns (values 1 to
+\code{alphabet_size}).}
 
 \item{site_index}{Integer. The column index (site) to analyse.}
 
-\item{labels}{Character vector. Column labels for each partition. Defaults
-to \code{names(partitions)}, or \code{"P1", "P2", ...} if unnamed.}
+\item{labels}{Character vector. Column labels for each partition.
+Defaults to \code{names(partitions)}, or \code{"P1"}, \code{"P2"},
+... if unnamed.}
 
-\item{alphabet_size}{Integer. Total number of possible amino acid codes.
-Default is 25.}
+\item{alphabet_size}{Integer. Total number of possible amino acid
+codes. Must match the encoding used during integer encoding
+(\code{\link{encode_aa_sequence}} produces values 1-25 by default).
+Default is \code{25L}.}
 
-\item{zeros}{Logical. If \code{TRUE} (default), fills missing counts with
-\code{0}. If \code{FALSE}, leaves them as \code{""}.}
+\item{zeros}{Logical. If \code{TRUE} (default), fills missing counts
+with \code{0}. If \code{FALSE}, replaces zeros with \code{""}; see
+Details for the type-coercion implication.}
 
-\item{letters}{Logical. If \code{TRUE} (default), uses decoded amino acid
-letters as row names. If \code{FALSE}, uses numeric codes.}
+\item{use_letters}{Logical. If \code{TRUE} (default), uses decoded
+single-character codes from the 25-symbol alphabet (A, R, N, D,
+C, ..., V, B, Z, X, *, -) as row names. If \code{FALSE}, uses
+numeric codes 1 to \code{alphabet_size}.}
 
-\item{relative}{Logical. If \code{TRUE}, converts counts to proportions.
-Default is \code{FALSE}.}
+\item{relative}{Logical. If \code{TRUE}, converts counts to
+proportions (column-wise division by partition size). Default is
+\code{FALSE}.}
 
-\item{digits}{Integer. Decimal places for rounding when \code{relative =
-TRUE}. Default is \code{2}.}
+\item{digits}{Integer. Decimal places for rounding when
+\code{relative = TRUE}. Default is \code{2L}.}
 
-\item{col_width}{Character. CSS width string applied to all columns (e.g.
-\code{"100px"}). Default is \code{"100px"}.}
+\item{col_width}{Character. CSS width string applied to all columns
+(e.g. \code{"100px"}). Default is \code{"100px"}.}
 
-\item{highlight_col}{Integer. Column index (1-based, relative to data
-columns) to highlight. \code{NULL} for no highlight. Default is
-\code{NULL}.}
+\item{highlight_col}{Integer or \code{NULL}. 1-based column index
+(relative to the data columns, not counting the row-name column)
+of a partition to highlight with \code{background}. Out-of-range
+values trigger a warning and no highlight is applied. \code{NULL}
+(default) means no highlight.}
 
-\item{background}{Character. CSS background colour for the highlighted
-column. Default is \code{"#f0f8ff"}.}
+\item{background}{Character. CSS background colour for the
+highlighted column. Default is \code{"#f0f8ff"} (light blue).}
 
-\item{wrap_length}{Integer. Character width at which to wrap long column
-labels using HTML line breaks. Default is \code{10}.}
+\item{wrap_length}{Integer. Character width at which to wrap long
+column labels using HTML line breaks. Default is \code{10L}.}
 
-\item{save}{Logical. If \code{TRUE}, saves the HTML table to disk. Default
-is \code{FALSE}.}
+\item{save}{Logical. If \code{TRUE}, saves the rendered HTML table
+to disk via \code{\link[kableExtra]{save_kable}}. Default is
+\code{FALSE}.}
 
-\item{save_extension}{Character. File extension for saved file. Default is
-\code{".html"}.}
+\item{save_extension}{Character. File extension for the saved file
+(including leading dot). Default is \code{".html"}.}
 
-\item{save_path}{Character. Directory for saved file. Default is
-\code{getwd()}.}
+\item{save_path}{Character. Directory in which to save. Default is
+\code{\link[base]{getwd}()}.}
 
-\item{return_table}{Logical. If \code{TRUE} (default), returns the raw data
-frame in addition to the styled kable as a list. If \code{FALSE}, returns
-only the kable object.}
+\item{return_table}{Logical. If \code{TRUE} (default), returns a
+named list with both the raw data frame and the styled kable
+object. If \code{FALSE}, returns only the styled kable.}
 }
 \value{
 If \code{return_table = TRUE}, a named list:
-\item{table}{The raw count (or proportion) data frame.}
-\item{styled}{The \code{kableExtra} HTML kable object.}
-If \code{return_table = FALSE}, returns only the styled kable object.
+\item{table}{The raw count (or proportion) data frame, with row
+names corresponding to amino acid codes and column names
+corresponding to partition labels.}
+\item{styled}{The \pkg{kableExtra} HTML kable object.}
+If \code{return_table = FALSE}, returns only the styled kable
+object.
 }
 \description{
-Generates a frequency table showing the amino acid distribution
-at a specific site across multiple time partitions, optionally styled and
-saved as HTML.
+Generates a frequency or proportion table showing the amino
+acid distribution at a specific site across multiple time partitions,
+optionally styled with \pkg{kableExtra} and saved as standalone HTML.
 }
 \details{
-Aggregates amino acid counts per partition using \code{\link{get_site_counts}},
-then optionally converts to relative frequencies, applies kableExtra styling
-(column width, column highlighting), and/or saves to disk. Row names are
-decoded amino acid letters via \code{\link{decode_aa_sequence}}.
+Aggregates amino acid counts per partition using
+\code{\link{get_site_counts}}, optionally converts to relative
+frequencies, applies kableExtra styling (column width, column
+highlighting, striped rows), and optionally saves to disk. Row names
+are decoded amino acid codes via \code{\link{decode_aa_sequence}} when
+\code{use_letters = TRUE}.
+
+\strong{Empty partitions.} Partitions containing no observations
+contribute all-zero columns. When \code{relative = TRUE}, division by
+zero is avoided by treating empty-column sums as 1, leaving
+proportions at zero. Inspect partition sizes via
+\code{sapply(partitions, nrow)} before interpreting the table.
+
+\strong{Note on \code{zeros = FALSE}.} Setting \code{zeros = FALSE}
+replaces numeric zeros with empty strings (\code{""}) for visual
+clarity in the kable. This conversion forces the underlying data
+frame to character storage; numeric operations (\code{sum},
+\code{mean}, etc.) will not work on the returned \code{table}
+element. Use \code{zeros = TRUE} (default) if downstream numerical
+use is intended.
 }
 \examples{
 p1 = data.frame(s1 = c(1L, 1L, 1L, 1L, 2L))
@@ -103,4 +134,16 @@ tbl$styled
 tbl2 = tabulate_site_evolution(parts, site_index = 1,
                                 relative = TRUE, highlight_col = 2)
 tbl2$styled
+
+# Numeric codes (skip alphabet decoding)
+tbl3 = tabulate_site_evolution(parts, site_index = 1, use_letters = FALSE)
+rownames(tbl3$table)
+}
+\seealso{
+\code{\link{partition_time_windows}} for producing the
+typical input list of partitions; \code{\link{get_site_counts}}
+for the count-tabulation primitive; \code{\link{decode_aa_sequence}}
+for the alphabet code mapping; \code{\link{calculate_hellinger_matrix}}
+for the related cross-partition distance calculation on the same
+data shape.
 }
