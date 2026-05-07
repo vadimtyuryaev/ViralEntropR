@@ -7,14 +7,26 @@
 ##   source("data-raw/sarscov2_ncbi.R")
 ## ---------------------------------------------------------------------------
 
-library(Biostrings)
+if (!requireNamespace("Biostrings", quietly = TRUE))
+  stop("Package 'Biostrings' is required: ",
+       "BiocManager::install('Biostrings')", call. = FALSE)
+if (!requireNamespace("here", quietly = TRUE))
+  stop("Package 'here' is required: install.packages('here')", call. = FALSE)
 
 set.seed(2021)
 
 # -- 0. Paths -----------------------------------------------------------------
 
-fasta_path <- file.path("data-raw", "sequences.fasta")  
-out_path   <- file.path("inst", "extdata", "sarscov2_sample.fasta.gz")
+pkg_root <- tryCatch(here::here(), error = function(e) getwd())
+
+if (!file.exists(file.path(pkg_root, "DESCRIPTION")))
+  stop("Cannot locate package root (no DESCRIPTION at: ", pkg_root, ").",
+       call. = FALSE)
+
+message("Package root: ", pkg_root)
+
+fasta_path <- file.path(pkg_root, "data-raw", "sequences.fasta")
+out_path   <- file.path(pkg_root, "inst", "extdata", "sarscov2_sample.fasta.gz")
 n_sample   <- 100L
 
 if (!file.exists(fasta_path))

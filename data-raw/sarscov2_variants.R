@@ -8,7 +8,7 @@
 ##
 ## Prerequisites:
 ##   - SARS_CoV_2_VOC_VOI.xlsx is in data-raw/
-##   - Packages readxl and DT are installed
+##   - Package readxl is installed
 ##   - get_variants.R is in R/  (or package is loaded via devtools::load_all())
 ##
 ## Output:
@@ -70,8 +70,8 @@ if (!exists("get_variants", mode = "function")) {
     message("Sourced: ", r_path)
   } else {
     stop(
-      "get_variants() not found. Either copy get_variants.R to R/ or run ",
-      "devtools::load_all() first.", call. = FALSE
+      "get_variants() not found. Run devtools::load_all() first.", 
+      call. = FALSE
     )
   }
 }
@@ -99,7 +99,7 @@ stopifnot(
   "Expected 21 references"              = nrow(sarscov2_variants$References$data) == 21L
 )
 
-message("Integrity check passed: 12 variants, 20 references.")
+message("Integrity check passed: 12 variants, 21 references.")
 
 # -- 5. Save as .rda ----------------------------------------------------------
 

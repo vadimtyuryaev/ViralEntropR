@@ -30,6 +30,15 @@
 stopifnot(requireNamespace("rmarkdown", quietly = TRUE))
 stopifnot(requireNamespace("here",      quietly = TRUE))
 
+# Snapshot the user's workspace so the cleanup at the end of this script
+# only removes objects this script itself created. Leading dot keeps the
+# snapshot hidden from default ls(). Cleanup runs only on successful
+# completion: top-level on.exit() does not fire on script exit (it
+# attaches to the enclosing function, which does not exist at top level),
+# so a render failure mid-loop will leak a few helper objects into
+# .GlobalEnv — re-running the script after a fix clears them.
+.objs_before_build_vignettes <- ls(envir = .GlobalEnv)
+
 # -- 0. Resolve package root --------------------------------------------------
 
 pkg_root <- tryCatch(here::here(),
@@ -39,7 +48,6 @@ if (!file.exists(file.path(pkg_root, "DESCRIPTION")))
   stop("Cannot locate package root (no DESCRIPTION at: ", pkg_root, ").",
        call. = FALSE)
 
-setwd(pkg_root)
 message("Package root: ", pkg_root)
 
 # -- 1. Vignette inventory ----------------------------------------------------
@@ -132,3 +140,10 @@ message("\nAll vignettes rebuilt.\n")
 message("Verify with:")
 message("  devtools::install(build_vignettes = TRUE)")
 message("  browseVignettes('ViralEntropR')")
+
+# --- 5. Workspace cleanup --------------------------------------------------
+# Remove only objects this script added; pre-existing user objects untouched.
+# Does not run on render failure; see snapshot comment near the top.
+.objs_added <- setdiff(ls(envir = .GlobalEnv), .objs_before_build_vignettes)
+rm(list = c(.objs_added, ".objs_added"), envir = .GlobalEnv)
+gc()
