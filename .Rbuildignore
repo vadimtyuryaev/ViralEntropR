@@ -15,3 +15,5 @@
 ^output$
 ^CITATION\.cff$
 ^\.gitattributes$
+^CRAN-SUBMISSION$
+^pkgdown$

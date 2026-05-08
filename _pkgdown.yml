@@ -1,0 +1,78 @@
+url: https://vadimtyuryaev.github.io/ViralEntropR/
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left:  [intro, reference, articles, news]
+    right: [search, github]
+  components:
+    articles:
+      text: Articles
+      menu:
+      - text: Preprocessing pipeline
+        href: articles/preprocessing_pipeline.html
+      - text: Detecting variants simulation
+        href: articles/detecting_variants_simulation.html
+      - text: Clustering accuracy
+        href: articles/clustering_accuracy.html
+
+reference:
+- title: Package overview
+  contents:
+  - ViralEntropR-package
+
+- title: Preprocessing
+  desc: >
+    Fully vectorised FASTA-to-feature-matrix preprocessing layer.
+  contents:
+  - extract_fasta_dates
+  - extract_fasta_countries
+  - fasta_to_char_matrix
+  - filter_ambiguous_sequences
+  - encode_aa_sequence
+  - decode_aa_sequence
+
+- title: Site selection
+  desc: >
+    Per-site Shannon entropy, Gaussian mixture model classification,
+    and temporal partitioning into cumulative, sliding, or disjoint windows.
+  contents:
+  - calculate_entropy
+  - cluster_sites_by_entropy
+  - relabel_entropy_classes
+  - partition_time_windows
+
+- title: Distance and change-point detection
+  desc: >
+    Pairwise Hellinger distances and non-parametric change-point detection
+    (energy statistics; wild binary segmentation).
+  contents:
+  - calculate_hellinger_matrix
+  - detect_changepoints_ecp
+  - detect_changepoints_hdcp
+
+- title: Visualisation and tabulation
+  desc: >
+    Entropy trajectories, per-site class trajectories, and amino-acid
+    frequency tables.
+  contents:
+  - plot_entropy_trajectories
+  - plot_site_class_trajectory
+  - tabulate_site_evolution
+
+- title: Simulation
+  desc: >
+    Multi-variant evolutionary simulator for benchmarking detection.
+  contents:
+  - simulate_variant_evolution
+
+- title: Data
+  desc: >
+    Bundled datasets and example sequences for runnable examples and
+    reproducible analyses.
+  contents:
+  - sarscov2_variants
+  - sarscov2_sample
+  

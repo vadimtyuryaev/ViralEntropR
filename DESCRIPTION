@@ -41,7 +41,7 @@ Description: Implements an entropy-informed pipeline for detecting
 License: MIT + file LICENSE
 Language: en-GB
 Date: 2026-05-07
-URL: https://github.com/vadimtyuryaev/ViralEntropR, https://doi.org/10.5281/zenodo.19040165
+URL: https://github.com/vadimtyuryaev/ViralEntropR, https://doi.org/10.5281/zenodo.19040165, https://vadimtyuryaev.github.io/ViralEntropR/
 BugReports: https://github.com/vadimtyuryaev/ViralEntropR/issues
 Encoding: UTF-8
 LazyData: true

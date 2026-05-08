@@ -20,3 +20,5 @@ analysis/Sample_Size_Simulation_Study/
 inst/doc/
 data-raw/*_cache/
 data-raw/pre-build-vignettes.R
+docs
+CRAN-SUBMISSION
