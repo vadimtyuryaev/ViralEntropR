@@ -16,11 +16,15 @@
 
 First submission of ViralEntropR.
 
-The package depends on Biostrings (Bioconductor) for FASTA parsing,
-declared in Imports. The bundled vignettes are pre-rendered via
-R.rsp::asis because they reference large external datasets archived
-on Zenodo (DOI: 10.5281/zenodo.19040165) and on GISAID, which cannot
-be redistributed inside the tarball.
+Biostrings (Bioconductor) is declared in Suggests because it is referenced
+only in @examples blocks. The package's exported functions operate on
+AAStringSet objects but do not themselves call into Bioconductor packages,
+so installation of ViralEntropR does not require BiocManager.
+
+The bundled vignettes are pre-rendered via R.rsp::asis because they
+reference large external datasets archived on Zenodo (DOI:
+10.5281/zenodo.19040165) and on GISAID, which cannot be redistributed
+inside the tarball.
 
 ## Downstream dependencies
 
