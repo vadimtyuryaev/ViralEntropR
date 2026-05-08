@@ -22,7 +22,11 @@
 #'   \item \strong{All entropies identical}: class \code{999} for all sites
 #'     (sentinel — one undifferentiated group).
 #'   \item \strong{Normal Mclust result}: raw class labels \code{1, 2, ..., G}.
-#'     These are Mclust's own arbitrary integer labels — call
+#'     These are Mclust's own integer labels, ordered by increasing component
+#'     mean (univariate Mclust orders components by mean) — call
+#'     \code{relabel_entropy_classes()} on the returned data frame to obtain
+#'     application-friendly class labels (highest-entropy class \code{= 1},
+#'     lowest-entropy class \code{= G}).
 #'     \code{\link{relabel_entropy_classes}} on the returned DataFrame to
 #'     standardise so that class 1 = highest-entropy group.
 #'   \item \strong{Mclust failure}: empty DataFrame returned (same schema as
