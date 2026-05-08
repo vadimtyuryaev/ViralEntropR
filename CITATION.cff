@@ -18,7 +18,7 @@ authors:
 repository-code: 'https://github.com/vadimtyu/ViralEntropR'
 url: 'https://github.com/vadimtyu/ViralEntropR'
 license: MIT
-version: 0.5.0
+version: 0.6.0
 date-released: '2026-05-07'
 abstract: >-
   An R package for the efficient preprocessing of large FASTA archives

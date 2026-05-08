@@ -338,7 +338,7 @@ BibTeX entry:
     @Manual{,
       title = {ViralEntropR: A Computational Pipeline for Entropy-Informed Detection of Emerging Viral Variants},
       author = {Vadim Tyuryaev and Jane Heffernan and Hanna Jankowski},
-      note = {R package version 0.5.1},
+      note = {R package version 0.6.0},
       url = {https://github.com/vadimtyuryaev/ViralEntropR},
       }
 
