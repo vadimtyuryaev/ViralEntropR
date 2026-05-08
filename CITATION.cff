@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+message: >-
+  If you use ViralEntropR in your research, please cite this software.
+title: >-
+  ViralEntropR: A Computational Pipeline for Entropy-Informed Detection of Emerging Viral Variants 
+  type: software
+authors:
+  - given-names: Vadim
+    family-names: Tyuryaev
+    affiliation: 'York University, Toronto, Canada'
+    # orcid: 'https://orcid.org/0009-0008-1361-6265'   
+  - given-names: Jane
+    family-names: Heffernan
+    affiliation: 'York University, Toronto, Canada'
+  - given-names: Hanna
+    family-names: Jankowski
+    affiliation: 'York University, Toronto, Canada'
+repository-code: 'https://github.com/vadimtyu/ViralEntropR'
+url: 'https://github.com/vadimtyu/ViralEntropR'
+license: MIT
+version: 0.5.0
+date-released: '2026-05-07'
+abstract: >-
+  An R package for the efficient preprocessing of large FASTA archives
+  and the genomic surveillance of emerging variants through computational
+  analysis of viral evolution.
+keywords:
+- bioinformatics
+- functional data analysis
+- Gaussian mixture model
+- genomic surveillance
+- Hellinger distance
+- hierarchical agglomerative clustering
+- multivariate change-point detection
+- partitioning around medoids
+- R package
+- SARS-CoV-2
+- Shannon entropy
+- viral evolution
+# doi: 10.5281/zenodo.XXXXXXXX
