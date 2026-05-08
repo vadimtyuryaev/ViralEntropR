@@ -80,10 +80,10 @@ Result: \strong{n = 137,132 sequences}, file size ~181.5 MB (uncompressed).
 
 NCBI sequence data is a US Government work and is in the public domain
 within the United States. Data from international contributors is subject
-to the INSDC open-access policy
-(\url{https://www.insdc.org/policy.html}). The compiled dataset is
-released under CC0 1.0 Universal. Individual GenBank accession numbers
-in the FASTA headers provide full traceability to original submissions.
+to the INSDC open-access policy (Karsch-Mizrachi et al., 2025;
+\doi{10.1093/nar/gkae1058}). The compiled dataset is released under
+CC0 1.0 Universal. Individual GenBank accession numbers in the FASTA
+headers provide full traceability to original submissions.
 }
 
 \examples{

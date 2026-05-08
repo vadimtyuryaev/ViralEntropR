@@ -1137,7 +1137,7 @@ if (length(contrast_rows) > 0L) {
 > The tables above reveal sites that consistently differentiate the wild-type
 > cluster from all others across multiple k values. Beyond the expected
 > VOC-defining SNP sites --- D614G (site 614, present in virtually all VOCs
-> [@Korber2020]), sites 452, 478, 501 and 681 --- the analysis flags two
+> [@Korber2020], sites 452, 478, 501 and 681 --- the analysis flags two
 > clusters of NTD residues whose significance is not immediately apparent from
 > VOC catalogues alone.
 >

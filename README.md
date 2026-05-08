@@ -178,6 +178,9 @@ The package ships with a 100-sequence sample of NCBI SARS-CoV-2 Spike
 sequences in `inst/extdata/` for runnable examples:
 
 ``` r
+# This example requires Biostrings (Bioconductor):
+# install.packages("BiocManager"); BiocManager::install("Biostrings")
+
 library(ViralEntropR)
 
 # 1. Load the bundled sample (100 NCBI Spike sequences).
@@ -352,7 +355,8 @@ Virus, on which this research is based.
 ## License
 
 MIT © Vadim Tyuryaev, Jane Heffernan, Hanna Jankowski. See
-[`LICENSE.md`](LICENSE.md) for the full text.
+[`LICENSE.md`](https://github.com/vadimtyuryaev/ViralEntropR/blob/main/LICENSE.md)
+for the full text.
 
 ## References
 
