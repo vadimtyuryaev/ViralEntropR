@@ -2,7 +2,11 @@ url: https://vadimtyuryaev.github.io/ViralEntropR/
 
 template:
   bootstrap: 5
+  bootswatch: flatly
   math-rendering: mathjax
+  
+code:
+  highlight: tango
 
 navbar:
   structure:
