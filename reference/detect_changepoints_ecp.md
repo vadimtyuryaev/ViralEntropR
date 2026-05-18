@@ -141,8 +141,4 @@ res = detect_changepoints_ecp(
 )
 print(res$ECP_est_list[[1]])
 #> [1] 11
-
-# Strongest single change point: inspect $cpLoc[[1]] in the full result.
-print(res$ECP_list[[1]]$cpLoc[[1]])
-#> NULL
 ```

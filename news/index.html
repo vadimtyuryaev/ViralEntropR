@@ -46,6 +46,15 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.6.1" id="viralentropr-061">ViralEntropR 0.6.1<a class="anchor" aria-label="anchor" href="#viralentropr-061"></a></h2>
+<ul><li>Additional fixes discovered during local verification of the resubmission:
+<ul><li>Fix spurious “windows will be empty” warnings in <code><a href="../reference/partition_time_windows.html">partition_time_windows()</a></code>. The warning predicate previously compared <code>end_date</code> against <code>max(data$Date)</code> directly, which fires whenever <code>end_date</code> is at all past <code>max(data$Date)</code> — even when the last window correctly contains the trailing data. The fix compares against the left boundary of the last window instead, so the warning fires only when one or more trailing windows would actually be empty. Mirror logic applies to <code>start_date</code>. The function’s partition output was always correct; only the warning fires more accurately now.</li>
+<li>Update <code><a href="../reference/detect_changepoints_ecp.html">detect_changepoints_ecp()</a></code> example: last example referenced <code>$cpLoc[[1]]</code>, which is the zero-change-point case (always empty under <code>ks.cp3o</code>’s indexing). The example line has been removed to avoid user confusion.</li>
+<li>Improve example clarity for <code><a href="../reference/tabulate_site_evolution.html">tabulate_site_evolution()</a></code>: display the underlying data frame (<code>$table</code>) rather than the <code>kableExtra</code> HTML object (<code>$styled</code>), which prints as raw HTML text outside R Markdown contexts. The styled HTML still renders correctly in vignettes and interactive use.</li>
+<li>Redesign the examples for <code><a href="../reference/plot_entropy_trajectories.html">plot_entropy_trajectories()</a></code> and <code><a href="../reference/plot_site_class_trajectory.html">plot_site_class_trajectory()</a></code> to use three-period synthetic datasets with distinct trajectory shapes and visible class changes across partitions, producing more pedagogically useful reference output. Added <code>expansion(add = 0.6)</code> to the <code><a href="../reference/plot_entropy_trajectories.html">plot_entropy_trajectories()</a></code> x-axis scale so rotated tick labels at the leftmost partition are no longer clipped.</li>
+</ul></li>
+</ul></div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.6.1" id="viralentropr-061-1">ViralEntropR 0.6.1<a class="anchor" aria-label="anchor" href="#viralentropr-061-1"></a></h2>
 <ul><li>Address CRAN initial-review feedback:
 <ul><li>Expand “NCBI” on first use in DESCRIPTION.</li>
 <li>Remove <code>@examples</code> blocks from internal functions (<code>get_site_counts</code>, <code>build_distance_matrix</code>, <code>get_variants</code>), which eliminates the <code>:::</code> usage previously required to call them.</li>
