@@ -104,6 +104,8 @@ Useful links:
 
 - [doi:10.5281/zenodo.19040165](https://doi.org/10.5281/zenodo.19040165)
 
+- <https://vadimtyuryaev.github.io/ViralEntropR/>
+
 - Report bugs at <https://github.com/vadimtyuryaev/ViralEntropR/issues>
 
 ## Author

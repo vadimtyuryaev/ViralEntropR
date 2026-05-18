@@ -21,7 +21,7 @@ exports; a fully custom regex can also be supplied."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">ViralEntropR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -179,7 +179,7 @@ year-month coercion path.</p></div>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Inspect header structure to confirm date field position.</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fasta_sample</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "UAB29556.1 |India|2021-07-18"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "QXT18620.1 |USA|2021-01-21"</span>
 <span class="r-in"><span><span class="co"># The bundled sample uses NCBI Virus format: date is at end of header.</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Default usage on bundled sample: option = 4 for end-of-header dates.</span></span></span>
@@ -192,8 +192,6 @@ year-month coercion path.</p></div>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="va">dates</span><span class="op">$</span><span class="va">corrected_dates</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "2020-03-09" "2021-09-10"</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># GISAID-style headers (date between pipes): option = 1.</span></span></span>
-<span class="r-in"><span><span class="co"># Year-month resolution: pair option = 3 with date_format = "%Y-%m".</span></span></span>
 <span class="r-in"><span><span class="co"># Custom regex for non-standard headers:</span></span></span>
 <span class="r-in"><span><span class="va">dates_custom</span> <span class="op">&lt;-</span> <span class="fu">extract_fasta_dates</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">fasta_sample</span>,</span></span>

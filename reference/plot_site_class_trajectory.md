@@ -168,44 +168,71 @@ before printing or saving.
 ## Examples
 
 ``` r
-# Shared synthetic dataset used across all three examples.
-# Partition entropies (bits):
-#   Jan  s1: 0.000  s2: 0.000  — both removed (zero entropy)
-#   Feb  s1: 0.000  s2: 0.722  — s1 removed, s2 retained
-#   Mar  s1: 0.971  s2: 1.000  — both retained
-#   Apr  s1: 0.881  s2: 0.722  — both retained
-df <- data.frame(
-  s1 = c(rep(1L, 10L),
-         rep(1L, 10L),
-         c(1L, 1L, 1L, 1L, 1L, 1L, 2L, 2L, 2L, 2L),
-         c(1L, 1L, 1L, 2L, 2L, 2L, 2L, 2L, 2L, 2L)),
-  s2 = c(rep(1L, 10L),
-         c(1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 2L, 2L),
-         c(1L, 1L, 1L, 1L, 1L, 2L, 2L, 2L, 2L, 2L),
-         c(1L, 1L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L)),
+# Three-period synthetic dataset (independent of plot_entropy_trajectories'
+# example). Three sites with different entropy trajectories; site 1 features
+# a monotone-up trajectory and progressively higher rank among sites,
+# producing class changes across all three partitions.
+#
+# Site 1 follows a monotone-up trajectory (0.469 -> 0.881 -> 1.522), 
+# climbing from lowest rank in P1 to highest in P3 for a clear 
+# "emerging variant" class progression. Site 2 follows the
+# opposite trajectory (1.522 -> 1.000 -> 0.881), starting as the dominant
+# high-entropy site and declining as site 1 rises. Site 3 (featured) 
+# peaks at P2 (0.881 -> 1.522 -> 1.000).
+#
+# Per-partition Shannon entropy (bits):
+#          P1     P2     P3
+#   s1   0.469  0.881  1.522   
+#   s2   1.522  1.000  0.881
+#   s3   0.881  1.522  1.000   <- featured site
+df_cls <- data.frame(
+  s1 = c(
+    c(1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 2L),       # P1: 9:1
+    c(1L, 1L, 1L, 1L, 1L, 1L, 1L, 2L, 2L, 2L),       # P2: 7:3
+    c(1L, 1L, 1L, 1L, 2L, 2L, 2L, 2L, 3L, 3L)        # P3: 4:4:2
+  ),
+  s2 = c(
+    c(1L, 1L, 1L, 1L, 2L, 2L, 2L, 2L, 3L, 3L),       # P1: 4:4:2
+    c(1L, 1L, 1L, 1L, 1L, 2L, 2L, 2L, 2L, 2L),       # P2: 5:5
+    c(1L, 1L, 1L, 1L, 1L, 1L, 1L, 2L, 2L, 2L)        # P3: 7:3
+  ),
+  s3 = c(
+    c(1L, 1L, 1L, 1L, 1L, 1L, 1L, 2L, 2L, 2L),       # P1: 7:3
+    c(1L, 1L, 1L, 1L, 2L, 2L, 2L, 2L, 3L, 3L),       # P2: 4:4:2
+    c(1L, 1L, 1L, 1L, 1L, 2L, 2L, 2L, 2L, 2L)        # P3: 5:5
+  ),
   Date = rep(
-    seq(as.Date("2020-01-01"), by = "month", length.out = 4L),
+    seq(as.Date("2020-01-01"), by = "month", length.out = 3L),
     each = 10L
   )
 )
 
 part_data <- partition_time_windows(
-  data          = df,
-  n_sites       = 2L,
+  data          = df_cls,
+  n_sites       = 3L,
   window_length = 1L,
   window_type   = 3L,
   start_date    = "2020-01-01",
-  end_date      = "2020-04-01"
+  end_date      = "2020-04-01",
+  removez       = FALSE,
+  removesngl    = FALSE
 )
 
-# Example 1: without relabeling — class labels are as assigned by Mclust.
+# Apply class relabeling so class 1 = highest mean entropy.
+# plot_entropy_trajectories does not relabel internally; the consumer does.
+for (i in seq_along(part_data$Clusters)) {
+  part_data$Clusters[[i]]$DataFrame <-
+    relabel_entropy_classes(part_data$Clusters[[i]]$DataFrame)
+}
+
 traj <- plot_entropy_trajectories(part_data)
-p1 <- plot_site_class_trajectory(
+
+p <- plot_site_class_trajectory(
   data_frame = traj$Data_Frame,
-  site       = 2L,
-  site_color = traj$Colors["2"],
+  site       = 3L,
+  site_color = traj$Colors["1"],
   xbreaks    = traj$XBreaks,
   xlabels    = traj$XLabels
 )
-print(p1)
+print(p)
 ```

@@ -133,7 +133,7 @@ fasta_sample <- Biostrings::readAAStringSet(path_sample)
 
 # Inspect header structure to confirm date field position.
 sample(names(fasta_sample), 1)
-#> [1] "UAB29556.1 |India|2021-07-18"
+#> [1] "QXT18620.1 |USA|2021-01-21"
 # The bundled sample uses NCBI Virus format: date is at end of header.
 
 # Default usage on bundled sample: option = 4 for end-of-header dates.
@@ -146,8 +146,6 @@ head(dates$corrected_dates)
 range(dates$corrected_dates, na.rm = TRUE)
 #> [1] "2020-03-09" "2021-09-10"
 
-# GISAID-style headers (date between pipes): option = 1.
-# Year-month resolution: pair option = 3 with date_format = "%Y-%m".
 # Custom regex for non-standard headers:
 dates_custom <- extract_fasta_dates(
   fasta_sample,

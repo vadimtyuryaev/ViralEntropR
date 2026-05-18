@@ -25,7 +25,7 @@ detection."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">ViralEntropR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -229,46 +229,73 @@ can be further adjusted by appending standard <code>ggplot2</code> layers with
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Shared synthetic dataset used across all three examples.</span></span></span>
-<span class="r-in"><span><span class="co"># Partition entropies (bits):</span></span></span>
-<span class="r-in"><span><span class="co">#   Jan  s1: 0.000  s2: 0.000  — both removed (zero entropy)</span></span></span>
-<span class="r-in"><span><span class="co">#   Feb  s1: 0.000  s2: 0.722  — s1 removed, s2 retained</span></span></span>
-<span class="r-in"><span><span class="co">#   Mar  s1: 0.971  s2: 1.000  — both retained</span></span></span>
-<span class="r-in"><span><span class="co">#   Apr  s1: 0.881  s2: 0.722  — both retained</span></span></span>
-<span class="r-in"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  s1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">10L</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>         <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">10L</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>         <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>         <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span><span class="op">)</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  s2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">10L</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>         <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">2L</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>         <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>         <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span><span class="op">)</span><span class="op">)</span>,</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Three-period synthetic dataset (independent of plot_entropy_trajectories'</span></span></span>
+<span class="r-in"><span><span class="co"># example). Three sites with different entropy trajectories; site 1 features</span></span></span>
+<span class="r-in"><span><span class="co"># a monotone-up trajectory and progressively higher rank among sites,</span></span></span>
+<span class="r-in"><span><span class="co"># producing class changes across all three partitions.</span></span></span>
+<span class="r-in"><span><span class="co">#</span></span></span>
+<span class="r-in"><span><span class="co"># Site 1 follows a monotone-up trajectory (0.469 -&gt; 0.881 -&gt; 1.522), </span></span></span>
+<span class="r-in"><span><span class="co"># climbing from lowest rank in P1 to highest in P3 for a clear </span></span></span>
+<span class="r-in"><span><span class="co"># "emerging variant" class progression. Site 2 follows the</span></span></span>
+<span class="r-in"><span><span class="co"># opposite trajectory (1.522 -&gt; 1.000 -&gt; 0.881), starting as the dominant</span></span></span>
+<span class="r-in"><span><span class="co"># high-entropy site and declining as site 1 rises. Site 3 (featured) </span></span></span>
+<span class="r-in"><span><span class="co"># peaks at P2 (0.881 -&gt; 1.522 -&gt; 1.000).</span></span></span>
+<span class="r-in"><span><span class="co">#</span></span></span>
+<span class="r-in"><span><span class="co"># Per-partition Shannon entropy (bits):</span></span></span>
+<span class="r-in"><span><span class="co">#          P1     P2     P3</span></span></span>
+<span class="r-in"><span><span class="co">#   s1   0.469  0.881  1.522   </span></span></span>
+<span class="r-in"><span><span class="co">#   s2   1.522  1.000  0.881</span></span></span>
+<span class="r-in"><span><span class="co">#   s3   0.881  1.522  1.000   &lt;- featured site</span></span></span>
+<span class="r-in"><span><span class="va">df_cls</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  s1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">2L</span><span class="op">)</span>,       <span class="co"># P1: 9:1</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span><span class="op">)</span>,       <span class="co"># P2: 7:3</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">3L</span>, <span class="fl">3L</span><span class="op">)</span>        <span class="co"># P3: 4:4:2</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span>,</span></span>
+<span class="r-in"><span>  s2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">3L</span>, <span class="fl">3L</span><span class="op">)</span>,       <span class="co"># P1: 4:4:2</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span><span class="op">)</span>,       <span class="co"># P2: 5:5</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span><span class="op">)</span>        <span class="co"># P3: 7:3</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span>,</span></span>
+<span class="r-in"><span>  s3 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span><span class="op">)</span>,       <span class="co"># P1: 7:3</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">3L</span>, <span class="fl">3L</span><span class="op">)</span>,       <span class="co"># P2: 4:4:2</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span>, <span class="fl">2L</span><span class="op">)</span>        <span class="co"># P3: 5:5</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  Date <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2020-01-01"</span><span class="op">)</span>, by <span class="op">=</span> <span class="st">"month"</span>, length.out <span class="op">=</span> <span class="fl">4L</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2020-01-01"</span><span class="op">)</span>, by <span class="op">=</span> <span class="st">"month"</span>, length.out <span class="op">=</span> <span class="fl">3L</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>    each <span class="op">=</span> <span class="fl">10L</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">part_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="partition_time_windows.html">partition_time_windows</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  data          <span class="op">=</span> <span class="va">df</span>,</span></span>
-<span class="r-in"><span>  n_sites       <span class="op">=</span> <span class="fl">2L</span>,</span></span>
+<span class="r-in"><span>  data          <span class="op">=</span> <span class="va">df_cls</span>,</span></span>
+<span class="r-in"><span>  n_sites       <span class="op">=</span> <span class="fl">3L</span>,</span></span>
 <span class="r-in"><span>  window_length <span class="op">=</span> <span class="fl">1L</span>,</span></span>
 <span class="r-in"><span>  window_type   <span class="op">=</span> <span class="fl">3L</span>,</span></span>
 <span class="r-in"><span>  start_date    <span class="op">=</span> <span class="st">"2020-01-01"</span>,</span></span>
-<span class="r-in"><span>  end_date      <span class="op">=</span> <span class="st">"2020-04-01"</span></span></span>
+<span class="r-in"><span>  end_date      <span class="op">=</span> <span class="st">"2020-04-01"</span>,</span></span>
+<span class="r-in"><span>  removez       <span class="op">=</span> <span class="cn">FALSE</span>,</span></span>
+<span class="r-in"><span>  removesngl    <span class="op">=</span> <span class="cn">FALSE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Example 1: without relabeling — class labels are as assigned by Mclust.</span></span></span>
+<span class="r-in"><span><span class="co"># Apply class relabeling so class 1 = highest mean entropy.</span></span></span>
+<span class="r-in"><span><span class="co"># plot_entropy_trajectories does not relabel internally; the consumer does.</span></span></span>
+<span class="r-in"><span><span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">part_data</span><span class="op">$</span><span class="va">Clusters</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="va">part_data</span><span class="op">$</span><span class="va">Clusters</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">DataFrame</span> <span class="op">&lt;-</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="relabel_entropy_classes.html">relabel_entropy_classes</a></span><span class="op">(</span><span class="va">part_data</span><span class="op">$</span><span class="va">Clusters</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">DataFrame</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
+<span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">traj</span> <span class="op">&lt;-</span> <span class="fu"><a href="plot_entropy_trajectories.html">plot_entropy_trajectories</a></span><span class="op">(</span><span class="va">part_data</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">p1</span> <span class="op">&lt;-</span> <span class="fu">plot_site_class_trajectory</span><span class="op">(</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu">plot_site_class_trajectory</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  data_frame <span class="op">=</span> <span class="va">traj</span><span class="op">$</span><span class="va">Data_Frame</span>,</span></span>
-<span class="r-in"><span>  site       <span class="op">=</span> <span class="fl">2L</span>,</span></span>
-<span class="r-in"><span>  site_color <span class="op">=</span> <span class="va">traj</span><span class="op">$</span><span class="va">Colors</span><span class="op">[</span><span class="st">"2"</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>  site       <span class="op">=</span> <span class="fl">3L</span>,</span></span>
+<span class="r-in"><span>  site_color <span class="op">=</span> <span class="va">traj</span><span class="op">$</span><span class="va">Colors</span><span class="op">[</span><span class="st">"1"</span><span class="op">]</span>,</span></span>
 <span class="r-in"><span>  xbreaks    <span class="op">=</span> <span class="va">traj</span><span class="op">$</span><span class="va">XBreaks</span>,</span></span>
 <span class="r-in"><span>  xlabels    <span class="op">=</span> <span class="va">traj</span><span class="op">$</span><span class="va">XLabels</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p1</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_site_class_trajectory-1.png" alt="" width="700" height="433"></span>
 </code></pre></div>
     </div>

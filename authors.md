@@ -16,13 +16,13 @@ Source:
 
 Tyuryaev V, Heffernan J, Jankowski H (2026). *ViralEntropR: A
 Computational Pipeline for Entropy-Informed Detection of Emerging Viral
-Variants*. R package version 0.6.0,
+Variants*. R package version 0.6.1,
 <https://github.com/vadimtyuryaev/ViralEntropR>.
 
     @Manual{,
       title = {ViralEntropR: A Computational Pipeline for Entropy-Informed Detection of Emerging Viral Variants},
       author = {Vadim Tyuryaev and Jane Heffernan and Hanna Jankowski},
       year = {2026},
-      note = {R package version 0.6.0},
+      note = {R package version 0.6.1},
       url = {https://github.com/vadimtyuryaev/ViralEntropR},
     }

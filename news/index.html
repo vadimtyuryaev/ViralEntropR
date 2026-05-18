@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ViralEntropR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,10 +45,20 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.6.1" id="viralentropr-061">ViralEntropR 0.6.1<a class="anchor" aria-label="anchor" href="#viralentropr-061"></a></h2>
+<ul><li>Address CRAN initial-review feedback:
+<ul><li>Expand “NCBI” on first use in DESCRIPTION.</li>
+<li>Remove <code>@examples</code> blocks from internal functions (<code>get_site_counts</code>, <code>build_distance_matrix</code>, <code>get_variants</code>), which eliminates the <code>:::</code> usage previously required to call them.</li>
+<li>Replace <code>\dontrun{}</code> with <code>\donttest{}</code> in the examples for <code><a href="../reference/extract_fasta_dates.html">extract_fasta_dates()</a></code>, <code><a href="../reference/extract_fasta_countries.html">extract_fasta_countries()</a></code>, <code><a href="../reference/fasta_to_char_matrix.html">fasta_to_char_matrix()</a></code>, and the <code>sarscov2_sample</code> dataset.</li>
+<li>Remove <code><a href="https://rdrr.io/r/base/getwd.html" class="external-link">getwd()</a></code> as a default for <code>save_path</code> in <code><a href="../reference/plot_site_class_trajectory.html">plot_site_class_trajectory()</a></code> and <code><a href="../reference/tabulate_site_evolution.html">tabulate_site_evolution()</a></code>; <code>save_path</code> is now <code>NULL</code> by default and must be supplied explicitly when <code>save = TRUE</code>.</li>
+</ul></li>
+</ul></div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.6.0" id="viralentropr-060">ViralEntropR 0.6.0<a class="anchor" aria-label="anchor" href="#viralentropr-060"></a></h2>
 <ul><li>Initial CRAN submission.</li>
 </ul></div>
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">

@@ -84,17 +84,24 @@ for loading the input `AAStringSet`.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 path_sample  <- system.file("extdata", "sarscov2_sample.fasta.gz",
                              package = "ViralEntropR")
 fasta_sample <- Biostrings::readAAStringSet(path_sample)
 
 # Inspect header structure to confirm field positions before extraction.
 sample(names(fasta_sample), 1)
+#> [1] "UAB29556.1 |India|2021-07-18"
 
 # Extract countries (position 2 = between first and second pipe).
 result <- extract_fasta_countries(fasta_sample, position = 2)
 result$message
+#> [1] "All countries have been extracted"
 sort(table(result$countries), decreasing = TRUE)
-} # }
+#> 
+#>          USA    Australia        India  New Zealand   Bangladesh        Chile 
+#>           84            7            3            2            1            1 
+#>      Germany Saudi Arabia 
+#>            1            1 
+# }
 ```

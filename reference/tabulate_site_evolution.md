@@ -178,284 +178,64 @@ parts = list(T1 = p1, T2 = p2)
 
 # Default: counts, letters, no save
 tbl = tabulate_site_evolution(parts, site_index = 1)
-tbl$styled
-#> <table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
-#>  <thead>
-#>   <tr>
-#>    <th style="text-align:left;">   </th>
-#>    <th style="text-align:right;"> T1 </th>
-#>    <th style="text-align:right;"> T2 </th>
-#>   </tr>
-#>  </thead>
-#> <tbody>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> A </td>
-#>    <td style="text-align:right;width: 100px; "> 4 </td>
-#>    <td style="text-align:right;"> 2 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> R </td>
-#>    <td style="text-align:right;width: 100px; "> 1 </td>
-#>    <td style="text-align:right;"> 3 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> N </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> D </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> C </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> Q </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> E </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> G </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> H </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> I </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> L </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> K </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> M </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> F </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> P </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> S </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> T </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> W </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> Y </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> V </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> B </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> Z </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> X </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> * </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> - </td>
-#>    <td style="text-align:right;width: 100px; "> 0 </td>
-#>    <td style="text-align:right;"> 0 </td>
-#>   </tr>
-#> </tbody>
-#> </table>
+tbl$table
+#>   T1 T2
+#> A  4  2
+#> R  1  3
+#> N  0  0
+#> D  0  0
+#> C  0  0
+#> Q  0  0
+#> E  0  0
+#> G  0  0
+#> H  0  0
+#> I  0  0
+#> L  0  0
+#> K  0  0
+#> M  0  0
+#> F  0  0
+#> P  0  0
+#> S  0  0
+#> T  0  0
+#> W  0  0
+#> Y  0  0
+#> V  0  0
+#> B  0  0
+#> Z  0  0
+#> X  0  0
+#> *  0  0
+#> -  0  0
 
 # Relative frequencies, highlight second partition
 tbl2 = tabulate_site_evolution(parts, site_index = 1,
                                 relative = TRUE, highlight_col = 2)
-tbl2$styled
-#> <table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
-#>  <thead>
-#>   <tr>
-#>    <th style="text-align:left;">   </th>
-#>    <th style="text-align:right;"> T1 </th>
-#>    <th style="text-align:right;"> T2 </th>
-#>   </tr>
-#>  </thead>
-#> <tbody>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> A </td>
-#>    <td style="text-align:right;width: 100px; "> 0.8 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.4 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> R </td>
-#>    <td style="text-align:right;width: 100px; "> 0.2 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.6 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> N </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> D </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> C </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> Q </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> E </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> G </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> H </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> I </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> L </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> K </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> M </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> F </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> P </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> S </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> T </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> W </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> Y </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> V </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> B </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> Z </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> X </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> * </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#>   <tr>
-#>    <td style="text-align:left;width: 100px; "> - </td>
-#>    <td style="text-align:right;width: 100px; "> 0.0 </td>
-#>    <td style="text-align:right;background-color: rgba(240, 248, 255, 255) !important;"> 0.0 </td>
-#>   </tr>
-#> </tbody>
-#> </table>
+tbl2$table
+#>    T1  T2
+#> A 0.8 0.4
+#> R 0.2 0.6
+#> N 0.0 0.0
+#> D 0.0 0.0
+#> C 0.0 0.0
+#> Q 0.0 0.0
+#> E 0.0 0.0
+#> G 0.0 0.0
+#> H 0.0 0.0
+#> I 0.0 0.0
+#> L 0.0 0.0
+#> K 0.0 0.0
+#> M 0.0 0.0
+#> F 0.0 0.0
+#> P 0.0 0.0
+#> S 0.0 0.0
+#> T 0.0 0.0
+#> W 0.0 0.0
+#> Y 0.0 0.0
+#> V 0.0 0.0
+#> B 0.0 0.0
+#> Z 0.0 0.0
+#> X 0.0 0.0
+#> * 0.0 0.0
+#> - 0.0 0.0
 
 # Numeric codes (skip alphabet decoding)
 tbl3 = tabulate_site_evolution(parts, site_index = 1, use_letters = FALSE)
