@@ -17,3 +17,4 @@
 ^\.gitattributes$
 ^CRAN-SUBMISSION$
 ^pkgdown$
+^data-raw/spike_reference_1273aa\.fasta$
