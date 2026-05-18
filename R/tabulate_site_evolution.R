@@ -65,8 +65,9 @@
 #'   \code{FALSE}.
 #' @param save_extension Character. File extension for the saved file
 #'   (including leading dot). Default is \code{".html"}.
-#' @param save_path Character. Directory in which to save. Default is
-#'   \code{\link[base]{getwd}()}.
+#' @param save_path Character or \code{NULL}.  Directory in which to save the
+#'   file.  ...  Must be supplied when \code{save = TRUE}.  Default is
+#'   \code{NULL}.
 #' @param return_table Logical. If \code{TRUE} (default), returns a
 #'   named list with both the raw data frame and the styled kable
 #'   object. If \code{FALSE}, returns only the styled kable.
@@ -121,7 +122,7 @@ tabulate_site_evolution = function(partitions,
                                    wrap_length    = 10L,
                                    save           = FALSE,
                                    save_extension = ".html",
-                                   save_path      = getwd(),
+                                   save_path      = NULL,
                                    return_table   = TRUE) {
   
   # --- 1. Input validation ---------------------------------------------------
@@ -206,6 +207,8 @@ tabulate_site_evolution = function(partitions,
   
   # --- 10. Optional save -----------------------------------------------------
   if (isTRUE(save)) {
+    if (is.null(save_path))
+      stop("`save_path` must be supplied when `save = TRUE`.", call. = FALSE)
     file_path = file.path(save_path,
                           paste0("Site_", site_index, save_extension))
     styled %>% kableExtra::save_kable(file_path)

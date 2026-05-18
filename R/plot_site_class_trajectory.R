@@ -62,8 +62,9 @@
 #'   \code{"GMM Entropy Class Trajectory \u2014 Site <site>"}.
 #' @param save Logical.  If \code{TRUE}, the plot is saved to disk via
 #'   \code{\link[ggplot2]{ggsave}}.  Default is \code{FALSE}.
-#' @param save_path Character.  Directory in which to save the file.
-#'   Created recursively if it does not exist.  Default is \code{getwd()}.
+#' @param save_path Character or \code{NULL}.  Directory in which to save the
+#'   file.  Created recursively if it does not exist.  Must be supplied when
+#'   \code{save = TRUE}.  Default is \code{NULL}.
 #' @param save_extension Character.  File extension including the leading dot
 #'   (e.g. \code{".jpeg"}, \code{".pdf"}, \code{".png"}).  Default is
 #'   \code{".jpeg"}.
@@ -146,7 +147,7 @@ plot_site_class_trajectory <- function(data_frame,
                                        line_size      = 1.5,
                                        plot_title     = NULL,
                                        save           = FALSE,
-                                       save_path      = getwd(),
+                                       save_path      = NULL,
                                        save_extension = ".png",
                                        width          = 20,
                                        height         = 15,
@@ -267,6 +268,8 @@ plot_site_class_trajectory <- function(data_frame,
   # 5. Optional save
   # ---------------------------------------------------------------------------
   if (isTRUE(save)) {
+    if (is.null(save_path))
+      stop("`save_path` must be supplied when `save = TRUE`.", call. = FALSE)
     if (!dir.exists(save_path))
       dir.create(save_path, recursive = TRUE, showWarnings = FALSE)
     file_name <- paste0("Site_", site, "_class_trajectory", save_extension)

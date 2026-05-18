@@ -19,7 +19,7 @@ tabulate_site_evolution(
   wrap_length = 10L,
   save = FALSE,
   save_extension = ".html",
-  save_path = getwd(),
+  save_path = NULL,
   return_table = TRUE
 )
 }
@@ -78,8 +78,9 @@ to disk via \code{\link[kableExtra]{save_kable}}. Default is
 \item{save_extension}{Character. File extension for the saved file
 (including leading dot). Default is \code{".html"}.}
 
-\item{save_path}{Character. Directory in which to save. Default is
-\code{\link[base]{getwd}()}.}
+\item{save_path}{Character or \code{NULL}.  Directory in which to save the
+file.  ...  Must be supplied when \code{save = TRUE}.  Default is
+\code{NULL}.}
 
 \item{return_table}{Logical. If \code{TRUE} (default), returns a
 named list with both the raw data frame and the styled kable

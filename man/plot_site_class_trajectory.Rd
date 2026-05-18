@@ -17,7 +17,7 @@ plot_site_class_trajectory(
   line_size = 1.5,
   plot_title = NULL,
   save = FALSE,
-  save_path = getwd(),
+  save_path = NULL,
   save_extension = ".png",
   width = 20,
   height = 15,
@@ -67,8 +67,9 @@ is \code{1.5}.}
 \item{save}{Logical.  If \code{TRUE}, the plot is saved to disk via
 \code{\link[ggplot2]{ggsave}}.  Default is \code{FALSE}.}
 
-\item{save_path}{Character.  Directory in which to save the file.
-Created recursively if it does not exist.  Default is \code{getwd()}.}
+\item{save_path}{Character or \code{NULL}.  Directory in which to save the
+file.  Created recursively if it does not exist.  Must be supplied when
+\code{save = TRUE}.  Default is \code{NULL}.}
 
 \item{save_extension}{Character.  File extension including the leading dot
 (e.g. \code{".jpeg"}, \code{".pdf"}, \code{".png"}).  Default is
