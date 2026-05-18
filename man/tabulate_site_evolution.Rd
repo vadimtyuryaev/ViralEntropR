@@ -129,12 +129,12 @@ parts = list(T1 = p1, T2 = p2)
 
 # Default: counts, letters, no save
 tbl = tabulate_site_evolution(parts, site_index = 1)
-tbl$styled
+tbl$table
 
 # Relative frequencies, highlight second partition
 tbl2 = tabulate_site_evolution(parts, site_index = 1,
                                 relative = TRUE, highlight_col = 2)
-tbl2$styled
+tbl2$table
 
 # Numeric codes (skip alphabet decoding)
 tbl3 = tabulate_site_evolution(parts, site_index = 1, use_letters = FALSE)
