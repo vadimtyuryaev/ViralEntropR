@@ -57,7 +57,7 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' path_sample  <- system.file("extdata", "sarscov2_sample.fasta.gz",
 #'                              package = "ViralEntropR")
 #' fasta_sample <- Biostrings::readAAStringSet(path_sample)

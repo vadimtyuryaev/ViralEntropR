@@ -62,7 +62,7 @@ headers to UTF-8 with non-representable bytes escaped, allowing the
 regex to proceed.
 }
 \examples{
-\dontrun{
+\donttest{
 path_sample  <- system.file("extdata", "sarscov2_sample.fasta.gz",
                              package = "ViralEntropR")
 fasta_sample <- Biostrings::readAAStringSet(path_sample)

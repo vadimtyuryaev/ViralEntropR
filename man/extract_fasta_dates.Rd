@@ -106,8 +106,6 @@ dates$message
 head(dates$corrected_dates)
 range(dates$corrected_dates, na.rm = TRUE)
 
-# GISAID-style headers (date between pipes): option = 1.
-# Year-month resolution: pair option = 3 with date_format = "\%Y-\%m".
 # Custom regex for non-standard headers:
 dates_custom <- extract_fasta_dates(
   fasta_sample,
