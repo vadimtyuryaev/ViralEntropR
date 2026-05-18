@@ -152,23 +152,26 @@ component for each partition, taken directly from
 class-assignment tables.
 }
 \examples{
-# Synthetic dataset: site 2 accumulates variability across partitions.
-# Partition entropies (bits):
-#   Jan  s1: 0.000  s2: 0.000  — both removed (zero entropy)
-#   Feb  s1: 0.000  s2: 0.722  — s1 removed, s2 retained
-#   Mar  s1: 0.971  s2: 1.000  — both retained
-#   Apr  s1: 0.881  s2: 0.722  — both retained
+# Three-period synthetic dataset with distinct trajectory shapes:
+# Site 1: up-then-down (peak in P2).
+# Site 2: monotone up.
+# Per-partition Shannon entropy (bits):
+#   P1 (Jan)  s1: 0.469  s2: 0.469
+#   P2 (Feb)  s1: 1.522  s2: 0.881
+#   P3 (Mar)  s1: 0.722  s2: 1.522
 df <- data.frame(
-  s1 = c(rep(1L, 10L),
-         rep(1L, 10L),
-         c(1L, 1L, 1L, 1L, 1L, 1L, 2L, 2L, 2L, 2L),
-         c(1L, 1L, 1L, 2L, 2L, 2L, 2L, 2L, 2L, 2L)),
-  s2 = c(rep(1L, 10L),
-         c(1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 2L, 2L),
-         c(1L, 1L, 1L, 1L, 1L, 2L, 2L, 2L, 2L, 2L),
-         c(1L, 1L, 2L, 2L, 2L, 2L, 2L, 2L, 2L, 2L)),
+  s1 = c(
+    c(1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 2L),         # P1: 9:1
+    c(1L, 1L, 1L, 1L, 2L, 2L, 2L, 2L, 3L, 3L),         # P2: 4:4:2
+    c(1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 2L, 2L)          # P3: 8:2
+  ),
+  s2 = c(
+    c(1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 2L),         # P1: 9:1
+    c(1L, 1L, 1L, 1L, 1L, 1L, 1L, 2L, 2L, 2L),         # P2: 7:3
+    c(1L, 1L, 1L, 1L, 2L, 2L, 2L, 2L, 3L, 3L)          # P3: 4:4:2
+  ),
   Date = rep(
-    seq(as.Date("2020-01-01"), by = "month", length.out = 4L),
+    seq(as.Date("2020-01-01"), by = "month", length.out = 3L),
     each = 10L
   )
 )
@@ -179,13 +182,12 @@ part_data <- partition_time_windows(
   window_length = 1L,
   window_type   = 3L,
   start_date    = "2020-01-01",
-  end_date      = "2020-04-01"
+  end_date      = "2020-04-01",
+  removez       = FALSE,
+  removesngl    = FALSE
 )
 
-# Example 1: no relabeling — class labels are as assigned by Mclust.
-result <- plot_entropy_trajectories(
-  part_data  = part_data
-)
+result <- plot_entropy_trajectories(part_data = part_data)
 print(result$Plot)
 }
 \seealso{

@@ -78,7 +78,7 @@
 #'   \code{\link{calculate_hellinger_matrix}} for typical downstream use
 #'   of the \code{Partitions} output.
 #'
-#' @importFrom lubridate %m+% interval period
+#' @importFrom lubridate %m+% %m-% interval period
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @examples
@@ -127,12 +127,21 @@ partition_time_windows <- function(data,
   start_date <- as.Date(start_date)
   end_date   <- as.Date(end_date)
   
-  if (start_date < min(data$Date))
-    warning("`start_date` is earlier than the earliest date in the data; ",
-            "early windows will be empty.", call. = FALSE)
-  if (end_date > max(data$Date))
-    warning("`end_date` is later than the latest date in the data; ",
-            "late windows will be empty.", call. = FALSE)
+# Empty-window predicates compare against window boundaries (not raw data
+# boundaries) so spurious warnings when start_date or end_date sits within
+# one window_length of the data range are avoided.
+  first_window_right <- start_date %m+% lubridate::period(window_length, "months")
+  
+  if (min(data$Date) >= first_window_right)
+    warning("`start_date` is earlier than the data by more than one ",
+            "window_length; the first window will be empty.", call. = FALSE)
+  
+  if (window_type != 1L) {
+    last_window_left <- end_date %m-% lubridate::period(window_length, "months")
+    if (max(data$Date) < last_window_left)
+      warning("`end_date` is later than the data by more than one ",
+              "window_length; trailing windows will be empty.", call. = FALSE)
+    }
   
   start_date_dspl <- format(start_date, format = date_format)
   
