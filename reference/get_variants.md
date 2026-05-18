@@ -112,22 +112,3 @@ Epsilon, Eta, Iota, Kappa, Delta, Lambda, Gamma, Zeta, Theta, Omicron.
   [`datatable`](https://rdrr.io/pkg/DT/man/datatable.html), optionally
   filtered by WHO label; `$cite(variant)` — character vector of
   formatted citation strings suitable for manuscript use.
-
-## Examples
-
-``` r
-if (FALSE) { # \dontrun{
-variants_dat  <- readxl::read_excel("SARS_CoV_2_VOC_VOI.xlsx")
-voc_data      <- get_variants(variants_dat, check = TRUE)
-
-# Access specific fields
-voc_data$Pango_Lineage[[which(voc_data$WHO_Label == "Alpha")]]
-voc_data$Defining_SNPs[[which(voc_data$WHO_Label == "Gamma")]]
-
-# Reference table
-voc_data$References$data                        # full data frame (20 refs)
-voc_data$References$display()                   # interactive DT (all refs)
-voc_data$References$display(variant = "Alpha")  # filtered to Alpha refs
-voc_data$References$cite("Omicron")             # formatted citation strings
-} # }
-```
