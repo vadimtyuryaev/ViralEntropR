@@ -92,9 +92,6 @@
 #'   minsize     = 5
 #' )
 #' print(res$ECP_est_list[[1]])
-#'
-#' # Strongest single change point: inspect $cpLoc[[1]] in the full result.
-#' print(res$ECP_list[[1]]$cpLoc[[1]])
 detect_changepoints_ecp = function(data_matrix,
                                    min_window,
                                    max_window,
