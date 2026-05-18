@@ -96,7 +96,7 @@
 #' \url{https://www.ncbi.nlm.nih.gov/labs/virus/vssi/}
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' path  <- system.file("extdata", "sarscov2_sample.fasta.gz",
 #'                      package = "ViralEntropR")
 #' fasta <- Biostrings::readAAStringSet(path)

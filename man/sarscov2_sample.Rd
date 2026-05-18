@@ -87,7 +87,7 @@ headers provide full traceability to original submissions.
 }
 
 \examples{
-\dontrun{
+\donttest{
 path  <- system.file("extdata", "sarscov2_sample.fasta.gz",
                      package = "ViralEntropR")
 fasta <- Biostrings::readAAStringSet(path)

@@ -91,7 +91,7 @@ record, the corresponding entries are \code{NA}; \code{missing_id}
 lists the affected indices.
 }
 \examples{
-\dontrun{
+\donttest{
 path_sample  <- system.file("extdata", "sarscov2_sample.fasta.gz",
                              package = "ViralEntropR")
 fasta_sample <- Biostrings::readAAStringSet(path_sample)
