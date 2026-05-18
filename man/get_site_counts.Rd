@@ -29,20 +29,4 @@ across all partitions.
 Built on \code{\link[base]{tabulate}} for fast integer counting.
 Consumed internally by \code{\link{calculate_hellinger_matrix}}.
 }
-\examples{
-# 1. Create dummy partitions.
-# Partition 1: site 1 has three 'A's (code 1).
-p1 = data.frame(s1 = c(1, 1, 1))
-# Partition 2: site 1 has one 'A' (1) and two 'R's (2).
-p2 = data.frame(s1 = c(1, 2, 2))
-parts = list(p1, p2)
-
-# 2. Get counts for site 1.
-# Internal function — accessed via the triple-colon operator.
-counts = ViralEntropR:::get_site_counts(parts, site_index = 1,
-                                         alphabet_size = 25)
-
-# Row 1 (A) is [3, 1]; row 2 (R) is [0, 2].
-print(counts[1:5, ])
-}
 \keyword{internal}

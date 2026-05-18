@@ -48,28 +48,6 @@
 #'   \code{\link{detect_changepoints_ecp}}
 #'
 #' @keywords internal
-#'
-#' @examples
-#' \dontrun{
-#' # --- Modern pipeline (preferred) -----------------------------------------
-#' p1 <- data.frame(s1 = c(1L, 1L, 1L), s2 = c(20L, 20L, 20L))
-#' p2 <- data.frame(s1 = c(20L, 20L, 20L), s2 = c(20L, 20L, 20L))
-#' p3 <- data.frame(s1 = c(1L, 20L, 20L), s2 = c(20L, 20L, 20L))
-#' parts <- list(T1 = p1, T2 = p2, T3 = p3)
-#'
-#' hell_mat <- calculate_hellinger_matrix(parts, sites = 1:2)
-#' dat_t    <- t(hell_mat)
-#'
-#' dat_t2 <- t(build_distance_matrix(hell_mat))
-#' identical(dat_t, dat_t2)  # TRUE
-#'
-#' # --- Legacy list input ---------------------------------------------------
-#' legacy_list <- list(
-#'   Sites = c(1, 2),
-#'   Hellinger_Distances = list(c(0.5, 0.8), c(0.0, 0.0))
-#' )
-#' build_distance_matrix(legacy_list)
-#' }
 build_distance_matrix = function(data_input) {
   
   # --- 1. Matrix input: already in the right format -------------------------
