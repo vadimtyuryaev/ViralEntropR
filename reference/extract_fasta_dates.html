@@ -172,20 +172,25 @@ year-month coercion path.</p></div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">path_sample</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"sarscov2_sample.fasta.gz"</span>,</span></span>
 <span class="r-in"><span>                             package <span class="op">=</span> <span class="st">"ViralEntropR"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fasta_sample</span> <span class="op">&lt;-</span> <span class="fu">Biostrings</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/Biostrings/man/XStringSet-io.html" class="external-link">readAAStringSet</a></span><span class="op">(</span><span class="va">path_sample</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Inspect header structure to confirm date field position.</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fasta_sample</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "UAB29556.1 |India|2021-07-18"</span>
 <span class="r-in"><span><span class="co"># The bundled sample uses NCBI Virus format: date is at end of header.</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Default usage on bundled sample: option = 4 for end-of-header dates.</span></span></span>
 <span class="r-in"><span><span class="va">dates</span> <span class="op">&lt;-</span> <span class="fu">extract_fasta_dates</span><span class="op">(</span><span class="va">fasta_sample</span>, option <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dates</span><span class="op">$</span><span class="va">message</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "There are date strings that have not been recognized"</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">dates</span><span class="op">$</span><span class="va">corrected_dates</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "2021-02-12" "2020-04-03" "2021-03-05" "2021-02-09" "2020-07-18"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [6] "2020-03-23"</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="va">dates</span><span class="op">$</span><span class="va">corrected_dates</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "2020-03-09" "2021-09-10"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># GISAID-style headers (date between pipes): option = 1.</span></span></span>
 <span class="r-in"><span><span class="co"># Year-month resolution: pair option = 3 with date_format = "%Y-%m".</span></span></span>
@@ -194,7 +199,7 @@ year-month coercion path.</p></div>
 <span class="r-in"><span>  <span class="va">fasta_sample</span>,</span></span>
 <span class="r-in"><span>  custom_pattern <span class="op">=</span> <span class="st">"[0-9]{4}-(0?[1-9]|1[0-2])-(0?[1-9]|[12][0-9]|3[01]|00)"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -126,20 +126,25 @@ year-month coercion path.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 path_sample  <- system.file("extdata", "sarscov2_sample.fasta.gz",
                              package = "ViralEntropR")
 fasta_sample <- Biostrings::readAAStringSet(path_sample)
 
 # Inspect header structure to confirm date field position.
 sample(names(fasta_sample), 1)
+#> [1] "UAB29556.1 |India|2021-07-18"
 # The bundled sample uses NCBI Virus format: date is at end of header.
 
 # Default usage on bundled sample: option = 4 for end-of-header dates.
 dates <- extract_fasta_dates(fasta_sample, option = 4)
 dates$message
+#> [1] "There are date strings that have not been recognized"
 head(dates$corrected_dates)
+#> [1] "2021-02-12" "2020-04-03" "2021-03-05" "2021-02-09" "2020-07-18"
+#> [6] "2020-03-23"
 range(dates$corrected_dates, na.rm = TRUE)
+#> [1] "2020-03-09" "2021-09-10"
 
 # GISAID-style headers (date between pipes): option = 1.
 # Year-month resolution: pair option = 3 with date_format = "%Y-%m".
@@ -148,5 +153,5 @@ dates_custom <- extract_fasta_dates(
   fasta_sample,
   custom_pattern = "[0-9]{4}-(0?[1-9]|1[0-2])-(0?[1-9]|[12][0-9]|3[01]|00)"
 )
-} # }
+# }
 ```

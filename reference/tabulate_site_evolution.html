@@ -72,7 +72,7 @@ optionally styled with <span class="pkg">kableExtra</span> and saved as standalo
 <span>  wrap_length <span class="op">=</span> <span class="fl">10L</span>,</span>
 <span>  save <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  save_extension <span class="op">=</span> <span class="st">".html"</span>,</span>
-<span>  save_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/getwd.html" class="external-link">getwd</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  save_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  return_table <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -164,8 +164,9 @@ to disk via <code><a href="https://rdrr.io/pkg/kableExtra/man/save_kable.html" c
 
 
 <dt id="arg-save-path">save_path<a class="anchor" aria-label="anchor" href="#arg-save-path"></a></dt>
-<dd><p>Character. Directory in which to save. Default is
-<code><a href="https://rdrr.io/r/base/getwd.html" class="external-link">getwd()</a></code>.</p></dd>
+<dd><p>Character or <code>NULL</code>.  Directory in which to save the
+file.  ...  Must be supplied when <code>save = TRUE</code>.  Default is
+<code>NULL</code>.</p></dd>
 
 
 <dt id="arg-return-table">return_table<a class="anchor" aria-label="anchor" href="#arg-return-table"></a></dt>

@@ -22,7 +22,7 @@ tabulate_site_evolution(
   wrap_length = 10L,
   save = FALSE,
   save_extension = ".html",
-  save_path = getwd(),
+  save_path = NULL,
   return_table = TRUE
 )
 ```
@@ -109,8 +109,8 @@ tabulate_site_evolution(
 
 - save_path:
 
-  Character. Directory in which to save. Default is
-  [`getwd()`](https://rdrr.io/r/base/getwd.html).
+  Character or `NULL`. Directory in which to save the file. ... Must be
+  supplied when `save = TRUE`. Default is `NULL`.
 
 - return_table:
 

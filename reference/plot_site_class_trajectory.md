@@ -24,7 +24,7 @@ plot_site_class_trajectory(
   line_size = 1.5,
   plot_title = NULL,
   save = FALSE,
-  save_path = getwd(),
+  save_path = NULL,
   save_extension = ".png",
   width = 20,
   height = 15,
@@ -100,9 +100,9 @@ plot_site_class_trajectory(
 
 - save_path:
 
-  Character. Directory in which to save the file. Created recursively if
-  it does not exist. Default is
-  [`getwd()`](https://rdrr.io/r/base/getwd.html).
+  Character or `NULL`. Directory in which to save the file. Created
+  recursively if it does not exist. Must be supplied when `save = TRUE`.
+  Default is `NULL`.
 
 - save_extension:
 

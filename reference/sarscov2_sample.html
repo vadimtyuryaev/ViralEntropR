@@ -153,34 +153,44 @@ National Center for Biotechnology Information; [2020] –
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">path</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"sarscov2_sample.fasta.gz"</span>,</span></span>
 <span class="r-in"><span>                     package <span class="op">=</span> <span class="st">"ViralEntropR"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fasta</span> <span class="op">&lt;-</span> <span class="fu">Biostrings</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/Biostrings/man/XStringSet-io.html" class="external-link">readAAStringSet</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Number of sequences in the demo sample</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">fasta</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 100</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Inspect first 3 headers</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fasta</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "QSG79861.1 |USA|2021-02-12"   "QPV04597.1 |Chile|2020-04-03"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3] "QUA36626.1 |USA|2021-03-05"  </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Extract collection dates</span></span></span>
 <span class="r-in"><span><span class="va">dates</span> <span class="op">&lt;-</span> <span class="fu"><a href="extract_fasta_dates.html">extract_fasta_dates</a></span><span class="op">(</span><span class="va">fasta</span>, option <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">dates</span><span class="op">$</span><span class="va">corrected_dates</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] NA NA NA NA NA NA</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Extract countries</span></span></span>
 <span class="r-in"><span><span class="va">countries</span> <span class="op">&lt;-</span> <span class="fu"><a href="extract_fasta_countries.html">extract_fasta_countries</a></span><span class="op">(</span><span class="va">fasta</span>, position <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">countries</span><span class="op">$</span><span class="va">countries</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Australia   Bangladesh        Chile      Germany        India  New Zealand </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            7            1            1            1            3            2 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Saudi Arabia          USA </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            1           84 </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Convert to character matrix for pipeline entry</span></span></span>
 <span class="r-in"><span><span class="va">char_mat</span> <span class="op">&lt;-</span> <span class="fu"><a href="fasta_to_char_matrix.html">fasta_to_char_matrix</a></span><span class="op">(</span><span class="va">fasta</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">char_mat</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1]  100 1273</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># The full 137,132-sequence dataset (~181.5 MB) is available on Zenodo:</span></span></span>
 <span class="r-in"><span><span class="co"># https://zenodo.org/records/19040165</span></span></span>
 <span class="r-in"><span><span class="co"># Download sequences.fasta manually and load with:</span></span></span>
 <span class="r-in"><span><span class="co"># fasta_full &lt;- Biostrings::readAAStringSet("path/to/sequences.fasta")</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

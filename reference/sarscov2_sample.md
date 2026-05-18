@@ -115,32 +115,42 @@ NCBI Virus \[Internet\]. Bethesda (MD): National Library of Medicine
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 path  <- system.file("extdata", "sarscov2_sample.fasta.gz",
                      package = "ViralEntropR")
 fasta <- Biostrings::readAAStringSet(path)
 
 # Number of sequences in the demo sample
 length(fasta)
+#> [1] 100
 
 # Inspect first 3 headers
 names(fasta)[1:3]
+#> [1] "QSG79861.1 |USA|2021-02-12"   "QPV04597.1 |Chile|2020-04-03"
+#> [3] "QUA36626.1 |USA|2021-03-05"  
 
 # Extract collection dates
 dates <- extract_fasta_dates(fasta, option = 1)
 head(dates$corrected_dates)
+#> [1] NA NA NA NA NA NA
 
 # Extract countries
 countries <- extract_fasta_countries(fasta, position = 2)
 table(countries$countries)
+#> 
+#>    Australia   Bangladesh        Chile      Germany        India  New Zealand 
+#>            7            1            1            1            3            2 
+#> Saudi Arabia          USA 
+#>            1           84 
 
 # Convert to character matrix for pipeline entry
 char_mat <- fasta_to_char_matrix(fasta)
 dim(char_mat)
+#> [1]  100 1273
 
 # The full 137,132-sequence dataset (~181.5 MB) is available on Zenodo:
 # https://zenodo.org/records/19040165
 # Download sequences.fasta manually and load with:
 # fasta_full <- Biostrings::readAAStringSet("path/to/sequences.fasta")
-} # }
+# }
 ```

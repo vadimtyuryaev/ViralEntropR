@@ -82,7 +82,7 @@ detection.</p>
 <span>  line_size <span class="op">=</span> <span class="fl">1.5</span>,</span>
 <span>  plot_title <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  save <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  save_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/getwd.html" class="external-link">getwd</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  save_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  save_extension <span class="op">=</span> <span class="st">".png"</span>,</span>
 <span>  width <span class="op">=</span> <span class="fl">20</span>,</span>
 <span>  height <span class="op">=</span> <span class="fl">15</span>,</span>
@@ -161,8 +161,9 @@ is <code>1.5</code>.</p></dd>
 
 
 <dt id="arg-save-path">save_path<a class="anchor" aria-label="anchor" href="#arg-save-path"></a></dt>
-<dd><p>Character.  Directory in which to save the file.
-Created recursively if it does not exist.  Default is <code><a href="https://rdrr.io/r/base/getwd.html" class="external-link">getwd()</a></code>.</p></dd>
+<dd><p>Character or <code>NULL</code>.  Directory in which to save the
+file.  Created recursively if it does not exist.  Must be supplied when
+<code>save = TRUE</code>.  Default is <code>NULL</code>.</p></dd>
 
 
 <dt id="arg-save-extension">save_extension<a class="anchor" aria-label="anchor" href="#arg-save-extension"></a></dt>
