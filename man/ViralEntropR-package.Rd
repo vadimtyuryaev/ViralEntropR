@@ -104,6 +104,7 @@ Useful links:
 \itemize{
   \item \url{https://github.com/vadimtyuryaev/ViralEntropR}
   \item \doi{10.5281/zenodo.19040165}
+  \item \url{https://vadimtyuryaev.github.io/ViralEntropR/}
   \item Report bugs at \url{https://github.com/vadimtyuryaev/ViralEntropR/issues}
 }
 

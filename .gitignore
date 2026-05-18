@@ -22,3 +22,4 @@ data-raw/*_cache/
 data-raw/pre-build-vignettes.R
 docs
 CRAN-SUBMISSION
+analysis/Sample_Size_Simulation_Study/Explore_NAs.R

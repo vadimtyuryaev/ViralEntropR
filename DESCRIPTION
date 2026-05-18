@@ -1,6 +1,6 @@
 Package: ViralEntropR
 Title: A Computational Pipeline for Entropy-Informed Detection of Emerging Viral Variants
-Version: 0.6.0
+Version: 0.6.1
 Authors@R: c(
               person("Vadim", "Tyuryaev", ,"vadim.tyuryaev@gmail.com", 
                       role = c("aut", "cre"), 
@@ -28,16 +28,16 @@ Description: Implements an entropy-informed pipeline for detecting
     points non-parametrically using energy statistics (Matteson and
     James, 2014) <doi:10.1080/01621459.2013.849605> via 'ecp' or
     wild binary segmentation (Fryzlewicz, 2014)
-    <doi:10.1214/14-AOS1245> via 'HDcpDetect'. Per-site amino-acid
-    frequency tables and entropy trajectory plots characterize
-    sequence composition and evolutionary dynamics across time. A
-    configurable multi-variant simulation engine generates synthetic
-    sequence time series with known ground truth for benchmarking
-    detection pipelines. A curated dataset of SARS-CoV-2 Variants of
-    Concern and Variants of Interest with associated lineage and
-    surveillance metadata is included, along with a bundled NCBI
-    Spike protein sample and vignettes demonstrating the full
-    workflow.
+    <doi:10.1214/14-AOS1245> via 'HDcpDetect'. Per-site amino-acid 
+    frequency tables and entropy trajectory plots characterize sequence 
+    composition and evolutionary dynamics across time. A configurable 
+    multi-variant simulation engine generates synthetic sequence 
+    time series with known ground truth for benchmarking detection pipelines. 
+    A curated dataset of SARS-CoV-2 Variants of Concern and Variants of
+    Interest with associated lineage and surveillance metadata is
+    included, along with a bundled National Center for Biotechnology
+    Information (NCBI) Spike protein sample and vignettes
+    demonstrating the full workflow.
 License: MIT + file LICENSE
 Language: en-GB
 Date: 2026-05-07
