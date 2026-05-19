@@ -3,6 +3,11 @@ title: "Sample-Size Requirements for Entropy-Based Detection of Emerging Viral V
 author: "Vadim Tyuryaev, Jane Heffernan, Hanna Jankowski"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 output:
+  github_document:
+    toc: true
+    toc_depth: 3
+    html_preview: false
+    df_print: kable
   html_document:
     theme: flatly
     highlight: tango
@@ -14,6 +19,7 @@ output:
     df_print: kable
 bibliography: references_sample_size.bib
 link-citations: true
+always_allow_html: true
 nocite: |
   @*
 ---
