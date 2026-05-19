@@ -1,0 +1,598 @@
+nohup: ignoring input
+[2026-05-16 03:34:03] Configuration:
+[2026-05-16 03:34:03]   STUDY_DIR              = /home/vadimtyu/Clean_Code_Running/Dissertation/Simulation_Study
+[2026-05-16 03:34:03]   REF_SEQ_FASTA          = /home/vadimtyu/Clean_Code_Running/Dissertation/Simulation_Study/spike_reference_1273aa.fasta
+[2026-05-16 03:34:03]   N_WORKERS              = 24 (parallel mode)
+[2026-05-16 03:34:03]   BASE_SEED              = 2025
+[2026-05-16 03:34:03]   N_REPS_PER_CELL        = 30
+[2026-05-16 03:34:03]   GRID_SIZE              = 50
+[2026-05-16 03:34:03]   P_DEL                  = 0.001
+[2026-05-16 03:34:03]   MCLUST_MODELS          = NULL (default E and V via BIC)
+[2026-05-16 03:34:03]   MCLUST_G               = 1..15
+[2026-05-16 03:34:03]   RUN_ROBUSTNESS_SWEEP   = TRUE
+[2026-05-16 03:34:03] Loading reference sequence...
+[2026-05-16 03:34:05] Reference loaded: length = 1273 (codes 1:20)
+[2026-05-16 03:34:05] Empirical constants: |POOL_11|=53, |POOL_12|=75, MUT_COUNT_SET_11=[2,3,4,8,12,14,15], OMICRON=33
+[2026-05-16 03:34:05] Scenario 1: 150 cells written to /home/vadimtyu/Clean_Code_Running/Dissertation/Simulation_Study/outputs/cells_sc1.rds
+[2026-05-16 03:34:05] Scenario 2: 750 cells written to /home/vadimtyu/Clean_Code_Running/Dissertation/Simulation_Study/outputs/cells_sc2.rds
+[2026-05-16 03:34:05] Scenario 3: 3750 cells written to /home/vadimtyu/Clean_Code_Running/Dissertation/Simulation_Study/outputs/cells_sc3.rds
+[2026-05-16 03:34:05] Scenario 4: 3750 cells written to /home/vadimtyu/Clean_Code_Running/Dissertation/Simulation_Study/outputs/cells_sc4.rds
+[2026-05-16 03:34:05] === Scenario 1 ===
+[2026-05-16 03:34:05]   150 cells, 30 reps/cell, 4500 total replicates
+[2026-05-16 03:34:05]   4500 replicates pending (resume mode)
+[2026-05-16 03:34:27]     [sc1] progress: 50 done (50 ok, 0 failed) / 4500 (1.1%)
+[2026-05-16 03:35:15]     [sc1] progress: 150 done (150 ok, 0 failed) / 4500 (3.3%)
+[2026-05-16 03:35:34]     [sc1] progress: 200 done (200 ok, 0 failed) / 4500 (4.4%)
+[2026-05-16 03:35:57]     [sc1] progress: 250 done (250 ok, 0 failed) / 4500 (5.6%)
+[2026-05-16 03:36:23]     [sc1] progress: 300 done (300 ok, 0 failed) / 4500 (6.7%)
+[2026-05-16 03:36:44]     [sc1] progress: 350 done (350 ok, 0 failed) / 4500 (7.8%)
+[2026-05-16 03:37:05]     [sc1] progress: 400 done (400 ok, 0 failed) / 4500 (8.9%)
+[2026-05-16 03:37:51]     [sc1] progress: 500 done (500 ok, 0 failed) / 4500 (11.1%)
+[2026-05-16 03:38:14]     [sc1] progress: 550 done (550 ok, 0 failed) / 4500 (12.2%)
+[2026-05-16 03:38:43]     [sc1] progress: 600 done (600 ok, 0 failed) / 4500 (13.3%)
+[2026-05-16 03:39:01]     [sc1] progress: 650 done (650 ok, 0 failed) / 4500 (14.4%)
+[2026-05-16 03:39:51]     [sc1] progress: 750 done (750 ok, 0 failed) / 4500 (16.7%)
+[2026-05-16 03:40:32]     [sc1] progress: 850 done (850 ok, 0 failed) / 4500 (18.9%)
+[2026-05-16 03:41:00]     [sc1] progress: 900 done (900 ok, 0 failed) / 4500 (20.0%)
+[2026-05-16 03:41:41]     [sc1] progress: 1000 done (1000 ok, 0 failed) / 4500 (22.2%)
+[2026-05-16 03:42:10]     [sc1] progress: 1050 done (1050 ok, 0 failed) / 4500 (23.3%)
+[2026-05-16 03:42:29]     [sc1] progress: 1100 done (1100 ok, 0 failed) / 4500 (24.4%)
+[2026-05-16 03:42:54]     [sc1] progress: 1150 done (1150 ok, 0 failed) / 4500 (25.6%)
+[2026-05-16 03:43:20]     [sc1] progress: 1200 done (1200 ok, 0 failed) / 4500 (26.7%)
+[2026-05-16 03:43:40]     [sc1] progress: 1250 done (1250 ok, 0 failed) / 4500 (27.8%)
+[2026-05-16 03:44:02]     [sc1] progress: 1300 done (1300 ok, 0 failed) / 4500 (28.9%)
+[2026-05-16 03:44:29]     [sc1] progress: 1350 done (1350 ok, 0 failed) / 4500 (30.0%)
+[2026-05-16 03:44:49]     [sc1] progress: 1400 done (1400 ok, 0 failed) / 4500 (31.1%)
+[2026-05-16 03:45:14]     [sc1] progress: 1450 done (1450 ok, 0 failed) / 4500 (32.2%)
+[2026-05-16 03:45:40]     [sc1] progress: 1500 done (1500 ok, 0 failed) / 4500 (33.3%)
+[2026-05-16 03:46:00]     [sc1] progress: 1550 done (1550 ok, 0 failed) / 4500 (34.4%)
+[2026-05-16 03:46:21]     [sc1] progress: 1600 done (1600 ok, 0 failed) / 4500 (35.6%)
+[2026-05-16 03:47:08]     [sc1] progress: 1700 done (1700 ok, 0 failed) / 4500 (37.8%)
+[2026-05-16 03:47:30]     [sc1] progress: 1750 done (1750 ok, 0 failed) / 4500 (38.9%)
+[2026-05-16 03:47:57]     [sc1] progress: 1800 done (1800 ok, 0 failed) / 4500 (40.0%)
+[2026-05-16 03:48:17]     [sc1] progress: 1850 done (1850 ok, 0 failed) / 4500 (41.1%)
+[2026-05-16 03:48:39]     [sc1] progress: 1900 done (1900 ok, 0 failed) / 4500 (42.2%)
+[2026-05-16 03:49:07]     [sc1] progress: 1950 done (1950 ok, 0 failed) / 4500 (43.3%)
+[2026-05-16 03:49:26]     [sc1] progress: 2000 done (2000 ok, 0 failed) / 4500 (44.4%)
+[2026-05-16 03:49:49]     [sc1] progress: 2050 done (2050 ok, 0 failed) / 4500 (45.6%)
+[2026-05-16 03:50:17]     [sc1] progress: 2100 done (2100 ok, 0 failed) / 4500 (46.7%)
+[2026-05-16 03:50:36]     [sc1] progress: 2150 done (2150 ok, 0 failed) / 4500 (47.8%)
+[2026-05-16 03:50:59]     [sc1] progress: 2200 done (2200 ok, 0 failed) / 4500 (48.9%)
+[2026-05-16 03:51:26]     [sc1] progress: 2250 done (2250 ok, 0 failed) / 4500 (50.0%)
+[2026-05-16 03:51:44]     [sc1] progress: 2300 done (2300 ok, 0 failed) / 4500 (51.1%)
+[2026-05-16 03:52:06]     [sc1] progress: 2350 done (2350 ok, 0 failed) / 4500 (52.2%)
+[2026-05-16 03:52:52]     [sc1] progress: 2450 done (2450 ok, 0 failed) / 4500 (54.4%)
+[2026-05-16 03:53:15]     [sc1] progress: 2500 done (2500 ok, 0 failed) / 4500 (55.6%)
+[2026-05-16 03:53:43]     [sc1] progress: 2550 done (2550 ok, 0 failed) / 4500 (56.7%)
+[2026-05-16 03:54:00]     [sc1] progress: 2600 done (2600 ok, 0 failed) / 4500 (57.8%)
+[2026-05-16 03:54:25]     [sc1] progress: 2650 done (2650 ok, 0 failed) / 4500 (58.9%)
+[2026-05-16 03:54:53]     [sc1] progress: 2700 done (2700 ok, 0 failed) / 4500 (60.0%)
+[2026-05-16 03:55:11]     [sc1] progress: 2750 done (2750 ok, 0 failed) / 4500 (61.1%)
+[2026-05-16 03:55:34]     [sc1] progress: 2800 done (2800 ok, 0 failed) / 4500 (62.2%)
+[2026-05-16 03:56:21]     [sc1] progress: 2900 done (2900 ok, 0 failed) / 4500 (64.4%)
+[2026-05-16 03:56:43]     [sc1] progress: 2950 done (2950 ok, 0 failed) / 4500 (65.6%)
+[2026-05-16 03:57:12]     [sc1] progress: 3000 done (3000 ok, 0 failed) / 4500 (66.7%)
+[2026-05-16 03:57:30]     [sc1] progress: 3050 done (3050 ok, 0 failed) / 4500 (67.8%)
+[2026-05-16 03:57:53]     [sc1] progress: 3100 done (3100 ok, 0 failed) / 4500 (68.9%)
+[2026-05-16 03:58:23]     [sc1] progress: 3150 done (3150 ok, 0 failed) / 4500 (70.0%)
+[2026-05-16 03:58:41]     [sc1] progress: 3200 done (3200 ok, 0 failed) / 4500 (71.1%)
+[2026-05-16 03:59:04]     [sc1] progress: 3250 done (3250 ok, 0 failed) / 4500 (72.2%)
+[2026-05-16 03:59:52]     [sc1] progress: 3350 done (3350 ok, 0 failed) / 4500 (74.4%)
+[2026-05-16 04:00:14]     [sc1] progress: 3400 done (3400 ok, 0 failed) / 4500 (75.6%)
+[2026-05-16 04:00:41]     [sc1] progress: 3450 done (3450 ok, 0 failed) / 4500 (76.7%)
+[2026-05-16 04:01:00]     [sc1] progress: 3500 done (3500 ok, 0 failed) / 4500 (77.8%)
+[2026-05-16 04:01:24]     [sc1] progress: 3550 done (3550 ok, 0 failed) / 4500 (78.9%)
+[2026-05-16 04:01:51]     [sc1] progress: 3600 done (3600 ok, 0 failed) / 4500 (80.0%)
+[2026-05-16 04:02:10]     [sc1] progress: 3650 done (3650 ok, 0 failed) / 4500 (81.1%)
+[2026-05-16 04:02:35]     [sc1] progress: 3700 done (3700 ok, 0 failed) / 4500 (82.2%)
+[2026-05-16 04:03:01]     [sc1] progress: 3750 done (3750 ok, 0 failed) / 4500 (83.3%)
+[2026-05-16 04:03:19]     [sc1] progress: 3800 done (3800 ok, 0 failed) / 4500 (84.4%)
+[2026-05-16 04:03:43]     [sc1] progress: 3850 done (3850 ok, 0 failed) / 4500 (85.6%)
+[2026-05-16 04:04:11]     [sc1] progress: 3900 done (3900 ok, 0 failed) / 4500 (86.7%)
+[2026-05-16 04:04:30]     [sc1] progress: 3950 done (3950 ok, 0 failed) / 4500 (87.8%)
+[2026-05-16 04:04:51]     [sc1] progress: 4000 done (4000 ok, 0 failed) / 4500 (88.9%)
+[2026-05-16 04:05:18]     [sc1] progress: 4050 done (4050 ok, 0 failed) / 4500 (90.0%)
+[2026-05-16 04:05:36]     [sc1] progress: 4100 done (4100 ok, 0 failed) / 4500 (91.1%)
+[2026-05-16 04:06:00]     [sc1] progress: 4150 done (4150 ok, 0 failed) / 4500 (92.2%)
+[2026-05-16 04:06:27]     [sc1] progress: 4200 done (4200 ok, 0 failed) / 4500 (93.3%)
+[2026-05-16 04:06:45]     [sc1] progress: 4250 done (4250 ok, 0 failed) / 4500 (94.4%)
+[2026-05-16 04:07:08]     [sc1] progress: 4300 done (4300 ok, 0 failed) / 4500 (95.6%)
+[2026-05-16 04:07:37]     [sc1] progress: 4350 done (4350 ok, 0 failed) / 4500 (96.7%)
+[2026-05-16 04:08:20]     [sc1] progress: 4450 done (4450 ok, 0 failed) / 4500 (98.9%)
+[2026-05-16 04:08:53]     [sc1] progress: 4500 done (4500 ok, 0 failed) / 4500 (100.0%)
+[2026-05-16 04:08:53]   Scenario 1: 4500 completed, 0 failed.
+[2026-05-16 04:08:53]   Aggregating per-replicate RDS files...
+[2026-05-16 04:08:59]   Summary: /home/vadimtyu/Clean_Code_Running/Dissertation/Simulation_Study/outputs/summary_sc1.rds (4500 rows)
+[2026-05-16 04:08:59] === Scenario 2 ===
+[2026-05-16 04:08:59]   750 cells, 30 reps/cell, 22500 total replicates
+[2026-05-16 04:08:59]   22500 replicates pending (resume mode)
+[2026-05-16 04:10:28]     [sc2] progress: 225 done (225 ok, 0 failed) / 22500 (1.0%)
+[2026-05-16 04:14:37]     [sc2] progress: 675 done (675 ok, 0 failed) / 22500 (3.0%)
+[2026-05-16 04:16:30]     [sc2] progress: 900 done (900 ok, 0 failed) / 22500 (4.0%)
+[2026-05-16 04:20:13]     [sc2] progress: 1350 done (1350 ok, 0 failed) / 22500 (6.0%)
+[2026-05-16 04:24:03]     [sc2] progress: 1800 done (1800 ok, 0 failed) / 22500 (8.0%)
+[2026-05-16 04:25:56]     [sc2] progress: 2025 done (2025 ok, 0 failed) / 22500 (9.0%)
+[2026-05-16 04:28:36]     [sc2] progress: 2250 done (2250 ok, 0 failed) / 22500 (10.0%)
+[2026-05-16 04:31:45]     [sc2] progress: 2700 done (2700 ok, 0 failed) / 22500 (12.0%)
+[2026-05-16 04:34:08]     [sc2] progress: 2925 done (2925 ok, 0 failed) / 22500 (13.0%)
+[2026-05-16 04:36:01]     [sc2] progress: 3150 done (3150 ok, 0 failed) / 22500 (14.0%)
+[2026-05-16 04:37:40]     [sc2] progress: 3375 done (3375 ok, 0 failed) / 22500 (15.0%)
+[2026-05-16 04:39:46]     [sc2] progress: 3600 done (3600 ok, 0 failed) / 22500 (16.0%)
+[2026-05-16 04:42:05]     [sc2] progress: 3825 done (3825 ok, 0 failed) / 22500 (17.0%)
+[2026-05-16 04:45:29]     [sc2] progress: 4275 done (4275 ok, 0 failed) / 22500 (19.0%)
+[2026-05-16 04:48:10]     [sc2] progress: 4500 done (4500 ok, 0 failed) / 22500 (20.0%)
+[2026-05-16 04:49:36]     [sc2] progress: 4725 done (4725 ok, 0 failed) / 22500 (21.0%)
+[2026-05-16 04:51:19]     [sc2] progress: 4950 done (4950 ok, 0 failed) / 22500 (22.0%)
+[2026-05-16 04:53:40]     [sc2] progress: 5175 done (5175 ok, 0 failed) / 22500 (23.0%)
+[2026-05-16 04:55:32]     [sc2] progress: 5400 done (5400 ok, 0 failed) / 22500 (24.0%)
+[2026-05-16 04:59:17]     [sc2] progress: 5850 done (5850 ok, 0 failed) / 22500 (26.0%)
+[2026-05-16 05:01:35]     [sc2] progress: 6075 done (6075 ok, 0 failed) / 22500 (27.0%)
+[2026-05-16 05:03:06]     [sc2] progress: 6300 done (6300 ok, 0 failed) / 22500 (28.0%)
+[2026-05-16 05:04:56]     [sc2] progress: 6525 done (6525 ok, 0 failed) / 22500 (29.0%)
+[2026-05-16 05:08:57]     [sc2] progress: 6975 done (6975 ok, 0 failed) / 22500 (31.0%)
+[2026-05-16 05:10:44]     [sc2] progress: 7200 done (7200 ok, 0 failed) / 22500 (32.0%)
+[2026-05-16 05:13:06]     [sc2] progress: 7425 done (7425 ok, 0 failed) / 22500 (33.0%)
+[2026-05-16 05:14:59]     [sc2] progress: 7650 done (7650 ok, 0 failed) / 22500 (34.0%)
+[2026-05-16 05:18:43]     [sc2] progress: 8100 done (8100 ok, 0 failed) / 22500 (36.0%)
+[2026-05-16 05:20:59]     [sc2] progress: 8325 done (8325 ok, 0 failed) / 22500 (37.0%)
+[2026-05-16 05:22:30]     [sc2] progress: 8550 done (8550 ok, 0 failed) / 22500 (38.0%)
+[2026-05-16 05:24:20]     [sc2] progress: 8775 done (8775 ok, 0 failed) / 22500 (39.0%)
+[2026-05-16 05:26:59]     [sc2] progress: 9000 done (9000 ok, 0 failed) / 22500 (40.0%)
+[2026-05-16 05:28:25]     [sc2] progress: 9225 done (9225 ok, 0 failed) / 22500 (41.0%)
+[2026-05-16 05:30:08]     [sc2] progress: 9450 done (9450 ok, 0 failed) / 22500 (42.0%)
+[2026-05-16 05:34:24]     [sc2] progress: 9900 done (9900 ok, 0 failed) / 22500 (44.0%)
+[2026-05-16 05:36:01]     [sc2] progress: 10125 done (10125 ok, 0 failed) / 22500 (45.0%)
+[2026-05-16 05:38:10]     [sc2] progress: 10350 done (10350 ok, 0 failed) / 22500 (46.0%)
+[2026-05-16 05:40:25]     [sc2] progress: 10575 done (10575 ok, 0 failed) / 22500 (47.0%)
+[2026-05-16 05:41:58]     [sc2] progress: 10800 done (10800 ok, 0 failed) / 22500 (48.0%)
+[2026-05-16 05:46:25]     [sc2] progress: 11250 done (11250 ok, 0 failed) / 22500 (50.0%)
+[2026-05-16 05:47:52]     [sc2] progress: 11475 done (11475 ok, 0 failed) / 22500 (51.0%)
+[2026-05-16 05:49:38]     [sc2] progress: 11700 done (11700 ok, 0 failed) / 22500 (52.0%)
+[2026-05-16 05:52:00]     [sc2] progress: 11925 done (11925 ok, 0 failed) / 22500 (53.0%)
+[2026-05-16 05:53:53]     [sc2] progress: 12150 done (12150 ok, 0 failed) / 22500 (54.0%)
+[2026-05-16 05:55:33]     [sc2] progress: 12375 done (12375 ok, 0 failed) / 22500 (55.0%)
+[2026-05-16 05:57:36]     [sc2] progress: 12600 done (12600 ok, 0 failed) / 22500 (56.0%)
+[2026-05-16 05:59:53]     [sc2] progress: 12825 done (12825 ok, 0 failed) / 22500 (57.0%)
+[2026-05-16 06:01:25]     [sc2] progress: 13050 done (13050 ok, 0 failed) / 22500 (58.0%)
+[2026-05-16 06:03:15]     [sc2] progress: 13275 done (13275 ok, 0 failed) / 22500 (59.0%)
+[2026-05-16 06:05:55]     [sc2] progress: 13500 done (13500 ok, 0 failed) / 22500 (60.0%)
+[2026-05-16 06:07:19]     [sc2] progress: 13725 done (13725 ok, 0 failed) / 22500 (61.0%)
+[2026-05-16 06:09:05]     [sc2] progress: 13950 done (13950 ok, 0 failed) / 22500 (62.0%)
+[2026-05-16 06:11:28]     [sc2] progress: 14175 done (14175 ok, 0 failed) / 22500 (63.0%)
+[2026-05-16 06:13:21]     [sc2] progress: 14400 done (14400 ok, 0 failed) / 22500 (64.0%)
+[2026-05-16 06:15:00]     [sc2] progress: 14625 done (14625 ok, 0 failed) / 22500 (65.0%)
+[2026-05-16 06:17:05]     [sc2] progress: 14850 done (14850 ok, 0 failed) / 22500 (66.0%)
+[2026-05-16 06:19:20]     [sc2] progress: 15075 done (15075 ok, 0 failed) / 22500 (67.0%)
+[2026-05-16 06:20:52]     [sc2] progress: 15300 done (15300 ok, 0 failed) / 22500 (68.0%)
+[2026-05-16 06:22:42]     [sc2] progress: 15525 done (15525 ok, 0 failed) / 22500 (69.0%)
+[2026-05-16 06:25:18]     [sc2] progress: 15750 done (15750 ok, 0 failed) / 22500 (70.0%)
+[2026-05-16 06:26:44]     [sc2] progress: 15975 done (15975 ok, 0 failed) / 22500 (71.0%)
+[2026-05-16 06:28:27]     [sc2] progress: 16200 done (16200 ok, 0 failed) / 22500 (72.0%)
+[2026-05-16 06:30:49]     [sc2] progress: 16425 done (16425 ok, 0 failed) / 22500 (73.0%)
+[2026-05-16 06:32:39]     [sc2] progress: 16650 done (16650 ok, 0 failed) / 22500 (74.0%)
+[2026-05-16 06:34:18]     [sc2] progress: 16875 done (16875 ok, 0 failed) / 22500 (75.0%)
+[2026-05-16 06:36:22]     [sc2] progress: 17100 done (17100 ok, 0 failed) / 22500 (76.0%)
+[2026-05-16 06:38:40]     [sc2] progress: 17325 done (17325 ok, 0 failed) / 22500 (77.0%)
+[2026-05-16 06:40:11]     [sc2] progress: 17550 done (17550 ok, 0 failed) / 22500 (78.0%)
+[2026-05-16 06:41:59]     [sc2] progress: 17775 done (17775 ok, 0 failed) / 22500 (79.0%)
+[2026-05-16 06:46:01]     [sc2] progress: 18225 done (18225 ok, 0 failed) / 22500 (81.0%)
+[2026-05-16 06:50:08]     [sc2] progress: 18675 done (18675 ok, 0 failed) / 22500 (83.0%)
+[2026-05-16 06:53:39]     [sc2] progress: 19125 done (19125 ok, 0 failed) / 22500 (85.0%)
+[2026-05-16 06:55:45]     [sc2] progress: 19350 done (19350 ok, 0 failed) / 22500 (86.0%)
+[2026-05-16 06:58:01]     [sc2] progress: 19575 done (19575 ok, 0 failed) / 22500 (87.0%)
+[2026-05-16 06:59:34]     [sc2] progress: 19800 done (19800 ok, 0 failed) / 22500 (88.0%)
+[2026-05-16 07:01:24]     [sc2] progress: 20025 done (20025 ok, 0 failed) / 22500 (89.0%)
+[2026-05-16 07:04:05]     [sc2] progress: 20250 done (20250 ok, 0 failed) / 22500 (90.0%)
+[2026-05-16 07:05:31]     [sc2] progress: 20475 done (20475 ok, 0 failed) / 22500 (91.0%)
+[2026-05-16 07:07:14]     [sc2] progress: 20700 done (20700 ok, 0 failed) / 22500 (92.0%)
+[2026-05-16 07:09:35]     [sc2] progress: 20925 done (20925 ok, 0 failed) / 22500 (93.0%)
+[2026-05-16 07:13:09]     [sc2] progress: 21375 done (21375 ok, 0 failed) / 22500 (95.0%)
+[2026-05-16 07:15:14]     [sc2] progress: 21600 done (21600 ok, 0 failed) / 22500 (96.0%)
+[2026-05-16 07:17:32]     [sc2] progress: 21825 done (21825 ok, 0 failed) / 22500 (97.0%)
+[2026-05-16 07:20:53]     [sc2] progress: 22275 done (22275 ok, 0 failed) / 22500 (99.0%)
+[2026-05-16 07:23:43]     [sc2] progress: 22500 done (22500 ok, 0 failed) / 22500 (100.0%)
+[2026-05-16 07:23:43]   Scenario 2: 22500 completed, 0 failed.
+[2026-05-16 07:23:43]   Aggregating per-replicate RDS files...
+[2026-05-16 07:24:10]   Summary: /home/vadimtyu/Clean_Code_Running/Dissertation/Simulation_Study/outputs/summary_sc2.rds (22500 rows)
+[2026-05-16 07:24:10] === Scenario 3 ===
+[2026-05-16 07:24:10]   3750 cells, 30 reps/cell, 112500 total replicates
+[2026-05-16 07:24:11]   112500 replicates pending (resume mode)
+[2026-05-16 07:31:27]     [sc3] progress: 1125 done (1125 ok, 0 failed) / 112500 (1.0%)
+[2026-05-16 07:53:31]     [sc3] progress: 3375 done (3375 ok, 0 failed) / 112500 (3.0%)
+[2026-05-16 08:03:53]     [sc3] progress: 4500 done (4500 ok, 0 failed) / 112500 (4.0%)
+[2026-05-16 08:12:04]     [sc3] progress: 5625 done (5625 ok, 0 failed) / 112500 (5.0%)
+[2026-05-16 08:23:35]     [sc3] progress: 6750 done (6750 ok, 0 failed) / 112500 (6.0%)
+[2026-05-16 08:36:37]     [sc3] progress: 7875 done (7875 ok, 0 failed) / 112500 (7.0%)
+[2026-05-16 08:44:21]     [sc3] progress: 9000 done (9000 ok, 0 failed) / 112500 (8.0%)
+[2026-05-16 08:53:46]     [sc3] progress: 10125 done (10125 ok, 0 failed) / 112500 (9.0%)
+[2026-05-16 09:09:23]     [sc3] progress: 11250 done (11250 ok, 0 failed) / 112500 (10.0%)
+[2026-05-16 09:16:44]     [sc3] progress: 12375 done (12375 ok, 0 failed) / 112500 (11.0%)
+[2026-05-16 09:25:29]     [sc3] progress: 13500 done (13500 ok, 0 failed) / 112500 (12.0%)
+[2026-05-16 09:38:53]     [sc3] progress: 14625 done (14625 ok, 0 failed) / 112500 (13.0%)
+[2026-05-16 09:49:15]     [sc3] progress: 15750 done (15750 ok, 0 failed) / 112500 (14.0%)
+[2026-05-16 09:57:30]     [sc3] progress: 16875 done (16875 ok, 0 failed) / 112500 (15.0%)
+[2026-05-16 10:08:51]     [sc3] progress: 18000 done (18000 ok, 0 failed) / 112500 (16.0%)
+[2026-05-16 10:21:32]     [sc3] progress: 19125 done (19125 ok, 0 failed) / 112500 (17.0%)
+[2026-05-16 10:29:16]     [sc3] progress: 20250 done (20250 ok, 0 failed) / 112500 (18.0%)
+[2026-05-16 10:38:34]     [sc3] progress: 21375 done (21375 ok, 0 failed) / 112500 (19.0%)
+[2026-05-16 10:53:54]     [sc3] progress: 22500 done (22500 ok, 0 failed) / 112500 (20.0%)
+[2026-05-16 11:01:12]     [sc3] progress: 23625 done (23625 ok, 0 failed) / 112500 (21.0%)
+[2026-05-16 11:09:55]     [sc3] progress: 24750 done (24750 ok, 0 failed) / 112500 (22.0%)
+[2026-05-16 11:23:23]     [sc3] progress: 25875 done (25875 ok, 0 failed) / 112500 (23.0%)
+[2026-05-16 11:33:45]     [sc3] progress: 27000 done (27000 ok, 0 failed) / 112500 (24.0%)
+[2026-05-16 11:42:06]     [sc3] progress: 28125 done (28125 ok, 0 failed) / 112500 (25.0%)
+[2026-05-16 11:53:33]     [sc3] progress: 29250 done (29250 ok, 0 failed) / 112500 (26.0%)
+[2026-05-16 12:06:25]     [sc3] progress: 30375 done (30375 ok, 0 failed) / 112500 (27.0%)
+[2026-05-16 12:14:09]     [sc3] progress: 31500 done (31500 ok, 0 failed) / 112500 (28.0%)
+[2026-05-16 12:23:29]     [sc3] progress: 32625 done (32625 ok, 0 failed) / 112500 (29.0%)
+[2026-05-16 12:38:49]     [sc3] progress: 33750 done (33750 ok, 0 failed) / 112500 (30.0%)
+[2026-05-16 12:46:06]     [sc3] progress: 34875 done (34875 ok, 0 failed) / 112500 (31.0%)
+[2026-05-16 13:08:11]     [sc3] progress: 37125 done (37125 ok, 0 failed) / 112500 (33.0%)
+[2026-05-16 13:26:50]     [sc3] progress: 39375 done (39375 ok, 0 failed) / 112500 (35.0%)
+[2026-05-16 13:38:16]     [sc3] progress: 40500 done (40500 ok, 0 failed) / 112500 (36.0%)
+[2026-05-16 13:51:05]     [sc3] progress: 41625 done (41625 ok, 0 failed) / 112500 (37.0%)
+[2026-05-16 13:58:49]     [sc3] progress: 42750 done (42750 ok, 0 failed) / 112500 (38.0%)
+[2026-05-16 14:08:15]     [sc3] progress: 43875 done (43875 ok, 0 failed) / 112500 (39.0%)
+[2026-05-16 14:23:39]     [sc3] progress: 45000 done (45000 ok, 0 failed) / 112500 (40.0%)
+[2026-05-16 14:52:49]     [sc3] progress: 48375 done (48375 ok, 0 failed) / 112500 (43.0%)
+[2026-05-16 15:11:24]     [sc3] progress: 50625 done (50625 ok, 0 failed) / 112500 (45.0%)
+[2026-05-16 15:22:53]     [sc3] progress: 51750 done (51750 ok, 0 failed) / 112500 (46.0%)
+[2026-05-16 15:35:51]     [sc3] progress: 52875 done (52875 ok, 0 failed) / 112500 (47.0%)
+[2026-05-16 15:43:38]     [sc3] progress: 54000 done (54000 ok, 0 failed) / 112500 (48.0%)
+[2026-05-16 15:52:55]     [sc3] progress: 55125 done (55125 ok, 0 failed) / 112500 (49.0%)
+[2026-05-16 16:24:18]     [sc3] progress: 58500 done (58500 ok, 0 failed) / 112500 (52.0%)
+[2026-05-16 16:37:38]     [sc3] progress: 59625 done (59625 ok, 0 failed) / 112500 (53.0%)
+[2026-05-16 16:47:59]     [sc3] progress: 60750 done (60750 ok, 0 failed) / 112500 (54.0%)
+[2026-05-16 17:07:29]     [sc3] progress: 63000 done (63000 ok, 0 failed) / 112500 (56.0%)
+[2026-05-16 17:20:18]     [sc3] progress: 64125 done (64125 ok, 0 failed) / 112500 (57.0%)
+[2026-05-16 17:28:04]     [sc3] progress: 65250 done (65250 ok, 0 failed) / 112500 (58.0%)
+[2026-05-16 17:37:18]     [sc3] progress: 66375 done (66375 ok, 0 failed) / 112500 (59.0%)
+[2026-05-16 17:59:55]     [sc3] progress: 68625 done (68625 ok, 0 failed) / 112500 (61.0%)
+[2026-05-16 18:08:34]     [sc3] progress: 69750 done (69750 ok, 0 failed) / 112500 (62.0%)
+[2026-05-16 18:21:59]     [sc3] progress: 70875 done (70875 ok, 0 failed) / 112500 (63.0%)
+[2026-05-16 18:32:21]     [sc3] progress: 72000 done (72000 ok, 0 failed) / 112500 (64.0%)
+[2026-05-16 18:40:35]     [sc3] progress: 73125 done (73125 ok, 0 failed) / 112500 (65.0%)
+[2026-05-16 18:51:52]     [sc3] progress: 74250 done (74250 ok, 0 failed) / 112500 (66.0%)
+[2026-05-16 19:12:25]     [sc3] progress: 76500 done (76500 ok, 0 failed) / 112500 (68.0%)
+[2026-05-16 19:44:28]     [sc3] progress: 79875 done (79875 ok, 0 failed) / 112500 (71.0%)
+[2026-05-16 19:53:06]     [sc3] progress: 81000 done (81000 ok, 0 failed) / 112500 (72.0%)
+[2026-05-16 20:06:30]     [sc3] progress: 82125 done (82125 ok, 0 failed) / 112500 (73.0%)
+[2026-05-16 20:16:50]     [sc3] progress: 83250 done (83250 ok, 0 failed) / 112500 (74.0%)
+[2026-05-16 20:25:02]     [sc3] progress: 84375 done (84375 ok, 0 failed) / 112500 (75.0%)
+[2026-05-16 20:36:23]     [sc3] progress: 85500 done (85500 ok, 0 failed) / 112500 (76.0%)
+[2026-05-16 20:49:16]     [sc3] progress: 86625 done (86625 ok, 0 failed) / 112500 (77.0%)
+[2026-05-16 20:57:00]     [sc3] progress: 87750 done (87750 ok, 0 failed) / 112500 (78.0%)
+[2026-05-16 21:06:15]     [sc3] progress: 88875 done (88875 ok, 0 failed) / 112500 (79.0%)
+[2026-05-16 21:21:34]     [sc3] progress: 90000 done (90000 ok, 0 failed) / 112500 (80.0%)
+[2026-05-16 21:28:50]     [sc3] progress: 91125 done (91125 ok, 0 failed) / 112500 (81.0%)
+[2026-05-16 21:37:29]     [sc3] progress: 92250 done (92250 ok, 0 failed) / 112500 (82.0%)
+[2026-05-16 21:51:00]     [sc3] progress: 93375 done (93375 ok, 0 failed) / 112500 (83.0%)
+[2026-05-16 22:01:24]     [sc3] progress: 94500 done (94500 ok, 0 failed) / 112500 (84.0%)
+[2026-05-16 22:21:09]     [sc3] progress: 96750 done (96750 ok, 0 failed) / 112500 (86.0%)
+[2026-05-16 22:33:59]     [sc3] progress: 97875 done (97875 ok, 0 failed) / 112500 (87.0%)
+[2026-05-16 22:51:02]     [sc3] progress: 100125 done (100125 ok, 0 failed) / 112500 (89.0%)
+[2026-05-16 23:06:21]     [sc3] progress: 101250 done (101250 ok, 0 failed) / 112500 (90.0%)
+[2026-05-16 23:13:37]     [sc3] progress: 102375 done (102375 ok, 0 failed) / 112500 (91.0%)
+[2026-05-16 23:22:15]     [sc3] progress: 103500 done (103500 ok, 0 failed) / 112500 (92.0%)
+[2026-05-16 23:45:47]     [sc3] progress: 105750 done (105750 ok, 0 failed) / 112500 (94.0%)
+[2026-05-16 23:53:58]     [sc3] progress: 106875 done (106875 ok, 0 failed) / 112500 (95.0%)
+[2026-05-17 00:05:23]     [sc3] progress: 108000 done (108000 ok, 0 failed) / 112500 (96.0%)
+[2026-05-17 00:18:26]     [sc3] progress: 109125 done (109125 ok, 0 failed) / 112500 (97.0%)
+[2026-05-17 00:26:08]     [sc3] progress: 110250 done (110250 ok, 0 failed) / 112500 (98.0%)
+[2026-05-17 00:35:27]     [sc3] progress: 111375 done (111375 ok, 0 failed) / 112500 (99.0%)
+[2026-05-17 00:51:09]     [sc3] progress: 112500 done (112500 ok, 0 failed) / 112500 (100.0%)
+[2026-05-17 00:51:09]   Scenario 3: 112500 completed, 0 failed.
+[2026-05-17 00:51:09]   Aggregating per-replicate RDS files...
+[2026-05-17 00:53:25]   Summary: /home/vadimtyu/Clean_Code_Running/Dissertation/Simulation_Study/outputs/summary_sc3.rds (112500 rows)
+[2026-05-17 00:53:25] === Scenario 4 ===
+[2026-05-17 00:53:25]   3750 cells, 30 reps/cell, 112500 total replicates
+[2026-05-17 00:53:26]   112500 replicates pending (resume mode)
+[2026-05-17 01:00:45]     [sc4] progress: 1125 done (1125 ok, 0 failed) / 112500 (1.0%)
+[2026-05-17 01:09:22]     [sc4] progress: 2250 done (2250 ok, 0 failed) / 112500 (2.0%)
+[2026-05-17 01:23:02]     [sc4] progress: 3375 done (3375 ok, 0 failed) / 112500 (3.0%)
+[2026-05-17 01:33:39]     [sc4] progress: 4500 done (4500 ok, 0 failed) / 112500 (4.0%)
+[2026-05-17 01:41:47]     [sc4] progress: 5625 done (5625 ok, 0 failed) / 112500 (5.0%)
+[2026-05-17 01:53:30]     [sc4] progress: 6750 done (6750 ok, 0 failed) / 112500 (6.0%)
+[2026-05-17 02:24:10]     [sc4] progress: 10125 done (10125 ok, 0 failed) / 112500 (9.0%)
+[2026-05-17 02:40:25]     [sc4] progress: 11250 done (11250 ok, 0 failed) / 112500 (10.0%)
+[2026-05-17 02:47:42]     [sc4] progress: 12375 done (12375 ok, 0 failed) / 112500 (11.0%)
+[2026-05-17 02:56:19]     [sc4] progress: 13500 done (13500 ok, 0 failed) / 112500 (12.0%)
+[2026-05-17 03:10:19]     [sc4] progress: 14625 done (14625 ok, 0 failed) / 112500 (13.0%)
+[2026-05-17 03:20:57]     [sc4] progress: 15750 done (15750 ok, 0 failed) / 112500 (14.0%)
+[2026-05-17 03:29:07]     [sc4] progress: 16875 done (16875 ok, 0 failed) / 112500 (15.0%)
+[2026-05-17 03:40:46]     [sc4] progress: 18000 done (18000 ok, 0 failed) / 112500 (16.0%)
+[2026-05-17 03:54:04]     [sc4] progress: 19125 done (19125 ok, 0 failed) / 112500 (17.0%)
+[2026-05-17 04:11:09]     [sc4] progress: 21375 done (21375 ok, 0 failed) / 112500 (19.0%)
+[2026-05-17 04:42:54]     [sc4] progress: 24750 done (24750 ok, 0 failed) / 112500 (22.0%)
+[2026-05-17 05:07:28]     [sc4] progress: 27000 done (27000 ok, 0 failed) / 112500 (24.0%)
+[2026-05-17 05:15:39]     [sc4] progress: 28125 done (28125 ok, 0 failed) / 112500 (25.0%)
+[2026-05-17 05:27:19]     [sc4] progress: 29250 done (29250 ok, 0 failed) / 112500 (26.0%)
+[2026-05-17 05:40:42]     [sc4] progress: 30375 done (30375 ok, 0 failed) / 112500 (27.0%)
+[2026-05-17 06:21:11]     [sc4] progress: 34875 done (34875 ok, 0 failed) / 112500 (31.0%)
+[2026-05-17 06:43:33]     [sc4] progress: 37125 done (37125 ok, 0 failed) / 112500 (33.0%)
+[2026-05-17 06:54:11]     [sc4] progress: 38250 done (38250 ok, 0 failed) / 112500 (34.0%)
+[2026-05-17 07:02:20]     [sc4] progress: 39375 done (39375 ok, 0 failed) / 112500 (35.0%)
+[2026-05-17 07:13:49]     [sc4] progress: 40500 done (40500 ok, 0 failed) / 112500 (36.0%)
+[2026-05-17 07:27:03]     [sc4] progress: 41625 done (41625 ok, 0 failed) / 112500 (37.0%)
+[2026-05-17 07:34:47]     [sc4] progress: 42750 done (42750 ok, 0 failed) / 112500 (38.0%)
+[2026-05-17 07:44:10]     [sc4] progress: 43875 done (43875 ok, 0 failed) / 112500 (39.0%)
+[2026-05-17 08:00:02]     [sc4] progress: 45000 done (45000 ok, 0 failed) / 112500 (40.0%)
+[2026-05-17 08:07:18]     [sc4] progress: 46125 done (46125 ok, 0 failed) / 112500 (41.0%)
+[2026-05-17 08:29:38]     [sc4] progress: 48375 done (48375 ok, 0 failed) / 112500 (43.0%)
+[2026-05-17 08:48:22]     [sc4] progress: 50625 done (50625 ok, 0 failed) / 112500 (45.0%)
+[2026-05-17 09:00:00]     [sc4] progress: 51750 done (51750 ok, 0 failed) / 112500 (46.0%)
+[2026-05-17 09:20:56]     [sc4] progress: 54000 done (54000 ok, 0 failed) / 112500 (48.0%)
+[2026-05-17 09:30:14]     [sc4] progress: 55125 done (55125 ok, 0 failed) / 112500 (49.0%)
+[2026-05-17 09:53:29]     [sc4] progress: 57375 done (57375 ok, 0 failed) / 112500 (51.0%)
+[2026-05-17 10:02:08]     [sc4] progress: 58500 done (58500 ok, 0 failed) / 112500 (52.0%)
+[2026-05-17 10:15:47]     [sc4] progress: 59625 done (59625 ok, 0 failed) / 112500 (53.0%)
+[2026-05-17 10:46:03]     [sc4] progress: 63000 done (63000 ok, 0 failed) / 112500 (56.0%)
+[2026-05-17 10:59:13]     [sc4] progress: 64125 done (64125 ok, 0 failed) / 112500 (57.0%)
+[2026-05-17 11:16:13]     [sc4] progress: 66375 done (66375 ok, 0 failed) / 112500 (59.0%)
+[2026-05-17 11:39:22]     [sc4] progress: 68625 done (68625 ok, 0 failed) / 112500 (61.0%)
+[2026-05-17 12:01:55]     [sc4] progress: 70875 done (70875 ok, 0 failed) / 112500 (63.0%)
+[2026-05-17 12:12:30]     [sc4] progress: 72000 done (72000 ok, 0 failed) / 112500 (64.0%)
+[2026-05-17 12:20:44]     [sc4] progress: 73125 done (73125 ok, 0 failed) / 112500 (65.0%)
+[2026-05-17 12:45:41]     [sc4] progress: 75375 done (75375 ok, 0 failed) / 112500 (67.0%)
+[2026-05-17 13:02:54]     [sc4] progress: 77625 done (77625 ok, 0 failed) / 112500 (69.0%)
+[2026-05-17 13:18:56]     [sc4] progress: 78750 done (78750 ok, 0 failed) / 112500 (70.0%)
+[2026-05-17 13:34:50]     [sc4] progress: 81000 done (81000 ok, 0 failed) / 112500 (72.0%)
+[2026-05-17 13:48:37]     [sc4] progress: 82125 done (82125 ok, 0 failed) / 112500 (73.0%)
+[2026-05-17 13:59:17]     [sc4] progress: 83250 done (83250 ok, 0 failed) / 112500 (74.0%)
+[2026-05-17 14:18:38]     [sc4] progress: 85500 done (85500 ok, 0 failed) / 112500 (76.0%)
+[2026-05-17 14:30:49]     [sc4] progress: 86625 done (86625 ok, 0 failed) / 112500 (77.0%)
+[2026-05-17 14:37:50]     [sc4] progress: 87750 done (87750 ok, 0 failed) / 112500 (78.0%)
+[2026-05-17 14:46:17]     [sc4] progress: 88875 done (88875 ok, 0 failed) / 112500 (79.0%)
+[2026-05-17 15:07:22]     [sc4] progress: 91125 done (91125 ok, 0 failed) / 112500 (81.0%)
+[2026-05-17 15:15:09]     [sc4] progress: 92250 done (92250 ok, 0 failed) / 112500 (82.0%)
+[2026-05-17 15:27:38]     [sc4] progress: 93375 done (93375 ok, 0 failed) / 112500 (83.0%)
+[2026-05-17 15:37:13]     [sc4] progress: 94500 done (94500 ok, 0 failed) / 112500 (84.0%)
+[2026-05-17 15:44:36]     [sc4] progress: 95625 done (95625 ok, 0 failed) / 112500 (85.0%)
+[2026-05-17 15:55:03]     [sc4] progress: 96750 done (96750 ok, 0 failed) / 112500 (86.0%)
+[2026-05-17 16:07:08]     [sc4] progress: 97875 done (97875 ok, 0 failed) / 112500 (87.0%)
+[2026-05-17 16:14:09]     [sc4] progress: 99000 done (99000 ok, 0 failed) / 112500 (88.0%)
+[2026-05-17 16:23:11]     [sc4] progress: 100125 done (100125 ok, 0 failed) / 112500 (89.0%)
+[2026-05-17 16:39:28]     [sc4] progress: 101250 done (101250 ok, 0 failed) / 112500 (90.0%)
+[2026-05-17 16:46:51]     [sc4] progress: 102375 done (102375 ok, 0 failed) / 112500 (91.0%)
+[2026-05-17 17:09:28]     [sc4] progress: 104625 done (104625 ok, 0 failed) / 112500 (93.0%)
+[2026-05-17 17:20:10]     [sc4] progress: 105750 done (105750 ok, 0 failed) / 112500 (94.0%)
+[2026-05-17 17:28:28]     [sc4] progress: 106875 done (106875 ok, 0 failed) / 112500 (95.0%)
+[2026-05-17 17:40:14]     [sc4] progress: 108000 done (108000 ok, 0 failed) / 112500 (96.0%)
+[2026-05-17 17:53:43]     [sc4] progress: 109125 done (109125 ok, 0 failed) / 112500 (97.0%)
+[2026-05-17 18:01:33]     [sc4] progress: 110250 done (110250 ok, 0 failed) / 112500 (98.0%)
+[2026-05-17 18:11:04]     [sc4] progress: 111375 done (111375 ok, 0 failed) / 112500 (99.0%)
+[2026-05-17 18:27:21]     [sc4] progress: 112500 done (112500 ok, 0 failed) / 112500 (100.0%)
+[2026-05-17 18:27:21]   Scenario 4: 112500 completed, 0 failed.
+[2026-05-17 18:27:21]   Aggregating per-replicate RDS files...
+[2026-05-17 18:29:39]   Summary: /home/vadimtyu/Clean_Code_Running/Dissertation/Simulation_Study/outputs/summary_sc4.rds (112500 rows)
+[2026-05-17 18:29:39] === Robustness sweep over p_del ===
+[2026-05-17 18:29:39] Robustness cells: 60 total across scenarios/bands.
+[2026-05-17 18:29:39]   --- p_del = 0 ---
+[2026-05-17 18:29:39]     sc1: 450 robustness replicates pending.
+[2026-05-17 18:30:13]     [rob_p0_sc1] progress: 100 done (100 ok, 0 failed) / 450 (22.2%)
+[2026-05-17 18:30:44]     [rob_p0_sc1] progress: 200 done (200 ok, 0 failed) / 450 (44.4%)
+[2026-05-17 18:31:15]     [rob_p0_sc1] progress: 300 done (300 ok, 0 failed) / 450 (66.7%)
+[2026-05-17 18:31:30]     [rob_p0_sc1] progress: 350 done (350 ok, 0 failed) / 450 (77.8%)
+[2026-05-17 18:31:45]     [rob_p0_sc1] progress: 400 done (400 ok, 0 failed) / 450 (88.9%)
+[2026-05-17 18:31:58]     [rob_p0_sc1] progress: 450 done (450 ok, 0 failed) / 450 (100.0%)
+[2026-05-17 18:31:58]     sc1: 450 completed, 0 failed.
+[2026-05-17 18:31:59]     sc2: 450 robustness replicates pending.
+[2026-05-17 18:32:36]     [rob_p0_sc2] progress: 50 done (50 ok, 0 failed) / 450 (11.1%)
+[2026-05-17 18:33:09]     [rob_p0_sc2] progress: 100 done (100 ok, 0 failed) / 450 (22.2%)
+[2026-05-17 18:34:12]     [rob_p0_sc2] progress: 200 done (200 ok, 0 failed) / 450 (44.4%)
+[2026-05-17 18:34:47]     [rob_p0_sc2] progress: 250 done (250 ok, 0 failed) / 450 (55.6%)
+[2026-05-17 18:35:19]     [rob_p0_sc2] progress: 300 done (300 ok, 0 failed) / 450 (66.7%)
+[2026-05-17 18:35:52]     [rob_p0_sc2] progress: 350 done (350 ok, 0 failed) / 450 (77.8%)
+[2026-05-17 18:36:23]     [rob_p0_sc2] progress: 400 done (400 ok, 0 failed) / 450 (88.9%)
+[2026-05-17 18:36:56]     [rob_p0_sc2] progress: 450 done (450 ok, 0 failed) / 450 (100.0%)
+[2026-05-17 18:36:56]     sc2: 450 completed, 0 failed.
+[2026-05-17 18:36:56]     sc3: 450 robustness replicates pending.
+[2026-05-17 18:38:41]     [rob_p0_sc3] progress: 150 done (150 ok, 0 failed) / 450 (33.3%)
+[2026-05-17 18:39:45]     [rob_p0_sc3] progress: 250 done (250 ok, 0 failed) / 450 (55.6%)
+[2026-05-17 18:40:20]     [rob_p0_sc3] progress: 300 done (300 ok, 0 failed) / 450 (66.7%)
+[2026-05-17 18:40:53]     [rob_p0_sc3] progress: 350 done (350 ok, 0 failed) / 450 (77.8%)
+[2026-05-17 18:42:03]     [rob_p0_sc3] progress: 450 done (450 ok, 0 failed) / 450 (100.0%)
+[2026-05-17 18:42:03]     sc3: 450 completed, 0 failed.
+[2026-05-17 18:42:04]     sc4: 450 robustness replicates pending.
+[2026-05-17 18:42:51]     [rob_p0_sc4] progress: 50 done (50 ok, 0 failed) / 450 (11.1%)
+[2026-05-17 18:43:29]     [rob_p0_sc4] progress: 100 done (100 ok, 0 failed) / 450 (22.2%)
+[2026-05-17 18:44:13]     [rob_p0_sc4] progress: 150 done (150 ok, 0 failed) / 450 (33.3%)
+[2026-05-17 18:44:54]     [rob_p0_sc4] progress: 200 done (200 ok, 0 failed) / 450 (44.4%)
+[2026-05-17 18:46:14]     [rob_p0_sc4] progress: 300 done (300 ok, 0 failed) / 450 (66.7%)
+[2026-05-17 18:48:23]     [rob_p0_sc4] progress: 450 done (450 ok, 0 failed) / 450 (100.0%)
+[2026-05-17 18:48:23]     sc4: 450 completed, 0 failed.
+[2026-05-17 18:48:24]   --- p_del = 0.0001 ---
+[2026-05-17 18:48:24]     sc1: 450 robustness replicates pending.
+[2026-05-17 18:48:52]     [rob_p0.0001_sc1] progress: 50 done (50 ok, 0 failed) / 450 (11.1%)
+[2026-05-17 18:49:40]     [rob_p0.0001_sc1] progress: 150 done (150 ok, 0 failed) / 450 (33.3%)
+[2026-05-17 18:50:28]     [rob_p0.0001_sc1] progress: 250 done (250 ok, 0 failed) / 450 (55.6%)
+[2026-05-17 18:50:54]     [rob_p0.0001_sc1] progress: 300 done (300 ok, 0 failed) / 450 (66.7%)
+[2026-05-17 18:51:18]     [rob_p0.0001_sc1] progress: 350 done (350 ok, 0 failed) / 450 (77.8%)
+[2026-05-17 18:51:42]     [rob_p0.0001_sc1] progress: 400 done (400 ok, 0 failed) / 450 (88.9%)
+[2026-05-17 18:52:09]     [rob_p0.0001_sc1] progress: 450 done (450 ok, 0 failed) / 450 (100.0%)
+[2026-05-17 18:52:09]     sc1: 450 completed, 0 failed.
+[2026-05-17 18:52:10]     sc2: 450 robustness replicates pending.
+[2026-05-17 18:52:45]     [rob_p0.0001_sc2] progress: 50 done (50 ok, 0 failed) / 450 (11.1%)
+[2026-05-17 18:53:14]     [rob_p0.0001_sc2] progress: 100 done (100 ok, 0 failed) / 450 (22.2%)
+[2026-05-17 18:53:42]     [rob_p0.0001_sc2] progress: 150 done (150 ok, 0 failed) / 450 (33.3%)
+[2026-05-17 18:54:40]     [rob_p0.0001_sc2] progress: 250 done (250 ok, 0 failed) / 450 (55.6%)
+[2026-05-17 18:55:09]     [rob_p0.0001_sc2] progress: 300 done (300 ok, 0 failed) / 450 (66.7%)
+[2026-05-17 18:55:36]     [rob_p0.0001_sc2] progress: 350 done (350 ok, 0 failed) / 450 (77.8%)
+[2026-05-17 18:56:04]     [rob_p0.0001_sc2] progress: 400 done (400 ok, 0 failed) / 450 (88.9%)
+[2026-05-17 18:56:33]     [rob_p0.0001_sc2] progress: 450 done (450 ok, 0 failed) / 450 (100.0%)
+[2026-05-17 18:56:33]     sc2: 450 completed, 0 failed.
+[2026-05-17 18:56:34]     sc3: 450 robustness replicates pending.
+[2026-05-17 18:57:08]     [rob_p0.0001_sc3] progress: 50 done (50 ok, 0 failed) / 450 (11.1%)
+[2026-05-17 18:57:33]     [rob_p0.0001_sc3] progress: 100 done (100 ok, 0 failed) / 450 (22.2%)
+[2026-05-17 18:58:00]     [rob_p0.0001_sc3] progress: 150 done (150 ok, 0 failed) / 450 (33.3%)
+[2026-05-17 18:58:56]     [rob_p0.0001_sc3] progress: 250 done (250 ok, 0 failed) / 450 (55.6%)
+[2026-05-17 18:59:52]     [rob_p0.0001_sc3] progress: 350 done (350 ok, 0 failed) / 450 (77.8%)
+[2026-05-17 19:00:20]     [rob_p0.0001_sc3] progress: 400 done (400 ok, 0 failed) / 450 (88.9%)
+[2026-05-17 19:00:48]     [rob_p0.0001_sc3] progress: 450 done (450 ok, 0 failed) / 450 (100.0%)
+[2026-05-17 19:00:48]     sc3: 450 completed, 0 failed.
+[2026-05-17 19:00:49]     sc4: 450 robustness replicates pending.
+[2026-05-17 19:01:23]     [rob_p0.0001_sc4] progress: 50 done (50 ok, 0 failed) / 450 (11.1%)
+[2026-05-17 19:01:53]     [rob_p0.0001_sc4] progress: 100 done (100 ok, 0 failed) / 450 (22.2%)
+[2026-05-17 19:02:22]     [rob_p0.0001_sc4] progress: 150 done (150 ok, 0 failed) / 450 (33.3%)
+[2026-05-17 19:02:51]     [rob_p0.0001_sc4] progress: 200 done (200 ok, 0 failed) / 450 (44.4%)
+[2026-05-17 19:03:22]     [rob_p0.0001_sc4] progress: 250 done (250 ok, 0 failed) / 450 (55.6%)
+[2026-05-17 19:03:51]     [rob_p0.0001_sc4] progress: 300 done (300 ok, 0 failed) / 450 (66.7%)
+[2026-05-17 19:04:20]     [rob_p0.0001_sc4] progress: 350 done (350 ok, 0 failed) / 450 (77.8%)
+[2026-05-17 19:04:51]     [rob_p0.0001_sc4] progress: 400 done (400 ok, 0 failed) / 450 (88.9%)
+[2026-05-17 19:05:20]     [rob_p0.0001_sc4] progress: 450 done (450 ok, 0 failed) / 450 (100.0%)
+[2026-05-17 19:05:20]     sc4: 450 completed, 0 failed.
+[2026-05-17 19:05:21]   --- p_del = 0.001 ---
+[2026-05-17 19:05:21]     sc1: 450 robustness replicates pending.
+[2026-05-17 19:05:50]     [rob_p0.001_sc1] progress: 50 done (50 ok, 0 failed) / 450 (11.1%)
+[2026-05-17 19:06:38]     [rob_p0.001_sc1] progress: 150 done (150 ok, 0 failed) / 450 (33.3%)
+[2026-05-17 19:07:05]     [rob_p0.001_sc1] progress: 200 done (200 ok, 0 failed) / 450 (44.4%)
+[2026-05-17 19:07:28]     [rob_p0.001_sc1] progress: 250 done (250 ok, 0 failed) / 450 (55.6%)
+[2026-05-17 19:07:51]     [rob_p0.001_sc1] progress: 300 done (300 ok, 0 failed) / 450 (66.7%)
+[2026-05-17 19:08:17]     [rob_p0.001_sc1] progress: 350 done (350 ok, 0 failed) / 450 (77.8%)
+[2026-05-17 19:09:05]     [rob_p0.001_sc1] progress: 450 done (450 ok, 0 failed) / 450 (100.0%)
+[2026-05-17 19:09:05]     sc1: 450 completed, 0 failed.
+[2026-05-17 19:09:06]     sc2: 450 robustness replicates pending.
+[2026-05-17 19:09:36]     [rob_p0.001_sc2] progress: 50 done (50 ok, 0 failed) / 450 (11.1%)
+[2026-05-17 19:10:02]     [rob_p0.001_sc2] progress: 100 done (100 ok, 0 failed) / 450 (22.2%)
+[2026-05-17 19:10:28]     [rob_p0.001_sc2] progress: 150 done (150 ok, 0 failed) / 450 (33.3%)
+[2026-05-17 19:10:52]     [rob_p0.001_sc2] progress: 200 done (200 ok, 0 failed) / 450 (44.4%)
+[2026-05-17 19:11:18]     [rob_p0.001_sc2] progress: 250 done (250 ok, 0 failed) / 450 (55.6%)
+[2026-05-17 19:11:44]     [rob_p0.001_sc2] progress: 300 done (300 ok, 0 failed) / 450 (66.7%)
+[2026-05-17 19:12:35]     [rob_p0.001_sc2] progress: 400 done (400 ok, 0 failed) / 450 (88.9%)
+[2026-05-17 19:13:03]     [rob_p0.001_sc2] progress: 450 done (450 ok, 0 failed) / 450 (100.0%)
+[2026-05-17 19:13:03]     sc2: 450 completed, 0 failed.
+[2026-05-17 19:13:03]     sc3: 450 robustness replicates pending.
+[2026-05-17 19:13:37]     [rob_p0.001_sc3] progress: 50 done (50 ok, 0 failed) / 450 (11.1%)
+[2026-05-17 19:14:03]     [rob_p0.001_sc3] progress: 100 done (100 ok, 0 failed) / 450 (22.2%)
+[2026-05-17 19:15:26]     [rob_p0.001_sc3] progress: 250 done (250 ok, 0 failed) / 450 (55.6%)
+[2026-05-17 19:15:53]     [rob_p0.001_sc3] progress: 300 done (300 ok, 0 failed) / 450 (66.7%)
+[2026-05-17 19:16:21]     [rob_p0.001_sc3] progress: 350 done (350 ok, 0 failed) / 450 (77.8%)
+[2026-05-17 19:16:50]     [rob_p0.001_sc3] progress: 400 done (400 ok, 0 failed) / 450 (88.9%)
+[2026-05-17 19:17:20]     [rob_p0.001_sc3] progress: 450 done (450 ok, 0 failed) / 450 (100.0%)
+[2026-05-17 19:17:20]     sc3: 450 completed, 0 failed.
+[2026-05-17 19:17:21]     sc4: 450 robustness replicates pending.
+[2026-05-17 19:17:56]     [rob_p0.001_sc4] progress: 50 done (50 ok, 0 failed) / 450 (11.1%)
+[2026-05-17 19:18:25]     [rob_p0.001_sc4] progress: 100 done (100 ok, 0 failed) / 450 (22.2%)
+[2026-05-17 19:18:55]     [rob_p0.001_sc4] progress: 150 done (150 ok, 0 failed) / 450 (33.3%)
+[2026-05-17 19:19:24]     [rob_p0.001_sc4] progress: 200 done (200 ok, 0 failed) / 450 (44.4%)
+[2026-05-17 19:20:24]     [rob_p0.001_sc4] progress: 300 done (300 ok, 0 failed) / 450 (66.7%)
+[2026-05-17 19:21:24]     [rob_p0.001_sc4] progress: 400 done (400 ok, 0 failed) / 450 (88.9%)
+[2026-05-17 19:21:59]     [rob_p0.001_sc4] progress: 450 done (450 ok, 0 failed) / 450 (100.0%)
+[2026-05-17 19:21:59]     sc4: 450 completed, 0 failed.
+[2026-05-17 19:21:59]   --- p_del = 0.01 ---
+[2026-05-17 19:21:59]     sc1: 450 robustness replicates pending.
+[2026-05-17 19:22:30]     [rob_p0.01_sc1] progress: 50 done (50 ok, 0 failed) / 450 (11.1%)
+[2026-05-17 19:22:54]     [rob_p0.01_sc1] progress: 100 done (100 ok, 0 failed) / 450 (22.2%)
+[2026-05-17 19:23:19]     [rob_p0.01_sc1] progress: 150 done (150 ok, 0 failed) / 450 (33.3%)
+[2026-05-17 19:23:43]     [rob_p0.01_sc1] progress: 200 done (200 ok, 0 failed) / 450 (44.4%)
+[2026-05-17 19:24:08]     [rob_p0.01_sc1] progress: 250 done (250 ok, 0 failed) / 450 (55.6%)
+[2026-05-17 19:24:34]     [rob_p0.01_sc1] progress: 300 done (300 ok, 0 failed) / 450 (66.7%)
+[2026-05-17 19:25:53]     [rob_p0.01_sc1] progress: 450 done (450 ok, 0 failed) / 450 (100.0%)
+[2026-05-17 19:25:53]     sc1: 450 completed, 0 failed.
+[2026-05-17 19:25:53]     sc2: 450 robustness replicates pending.
+[2026-05-17 19:26:27]     [rob_p0.01_sc2] progress: 50 done (50 ok, 0 failed) / 450 (11.1%)
+[2026-05-17 19:26:56]     [rob_p0.01_sc2] progress: 100 done (100 ok, 0 failed) / 450 (22.2%)
+[2026-05-17 19:27:22]     [rob_p0.01_sc2] progress: 150 done (150 ok, 0 failed) / 450 (33.3%)
+[2026-05-17 19:27:52]     [rob_p0.01_sc2] progress: 200 done (200 ok, 0 failed) / 450 (44.4%)
+[2026-05-17 19:28:19]     [rob_p0.01_sc2] progress: 250 done (250 ok, 0 failed) / 450 (55.6%)
+[2026-05-17 19:28:47]     [rob_p0.01_sc2] progress: 300 done (300 ok, 0 failed) / 450 (66.7%)
+[2026-05-17 19:29:16]     [rob_p0.01_sc2] progress: 350 done (350 ok, 0 failed) / 450 (77.8%)
+[2026-05-17 19:30:13]     [rob_p0.01_sc2] progress: 450 done (450 ok, 0 failed) / 450 (100.0%)
+[2026-05-17 19:30:13]     sc2: 450 completed, 0 failed.
+[2026-05-17 19:30:14]     sc3: 450 robustness replicates pending.
+[2026-05-17 19:31:14]     [rob_p0.01_sc3] progress: 100 done (100 ok, 0 failed) / 450 (22.2%)
+[2026-05-17 19:31:43]     [rob_p0.01_sc3] progress: 150 done (150 ok, 0 failed) / 450 (33.3%)
+[2026-05-17 19:32:09]     [rob_p0.01_sc3] progress: 200 done (200 ok, 0 failed) / 450 (44.4%)
+[2026-05-17 19:32:37]     [rob_p0.01_sc3] progress: 250 done (250 ok, 0 failed) / 450 (55.6%)
+[2026-05-17 19:33:05]     [rob_p0.01_sc3] progress: 300 done (300 ok, 0 failed) / 450 (66.7%)
+[2026-05-17 19:33:35]     [rob_p0.01_sc3] progress: 350 done (350 ok, 0 failed) / 450 (77.8%)
+[2026-05-17 19:34:36]     [rob_p0.01_sc3] progress: 450 done (450 ok, 0 failed) / 450 (100.0%)
+[2026-05-17 19:34:36]     sc3: 450 completed, 0 failed.
+[2026-05-17 19:34:37]     sc4: 450 robustness replicates pending.
+[2026-05-17 19:35:15]     [rob_p0.01_sc4] progress: 50 done (50 ok, 0 failed) / 450 (11.1%)
+[2026-05-17 19:35:47]     [rob_p0.01_sc4] progress: 100 done (100 ok, 0 failed) / 450 (22.2%)
+[2026-05-17 19:36:19]     [rob_p0.01_sc4] progress: 150 done (150 ok, 0 failed) / 450 (33.3%)
+[2026-05-17 19:36:50]     [rob_p0.01_sc4] progress: 200 done (200 ok, 0 failed) / 450 (44.4%)
+[2026-05-17 19:37:22]     [rob_p0.01_sc4] progress: 250 done (250 ok, 0 failed) / 450 (55.6%)
+[2026-05-17 19:37:54]     [rob_p0.01_sc4] progress: 300 done (300 ok, 0 failed) / 450 (66.7%)
+[2026-05-17 19:38:26]     [rob_p0.01_sc4] progress: 350 done (350 ok, 0 failed) / 450 (77.8%)
+[2026-05-17 19:38:57]     [rob_p0.01_sc4] progress: 400 done (400 ok, 0 failed) / 450 (88.9%)
+[2026-05-17 19:39:36]     [rob_p0.01_sc4] progress: 450 done (450 ok, 0 failed) / 450 (100.0%)
+[2026-05-17 19:39:36]     sc4: 450 completed, 0 failed.
+[2026-05-17 19:39:37] All scenarios complete.
+[2026-05-17 19:39:37] === Final detection summary ===
+
+=== Scenario 1 ===
+        
+         detected   NA
+  large      1500    0
+  medium     1495    5
+  small      1462   38
+
+band         median(det)     mean(det)
+large                 26         30.25
+medium                30         38.44
+small                 13         16.31
+(all)                 21         28.42
+
+Detection rate: 4457 / 4500 (99.0%)
+
+=== Scenario 2 ===
+        
+         detected   NA
+  large      7500    0
+  medium     7194  306
+  small      4350 3150
+
+band         median(det)     mean(det)
+large                 36         37.19
+medium              42.5         65.04
+small                 29         40.15
+(all)                 34         48.39
+
+Detection rate: 19044 / 22500 (84.6%)
+
+=== Scenario 3 ===
+        
+         detected    NA
+  large     37500     0
+  medium    34913  2587
+  small     12709 24791
+
+band         median(det)     mean(det)
+large                 40         42.29
+medium                20          61.6
+small                 36         49.43
+(all)                 35         51.27
+
+Detection rate: 85122 / 112500 (75.7%)
+
+=== Scenario 4 ===
+        
+         detected    NA
+  large     37500     0
+  medium    29988  7512
+  small      6486 31014
+
+band         median(det)     mean(det)
+large                 47         49.46
+medium                20         69.89
+small                 34         46.06
+(all)                 36         57.44
+
+Detection rate: 73974 / 112500 (65.8%)
+
+=== Overall (all scenarios) ===
+        
+         detected    NA
+  large     84000     0
+  medium    73590 10410
+  small     25007 58993
+
+band         median(det)     mean(det)
+large                 43         44.82
+medium                21         64.84
+small                 32            45
+(all)                 35         52.91
+
+Detection rate: 182597 / 252000 (72.5%)
