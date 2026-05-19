@@ -11,12 +11,14 @@ Compare/
 /doc/
 /Meta/
 output/
-analysis/simulation_study.R
 analysis/GISAID_data_preprocessing/*.rds
 analysis/GISAID_data_preprocessing/*.fasta
 analysis/GISAID_data_preprocessing/*.fasta.gz
 analysis/Entropy_Partitioning_Study/Temporal_Site_EDA/outputs/partitions/GISAID_US_Part_List.rds
-analysis/Sample_Size_Simulation_Study/
+analysis/Sample_Size_Simulation_Study/Archive/
+analysis/Sample_Size_Simulation_Study/README_cache/
+analysis/Sample_Size_Simulation_Study/Explore_NAs
+analysis/Sample_Size_Simulation_Study/.RData
 analysis/Correlation_Analysis/outputs/GISAID_US_distance_matrices.rds
 analysis/Correlation_Analysis/outputs/GISAID_US_mantel_results.rds
 analysis/Correlation_Analysis/outputs/NCBI_US_distance_matrices.rds
