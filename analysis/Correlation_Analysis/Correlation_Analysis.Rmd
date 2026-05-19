@@ -1,0 +1,703 @@
+---
+title: "Gower Distance Matrix Correlation Between Full 1,273-Site and GMM Entropy-Reduced Representations of SARS-CoV-2 Spike Protein Sequences"
+author: "Vadim Tyuryaev, Jane Heffernan, Hanna Jankowski"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    number_sections: true
+    df_print: paged
+    theme: flatly
+    highlight: tango
+    includes:
+      in_header: meta_correlation_analysis.html
+bibliography: references_correlation.bib
+nocite: '@*'
+---
+
+# Overview
+
+The ViralEntropR pipeline reduces the dimensionality of SARS-CoV-2 Spike
+protein sequence data from 1,273 sites to a compact subset selected by
+Gaussian mixture model (GMM) clustering of per-site Shannon entropy. A
+central question for the validity of this reduction is how faithfully the
+pairwise sequence relationships encoded in the full distance matrix are
+preserved after dimensionality reduction. This script addresses that question
+directly via the Mantel test — a permutation-based procedure that quantifies
+the correlation between two distance matrices.
+
+Gower distance matrices are computed on deduplicated unique sequence
+haplotypes, both from the full 1,273-site representation (reference) and from
+progressively expanded GMM entropy-reduced subsets. Site selection begins with
+the single highest-entropy GMM class (class 1 after relabeling, where class 1
+always denotes the highest-entropy group) and accumulates successively
+lower-entropy classes through k = 1, 2, ..., N − 1, where N is the total
+number of fitted GMM components and the lowest-entropy class is excluded as it
+carries minimal evolutionary signal. For each k, a Pearson Mantel test
+quantifies the correlation between the reduced and full distance matrices. At
+the value of k achieving the maximum Pearson correlation, a Spearman Mantel
+test is additionally computed as a non-parametric confirmation robust to
+distributional assumptions.
+
+Both NCBI US (January 2020 to September 2021, 109,536 sequences) and GISAID
+US (March 2020 to June 2022, 129,371 sequences) post-processed datasets are
+analysed independently. Preprocessing pipelines for both datasets are documented
+separately: the NCBI pipeline is described in the `preprocessing_pipeline`
+package vignette
+(`vignette("preprocessing_pipeline", package = "ViralEntropR")`), and the GISAID
+pipeline is recorded in
+`analysis/GISAID_data_preprocessing/GISAID_Preprocessing_Pipeline.Rmd`.
+
+All Mantel permutation tests are parallelised across available server cores.
+Reduced distance matrices are written to disk incrementally — one per k
+iteration — and removed from the R workspace immediately, so that peak memory
+at any point equals `dist_full` plus a single `dist_red`, not the entire
+collection. For GISAID US, where near-total sequence uniqueness (129,345 of
+129,371 sequences) makes a full pairwise distance matrix infeasible (~67 GB),
+a fixed random subsample of `N_MAX_UNIQUE` unique haplotypes is drawn
+(reproducibly, via `set.seed(42L)`) before distance computation. The
+comparison remains full 1,273-site vs entropy-reduced — both matrices are
+computed on the same subsample — and the subsampling is documented
+transparently in the results. Results are summarised numerically and
+visualised as a faceted publication-quality figure.
+
+# Setup
+
+## Libraries
+
+```{r libraries, message=FALSE, warning=FALSE}
+
+library(ViralEntropR)
+library(vegan)         # mantel()
+library(cluster)       # daisy()
+library(data.table)    # fast deduplication
+library(tictoc)        # tic() / toc()
+library(ggplot2)
+library(scales)
+library(here)
+
+```
+
+## Global Configuration
+
+```{r configuration}
+
+# ---------------------------------------------------------------------------
+# All user-facing parameters are gathered here.
+# ---------------------------------------------------------------------------
+
+N_PERM       <- 9999L    # permutations per Mantel test (publication standard)
+N_MAX_UNIQUE <- 10000L   # maximum unique sequences for Gower distance computation.
+                         # Applied only when unique count exceeds this value
+                         # (currently GISAID US: 129,345 unique sequences).
+                         # NCBI US (8,155 unique) is unaffected.
+SUBSAMPLE_SEED <- 42L    # reproducibility seed for subsampling
+
+OUT_DIR <- here("analysis", "Correlation_Analysis", "outputs")
+dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
+
+# ---------------------------------------------------------------------------
+# Core count: runtime RAM check (Linux /proc/meminfo).
+# Each vegan::mantel() worker forks approximately 1.5 GB (two distance
+# vectors + permutation overhead). Cap at 64 workers — diminishing returns
+# from vegan's internal mclapply beyond that for 9999 permutations.
+# ---------------------------------------------------------------------------
+ram_available_gb <- tryCatch({
+  as.numeric(system(
+    "awk '/MemAvailable/ {print $2}' /proc/meminfo",
+    intern = TRUE
+  )) / 1e6
+}, error = function(e) {
+  warning("Could not read /proc/meminfo. Defaulting to 64 GB available RAM.")
+  64
+})
+
+worker_ram_gb <- 3.5
+N_CORES <- min(
+  32L,
+  floor(ram_available_gb / worker_ram_gb) - 4L
+)
+N_CORES <- max(1L, N_CORES)
+
+cat(sprintf("Available RAM:              %.1f GB\n", ram_available_gb))
+cat(sprintf("Est. RAM per worker:        %.1f GB\n", worker_ram_gb))
+cat(sprintf("Cores for Mantel tests:     %d\n",      N_CORES))
+cat(sprintf("Permutations:               %d\n",      N_PERM))
+cat(sprintf("Max unique seqs (Gower):    %d\n",      N_MAX_UNIQUE))
+cat(sprintf("Subsample seed:             %d\n",      SUBSAMPLE_SEED))
+cat(sprintf("Output directory:           %s\n",      OUT_DIR))
+
+```
+
+## Dataset Configurations
+
+```{r dataset-configs}
+
+# Each entry specifies: display label, path to preprocessed RDS, and output
+# paths for the distance matrix list and Mantel results.
+datasets <- list(
+
+  NCBI_US = list(
+    label        = "NCBI US",
+    rds_path     = here("NCBI_US_unaligned_feature_matrix_1273aa.rds"),
+    dist_rds     = file.path(OUT_DIR, "NCBI_US_distance_matrices.rds"),
+    results_rds  = file.path(OUT_DIR, "NCBI_US_mantel_results.rds")
+  ),
+
+  GISAID_US = list(
+    label        = "GISAID US",
+    rds_path     = here("GISAID_US_aligned_feature_matrix_1273aa.rds"),
+    dist_rds     = file.path(OUT_DIR, "GISAID_US_distance_matrices.rds"),
+    results_rds  = file.path(OUT_DIR, "GISAID_US_mantel_results.rds")
+  )
+
+)
+
+```
+
+## Helper Functions
+
+```{r helpers}
+
+# Runs a single Mantel test with timing output.
+# Arguments:
+#   dist_full : full reference Gower distance matrix
+#   dist_red  : reduced Gower distance matrix
+#   method    : "pearson" or "spearman"
+#   n_perm    : number of permutations
+#   n_cores   : parallel workers
+#   label     : descriptive label for the tictoc message
+run_mantel <- function(dist_full, dist_red, method, n_perm, n_cores,
+                       label = "") {
+  tic(sprintf("Mantel [%s] %s", toupper(method), label))
+  res <- vegan::mantel(
+    xdis         = dist_full,
+    ydis         = dist_red,
+    method       = method,
+    permutations = n_perm,
+    parallel     = n_cores
+  )
+  toc()
+  res
+}
+
+```
+
+# Analysis — NCBI US and GISAID US
+
+Both datasets are processed sequentially. Within each dataset, Mantel tests
+are parallelised across `r N_CORES` cores. Reduced distance matrices are
+saved to disk incrementally after each k iteration and removed from the R
+workspace immediately — peak memory at any point is `dist_full` plus a single
+`dist_red`. The lowest GMM entropy class (class N after relabeling) is
+excluded from the accumulation sweep.
+
+```{r main-analysis, message=FALSE, warning=FALSE}
+
+# Storage for all results — populated across the dataset loop.
+all_results <- list()
+
+for (ds_key in names(datasets)) {
+
+  ds <- datasets[[ds_key]]
+
+  # =========================================================================
+  # Checkpoint: skip if results already exist for this dataset.
+  # =========================================================================
+  if (file.exists(ds$results_rds)) {
+    message(sprintf("\n[%s] Checkpoint found — loading saved results.", ds$label))
+    all_results[[ds_key]] <- readRDS(ds$results_rds)
+    next
+  }
+
+  message(sprintf(
+    "\n%s\n[%s] Starting analysis\n%s",
+    strrep("=", 60L), ds$label, strrep("=", 60L)
+  ))
+
+  # =========================================================================
+  # Step 1: Load preprocessed data
+  # =========================================================================
+  tic(sprintf("[%s] Load data", ds$label))
+  AL_df <- readRDS(ds$rds_path)
+  toc()
+
+  # Retain site columns only — select by name to guard against column order
+  # differences between NCBI and GISAID preprocessed matrices.
+  site_cols  <- setdiff(colnames(AL_df), c("Date", "Country"))
+  AL_df      <- AL_df[, site_cols, drop = FALSE]
+  N_SITES_DS <- ncol(AL_df)
+  cat(sprintf("[%s] Site columns retained: %d | Sequences: %d\n",
+              ds$label, N_SITES_DS, nrow(AL_df)))
+
+  # =========================================================================
+  # Step 2: Shannon entropy and GMM clustering
+  # Entropy is computed on the full dataset before any deduplication or
+  # subsampling — it must reflect the population-level site variability.
+  # =========================================================================
+  tic(sprintf("[%s] Entropy computation", ds$label))
+  entrp_full <- apply(AL_df, 2L, calculate_entropy)
+  toc()
+
+  # GMM: relabel so class 1 = highest-entropy group throughout.
+  tic(sprintf("[%s] GMM clustering + relabeling", ds$label))
+  clust_obj <- cluster_sites_by_entropy(entrp_full, nr = nrow(AL_df))
+  clust_rl  <- relabel_entropy_classes(clust_obj$DataFrame)
+  N_classes <- max(clust_rl$class[clust_rl$class != 999L])
+  toc()
+
+  cat(sprintf("[%s] GMM fitted %d entropy classes (sentinel 999 excluded).\n",
+              ds$label, N_classes))
+
+  # Pre-compute site indices per class for O(1) lookup in the k-loop.
+  class_to_sites <- lapply(seq_len(N_classes), function(cl)
+    sort(clust_rl$sites[clust_rl$class == cl])
+  )
+  names(class_to_sites) <- as.character(seq_len(N_classes))
+
+  rm(entrp_full, clust_obj, clust_rl); gc()
+
+  # =========================================================================
+  # Step 3: Deduplication
+  # Uses data.table for memory-efficient identification of unique rows.
+  # =========================================================================
+  tic(sprintf("[%s] Deduplication", ds$label))
+  setDT(AL_df)
+  unique_idx   <- which(!duplicated(AL_df))
+  AL_df_unique <- as.data.frame(AL_df[unique_idx, ])
+  rm(AL_df); gc()
+  n_unique <- nrow(AL_df_unique)
+  cat(sprintf("[%s] Unique sequences: %d (from %d total)\n",
+              ds$label, n_unique, length(unique_idx)))
+  toc()
+
+  # =========================================================================
+  # Step 3b: Subsampling (GISAID only — applied when unique count > N_MAX_UNIQUE)
+  #
+  # GISAID US has 129,345 unique sequences out of 129,371 total — near-total
+  # uniqueness. A full pairwise Gower distance matrix for 129,345 sequences
+  # requires ~67 GB, exceeding server RAM. A reproducible random subsample of
+  # N_MAX_UNIQUE sequences is drawn; both dist_full and all dist_red are
+  # computed on the same subsample, preserving the validity of the comparison.
+  # =========================================================================
+  subsampled <- FALSE
+  if (n_unique > N_MAX_UNIQUE) {
+    set.seed(SUBSAMPLE_SEED)
+    subsample_idx <- sample(n_unique, N_MAX_UNIQUE)
+    AL_df_unique  <- AL_df_unique[subsample_idx, , drop = FALSE]
+    subsampled    <- TRUE
+    cat(sprintf(
+      "[%s] Subsampled %d unique sequences to %d (seed = %d) for Gower computation.\n",
+      ds$label, n_unique, N_MAX_UNIQUE, SUBSAMPLE_SEED
+    ))
+    gc()
+  }
+
+  # =========================================================================
+  # Step 4: Full Gower distance matrix (reference; computed once per dataset)
+  # =========================================================================
+  n_for_gower <- nrow(AL_df_unique)
+  est_mb <- (n_for_gower * (n_for_gower - 1L) / 2L * 8L) / 1e6
+
+  tic(sprintf("[%s] Full Gower distance matrix (%d sites, %d seqs, est. %.0f MB)",
+              ds$label, N_SITES_DS, n_for_gower, est_mb))
+  AL_full_fac <- AL_df_unique
+  AL_full_fac[] <- lapply(AL_full_fac, as.factor)
+  dist_full <- cluster::daisy(AL_full_fac, metric = "gower")
+  rm(AL_full_fac); gc()
+  cat(sprintf("[%s] dist_full: %.1f MB\n",
+              ds$label, as.numeric(object.size(dist_full)) / 1e6))
+  toc()
+
+  # Initialise the distance list RDS with dist_full only.
+  # Reduced matrices are appended one-at-a-time inside the k-loop.
+  # This prevents accumulation of all matrices in RAM simultaneously.
+  saveRDS(list(dist_full = dist_full), ds$dist_rds)
+  message(sprintf("[%s] dist_full saved to: %s", ds$label, ds$dist_rds))
+
+  # =========================================================================
+  # Step 5: Pearson Mantel sweep — k = 1 to N_classes - 1
+  #
+  # At each k:
+  #   - Sites = union of GMM classes 1:k (class 1 = highest entropy).
+  #   - Reduced Gower distance matrix computed from those sites.
+  #   - dist_red appended to the RDS checkpoint immediately, then removed
+  #     from the R workspace — peak RAM = dist_full + one dist_red.
+  #   - Pearson Mantel test run against dist_full.
+  #
+  # The lowest-entropy class (class N_classes) is excluded from the sweep.
+  # =========================================================================
+  pearson_results <- vector("list", N_classes - 1L)
+
+  for (k in seq_len(N_classes - 1L)) {
+
+    # Accumulate sites from classes 1 through k.
+    sites_k   <- sort(unique(unlist(class_to_sites[seq_len(k)])))
+    n_sites_k <- length(sites_k)
+
+    cat(sprintf("[%s] k = %d | %d sites (classes 1:%d)\n",
+                ds$label, k, n_sites_k, k))
+
+    # Reduced feature matrix.
+    AL_red_fac <- AL_df_unique[, as.character(sites_k), drop = FALSE]
+    AL_red_fac[] <- lapply(AL_red_fac, as.factor)
+
+    tic(sprintf("[%s] Reduced Gower k = %d", ds$label, k))
+    dist_red <- cluster::daisy(AL_red_fac, metric = "gower")
+    toc()
+    rm(AL_red_fac); gc()
+
+    # Append dist_red to the RDS checkpoint BEFORE running the Mantel test.
+    # Reload, append, overwrite — only one dist_red is in RAM during append.
+    dist_list_tmp <- readRDS(ds$dist_rds)
+    dist_list_tmp[[paste0("k", k)]] <- list(
+      k        = k,
+      sites_k  = sites_k,
+      classes  = seq_len(k),
+      dist_red = dist_red
+    )
+    saveRDS(dist_list_tmp, ds$dist_rds)
+    rm(dist_list_tmp); gc()
+
+    # Pearson Mantel test.
+    mantel_p <- run_mantel(
+      dist_full = dist_full,
+      dist_red  = dist_red,
+      method    = "pearson",
+      n_perm    = N_PERM,
+      n_cores   = N_CORES,
+      label     = sprintf("%s k=%d", ds$label, k)
+    )
+
+    pearson_results[[k]] <- list(
+      k          = k,
+      n_sites    = n_sites_k,
+      classes    = seq_len(k),
+      r_pearson  = mantel_p$statistic,
+      p_pearson  = mantel_p$signif,
+      mantel_obj = mantel_p
+    )
+
+    cat(sprintf("[%s] k = %d | Pearson r = %.4f, p = %.4f\n",
+                ds$label, k,
+                pearson_results[[k]]$r_pearson,
+                pearson_results[[k]]$p_pearson))
+
+    rm(dist_red, mantel_p); gc()
+  }
+
+  message(sprintf("[%s] Distance matrix list complete: %s", ds$label, ds$dist_rds))
+
+  # =========================================================================
+  # Step 6: Identify optimal k(s) — maximum Pearson r
+  # =========================================================================
+  r_vals <- vapply(pearson_results, `[[`, numeric(1L), "r_pearson")
+  r_max  <- max(r_vals)
+  k_opt  <- which(r_vals == r_max)
+
+  cat(sprintf(
+    "[%s] Maximum Pearson r = %.4f at k = %s (n_sites = %s)\n",
+    ds$label, r_max,
+    paste(k_opt, collapse = ", "),
+    paste(vapply(pearson_results[k_opt],
+                 `[[`, numeric(1L), "n_sites"),
+          collapse = ", ")
+  ))
+
+  # =========================================================================
+  # Step 7: Spearman Mantel at optimal k(s) only.
+  # Reduced matrices are reloaded from the saved RDS — dist_full is the only
+  # large object held in memory at this stage.
+  # =========================================================================
+  spearman_results <- vector("list", length(k_opt))
+
+  for (j in seq_along(k_opt)) {
+
+    k <- k_opt[j]
+    cat(sprintf("[%s] Spearman Mantel at optimal k = %d\n", ds$label, k))
+
+    dist_list_loaded <- readRDS(ds$dist_rds)
+    dist_red_k       <- dist_list_loaded[[paste0("k", k)]]$dist_red
+    rm(dist_list_loaded); gc()
+
+    mantel_s <- run_mantel(
+      dist_full = dist_full,
+      dist_red  = dist_red_k,
+      method    = "spearman",
+      n_perm    = N_PERM,
+      n_cores   = N_CORES,
+      label     = sprintf("%s k=%d Spearman", ds$label, k)
+    )
+
+    spearman_results[[j]] <- list(
+      k          = k,
+      n_sites    = pearson_results[[k]]$n_sites,
+      classes    = pearson_results[[k]]$classes,
+      r_spearman = mantel_s$statistic,
+      p_spearman = mantel_s$signif,
+      mantel_obj = mantel_s
+    )
+
+    cat(sprintf("[%s] k = %d | Spearman r = %.4f, p = %.4f\n",
+                ds$label, k,
+                spearman_results[[j]]$r_spearman,
+                spearman_results[[j]]$p_spearman))
+
+    rm(dist_red_k, mantel_s); gc()
+  }
+
+  # Release dist_full and unique sequence matrix before next dataset.
+  rm(dist_full, AL_df_unique); gc()
+
+  # =========================================================================
+  # Step 8: Save Mantel results checkpoint
+  # =========================================================================
+  result_obj <- list(
+    dataset          = ds$label,
+    N_classes        = N_classes,
+    N_sites          = N_SITES_DS,
+    n_unique_total   = n_unique,
+    n_used_gower     = n_for_gower,
+    subsampled       = subsampled,
+    subsample_seed   = if (subsampled) SUBSAMPLE_SEED else NA_integer_,
+    class_to_sites   = class_to_sites,
+    pearson_results  = pearson_results,
+    spearman_results = spearman_results,
+    k_optimal        = k_opt,
+    r_max_pearson    = r_max
+  )
+
+  saveRDS(result_obj, ds$results_rds)
+  message(sprintf("[%s] Mantel results saved: %s", ds$label, ds$results_rds))
+
+  all_results[[ds_key]] <- result_obj
+
+  rm(result_obj, pearson_results, spearman_results,
+     class_to_sites, unique_idx, r_vals,
+     n_unique, n_for_gower, subsampled); gc()
+
+}   # end dataset loop
+
+```
+
+# Results Summary
+
+```{r results-summary}
+
+for (ds_key in names(all_results)) {
+
+  res <- all_results[[ds_key]]
+  cat(sprintf("\n%s\n%s — Summary\n%s\n",
+              strrep("-", 50L), res$dataset, strrep("-", 50L)))
+  cat(sprintf("  GMM classes fitted:      %d\n",  res$N_classes))
+  cat(sprintf("  Unique sequences total:  %d\n",  res$n_unique_total))
+  cat(sprintf("  Sequences used (Gower):  %d%s\n", res$n_used_gower,
+              if (isTRUE(res$subsampled))
+                sprintf(" (subsampled, seed = %d)", res$subsample_seed)
+              else " (all unique)"))
+  cat(sprintf("  Optimal k(s):            %s\n",
+              paste(res$k_optimal, collapse = ", ")))
+  cat(sprintf("  Maximum Pearson r:       %.4f\n", res$r_max_pearson))
+
+  for (j in seq_along(res$spearman_results)) {
+    sp <- res$spearman_results[[j]]
+    cat(sprintf(
+      "  Spearman r at k=%d:      %.4f (p = %.4f, n_sites = %d)\n",
+      sp$k, sp$r_spearman, sp$p_spearman, sp$n_sites
+    ))
+  }
+
+  cat("\n  Pearson r by k:\n")
+  for (pr in res$pearson_results) {
+    flag <- if (pr$k %in% res$k_optimal) " <-- optimal" else ""
+    cat(sprintf("    k = %2d | n_sites = %3d | r = %.4f | p = %.4f%s\n",
+                pr$k, pr$n_sites, pr$r_pearson, pr$p_pearson, flag))
+  }
+}
+
+```
+
+# Visualisation
+
+```{r visualisation, fig.width=12, fig.height=10, message=FALSE, warning=FALSE}
+
+# ---------------------------------------------------------------------------
+# Assemble long-format data frames for ggplot2
+# ---------------------------------------------------------------------------
+
+pearson_plot_df <- do.call(rbind, lapply(names(all_results), function(ds_key) {
+  res <- all_results[[ds_key]]
+  do.call(rbind, lapply(res$pearson_results, function(x) {
+    data.frame(
+      dataset    = res$dataset,
+      k          = x$k,
+      n_sites    = x$n_sites,
+      r_pearson  = x$r_pearson,
+      p_pearson  = x$p_pearson,
+      is_optimal = x$k %in% res$k_optimal,
+      subsampled = isTRUE(res$subsampled),
+      stringsAsFactors = FALSE
+    )
+  }))
+}))
+
+spearman_plot_df <- do.call(rbind, lapply(names(all_results), function(ds_key) {
+  res <- all_results[[ds_key]]
+  do.call(rbind, lapply(res$spearman_results, function(x) {
+    data.frame(
+      dataset    = res$dataset,
+      k          = x$k,
+      n_sites    = x$n_sites,
+      r_spearman = x$r_spearman,
+      p_spearman = x$p_spearman,
+      stringsAsFactors = FALSE
+    )
+  }))
+}))
+
+annotation_df <- merge(
+  pearson_plot_df[pearson_plot_df$is_optimal, ],
+  spearman_plot_df[, c("dataset", "k", "r_spearman", "p_spearman")],
+  by    = c("dataset", "k"),
+  all.x = TRUE
+)
+annotation_df$label <- sprintf(
+  "r[S] == %.3f\np == %.4f",
+  annotation_df$r_spearman,
+  annotation_df$p_spearman
+)
+
+# Facet label: append subsampling note where applicable
+facet_labels <- vapply(names(all_results), function(ds_key) {
+  res <- all_results[[ds_key]]
+  if (isTRUE(res$subsampled))
+    sprintf("%s\n(subsampled to %s unique sequences)",
+            res$dataset, format(res$n_used_gower, big.mark = ","))
+  else
+    sprintf("%s\n(%s unique sequences)",
+            res$dataset, format(res$n_used_gower, big.mark = ","))
+}, character(1L))
+names(facet_labels) <- vapply(all_results, `[[`, character(1L), "dataset")
+pearson_plot_df$facet_label <- facet_labels[pearson_plot_df$dataset]
+annotation_df$facet_label   <- facet_labels[annotation_df$dataset]
+
+# ---------------------------------------------------------------------------
+# Colour palette
+# ---------------------------------------------------------------------------
+ds_colours <- c(
+  "NCBI US"   = "#004B9E",
+  "GISAID US" = "#D9A400"
+)
+
+# ---------------------------------------------------------------------------
+# Build plot
+# ---------------------------------------------------------------------------
+p <- ggplot(pearson_plot_df,
+            aes(x = k, y = r_pearson, colour = dataset, group = dataset)) +
+
+  geom_line(linewidth = 1.2) +
+
+  geom_point(aes(shape = is_optimal), size = 3.5) +
+  scale_shape_manual(
+    values = c(`FALSE` = 16, `TRUE` = 18),
+    guide  = "none"
+  ) +
+
+  geom_vline(
+    data      = annotation_df,
+    aes(xintercept = k, colour = dataset),
+    linetype  = "dashed",
+    linewidth = 0.8,
+    alpha     = 0.55
+  ) +
+
+  geom_label(
+    data        = annotation_df,
+    aes(x = k, y = r_pearson, label = label),
+    parse       = TRUE,
+    hjust       = -0.12,
+    vjust       = 0.5,
+    size        = 3.5,
+    colour      = "black",
+    fill        = "white",
+    label.size  = 0.3,
+    inherit.aes = FALSE
+  ) +
+
+  scale_colour_manual(values = ds_colours, name = "Dataset") +
+
+  scale_x_continuous(
+    breaks = function(lims) seq(ceiling(lims[1]), floor(lims[2]), by = 1L),
+    name   = paste0(
+      "Number of GMM Entropy Classes Included\n",
+      "(k = 1: highest-entropy class only;  ",
+      "k = N\u22121: all classes except lowest)"
+    )
+  ) +
+
+  scale_y_continuous(
+    name   = "Pearson Mantel Correlation Coefficient (r)",
+    labels = scales::number_format(accuracy = 0.001)
+  ) +
+
+  facet_wrap(~ facet_label, ncol = 1L, scales = "free_x") +
+
+  labs(
+    title = paste0(
+      "Gower Distance Matrix Correlation: Full (1,273 Sites) vs ",
+      "GMM Entropy-Reduced\n",
+      "Pearson Mantel Test by Number of Accumulated GMM Entropy Classes"
+    ),
+    subtitle = paste0(
+      "Diamond markers and dashed lines indicate the optimal k (maximum Pearson r). ",
+      "Spearman r and p-value are annotated at optimal k.\n",
+      "Mantel test: ",
+      format(N_PERM, big.mark = ","),
+      " permutations, ",
+      N_CORES, " parallel cores. ",
+      "Sequences deduplicated prior to Gower distance computation."
+    ),
+    caption = paste0(
+      "NCBI US: January 2020 \u2013 September 2021 (109,536 sequences).  ",
+      "GISAID US: March 2020 \u2013 June 2022 (129,371 sequences)."
+    )
+  ) +
+
+  theme_bw() +
+  theme(
+    plot.title       = element_text(hjust = 0.5, size = 13, face = "bold"),
+    plot.subtitle    = element_text(hjust = 0.5, size  = 8.5, colour = "grey40"),
+    plot.caption     = element_text(hjust = 0,   size  = 8,   colour = "grey50"),
+    axis.title       = element_text(size = 11),
+    axis.text        = element_text(size = 10),
+    strip.text       = element_text(size = 11, face = "bold"),
+    strip.background = element_rect(fill = "grey92", colour = "grey70"),
+    legend.position  = "none",
+    panel.grid.minor = element_line(colour = "grey93")
+  )
+
+print(p)
+
+fig_path <- file.path(OUT_DIR, "correlation_analysis_figure.png")
+ggplot2::ggsave(
+  filename = fig_path,
+  plot     = p,
+  width    = 12,
+  height   = 10,
+  dpi      = 300
+)
+message("Figure saved: ", fig_path)
+
+```
+
+# Session Information
+
+```{r session-info}
+
+sessionInfo()
+
+```
+
+# References
