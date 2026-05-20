@@ -1,0 +1,55 @@
+nohup: ignoring input
+[2026-05-20 01:13:02] ==============================================================
+[2026-05-20 01:13:02] Full-dataset detection — single run per dataset, per method
+[2026-05-20 01:13:02] ==============================================================
+[2026-05-20 01:13:02] Truth catalogue: 12 VOC/VOI variants with US dates.
+[2026-05-20 01:13:02] ==============================================================
+[2026-05-20 01:13:02] Dataset: NCBI_US
+[2026-05-20 01:13:02] ==============================================================
+[2026-05-20 01:13:04] [NCBI_US] Feature matrix: 109536 sequences, dates 2020-01-01 → 2021-09-01.
+[2026-05-20 01:13:04] [NCBI_US] Full-dataset window: 2020-01-01 → 2021-09-01 (20 months, 10 bins of 2 months).
+[2026-05-20 01:13:05] [NCBI_US] 109514 sequences retained after snap-to-month-boundary.
+[2026-05-20 01:13:05] [NCBI_US] Bin sequence count: median=7012, min=120, max=35492.
+[2026-05-20 01:13:06] [NCBI_US] Computing full-1,273-site Hellinger trajectory...
+[2026-05-20 01:13:06] [NCBI_US] Hellinger computed in 0.3 s; matrix shape: 1273 × 9.
+[2026-05-20 01:13:06] [NCBI_US] Truth catalogue in range: 11 events → 5 unique non-T1 bins.
+[2026-05-20 01:13:06] [NCBI_US] Running all 9 method configurations...
+[1] "dominant.temporal.dependence_M = 0"
+[1] "dominant.temporal.dependence_M = 0"
+[2026-05-20 01:13:07] [NCBI_US] ks_cp3o_dynamic    status=ok n_detected=2 P=1.00 R=0.40 F1=0.57 TLE=1.00
+[2026-05-20 01:13:07] [NCBI_US] ks_cp3o_K1         status=ok n_detected=1 P=1.00 R=0.20 F1=0.33 TLE=0.00
+[2026-05-20 01:13:07] [NCBI_US] ks_cp3o_K2         status=ok n_detected=1 P=1.00 R=0.20 F1=0.33 TLE=0.00
+[2026-05-20 01:13:07] [NCBI_US] ks_cp3o_K3         status=ok n_detected=2 P=1.00 R=0.40 F1=0.57 TLE=1.00
+[2026-05-20 01:13:07] [NCBI_US] ks_cp3o_K5         status=ok n_detected=2 P=1.00 R=0.40 F1=0.57 TLE=1.00
+[2026-05-20 01:13:07] [NCBI_US] ks_cp3o_K10        status=ok n_detected=2 P=1.00 R=0.40 F1=0.57 TLE=1.00
+[2026-05-20 01:13:07] [NCBI_US] e_agglo            status=ok n_detected=1 P=1.00 R=0.20 F1=0.33 TLE=1.00
+[2026-05-20 01:13:07] [NCBI_US] hdcp_binseg        status=ok n_detected=1 P=1.00 R=0.20 F1=0.33 TLE=1.00
+[2026-05-20 01:13:07] [NCBI_US] hdcp_wbs           status=ok n_detected=0 P=1.00 R=0.00 F1=0.00 TLE=NA
+[2026-05-20 01:13:07] [NCBI_US] Detection saved: /home/vadimtyu/Clean_Code_Running/Dissertation/Changepoint_Detection_Study/outputs/full_dataset_detection_NCBI_US.rds
+[2026-05-20 01:13:07] ==============================================================
+[2026-05-20 01:13:07] Dataset: GISAID_US
+[2026-05-20 01:13:07] ==============================================================
+[2026-05-20 01:13:09] [GISAID_US] Feature matrix: 129371 sequences, dates 2020-01-01 → 2024-03-01.
+[2026-05-20 01:13:09] [GISAID_US] Full-dataset window: 2020-01-01 → 2024-03-01 (50 months, 25 bins of 2 months).
+[2026-05-20 01:13:09] [GISAID_US] 129364 sequences retained after snap-to-month-boundary.
+[2026-05-20 01:13:09] [GISAID_US] Bin sequence count: median=3961, min=8, max=16110.
+[2026-05-20 01:13:10] [GISAID_US] Computing full-1,273-site Hellinger trajectory...
+[2026-05-20 01:13:11] [GISAID_US] Hellinger computed in 0.5 s; matrix shape: 1273 × 24.
+[2026-05-20 01:13:11] [GISAID_US] Truth catalogue in range: 12 events → 6 unique non-T1 bins.
+[2026-05-20 01:13:11] [GISAID_US] Running all 9 method configurations...
+[1] "dominant.temporal.dependence_M = 3"
+[1] "dominant.temporal.dependence_M = 0"
+[1] "FoundList"
+[2026-05-20 01:13:11] [GISAID_US] ks_cp3o_dynamic    status=ok n_detected=7 P=0.29 R=0.33 F1=0.31 TLE=1.00
+[2026-05-20 01:13:11] [GISAID_US] ks_cp3o_K1         status=ok n_detected=1 P=0.00 R=0.00 F1=0.00 TLE=NA
+[2026-05-20 01:13:11] [GISAID_US] ks_cp3o_K2         status=ok n_detected=1 P=0.00 R=0.00 F1=0.00 TLE=NA
+[2026-05-20 01:13:11] [GISAID_US] ks_cp3o_K3         status=ok n_detected=2 P=0.50 R=0.17 F1=0.25 TLE=1.00
+[2026-05-20 01:13:11] [GISAID_US] ks_cp3o_K5         status=ok n_detected=2 P=0.50 R=0.17 F1=0.25 TLE=1.00
+[2026-05-20 01:13:11] [GISAID_US] ks_cp3o_K10        status=ok n_detected=7 P=0.29 R=0.33 F1=0.31 TLE=1.00
+[2026-05-20 01:13:11] [GISAID_US] e_agglo            status=ok n_detected=1 P=1.00 R=0.17 F1=0.29 TLE=1.00
+[2026-05-20 01:13:11] [GISAID_US] hdcp_binseg        status=ok n_detected=0 P=1.00 R=0.00 F1=0.00 TLE=NA
+[2026-05-20 01:13:11] [GISAID_US] hdcp_wbs           status=ok n_detected=1 P=1.00 R=0.17 F1=0.29 TLE=1.00
+[2026-05-20 01:13:11] [GISAID_US] Detection saved: /home/vadimtyu/Clean_Code_Running/Dissertation/Changepoint_Detection_Study/outputs/full_dataset_detection_GISAID_US.rds
+[2026-05-20 01:13:11] ==============================================================
+[2026-05-20 01:13:11] Full-dataset detection complete.
+[2026-05-20 01:13:11] ==============================================================

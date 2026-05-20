@@ -24,6 +24,12 @@ analysis/Correlation_Analysis/outputs/GISAID_US_mantel_results.rds
 analysis/Correlation_Analysis/outputs/NCBI_US_distance_matrices.rds
 analysis/Correlation_Analysis/outputs/NCBI_US_mantel_results.rds
 analysis/Correlation_Analysis/outputs/correlation_analysis_figure.png
+
+analysis/Changepoint_Detection_Study/outputs/replicates_GISAID_US/
+analysis/Changepoint_Detection_Study/outputs/full_dataset_detection_GISAID_US.rds
+analysis/Changepoint_Detection_Study/outputs/summary_GISAID_US.rds
+analysis/Changepoint_Detection_Study/outputs/windows_GISAID_US.rds
+
 inst/doc/
 data-raw/*_cache/
 data-raw/pre-build-vignettes.R

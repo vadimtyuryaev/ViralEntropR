@@ -1,0 +1,43 @@
+nohup: ignoring input
+[2026-05-20 01:24:53] Loading benchmark summary tables...
+[2026-05-20 01:24:53] Building figure 01: F1 by method × tier × dataset...
+[2026-05-20 01:24:55] Saved: /home/vadimtyu/Clean_Code_Running/Dissertation/Changepoint_Detection_Study/outputs/plots/fig_01_f1_by_method_tier_dataset.png
+[2026-05-20 01:24:55] Saved: /home/vadimtyu/Clean_Code_Running/Dissertation/Changepoint_Detection_Study/outputs/plots/fig_01_f1_by_method_tier_dataset.pdf
+Warning messages:
+1: In grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  :
+  for 'Short (6–10 mo)' in 'mbcsToSbcs': - substituted for – (U+2013)
+2: In grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  :
+  for 'Medium (12–16 mo)' in 'mbcsToSbcs': - substituted for – (U+2013)
+[2026-05-20 01:24:55] Building figure 02: operating curve F1 vs truths_effective...
+[2026-05-20 01:24:56] Saved: /home/vadimtyu/Clean_Code_Running/Dissertation/Changepoint_Detection_Study/outputs/plots/fig_02_operating_curve.png
+[2026-05-20 01:24:56] Saved: /home/vadimtyu/Clean_Code_Running/Dissertation/Changepoint_Detection_Study/outputs/plots/fig_02_operating_curve.pdf
+[2026-05-20 01:24:56] Building figure 03: K-sweep saturation...
+[2026-05-20 01:24:57] Saved: /home/vadimtyu/Clean_Code_Running/Dissertation/Changepoint_Detection_Study/outputs/plots/fig_03_k_sweep_saturation.png
+[2026-05-20 01:24:57] Saved: /home/vadimtyu/Clean_Code_Running/Dissertation/Changepoint_Detection_Study/outputs/plots/fig_03_k_sweep_saturation.pdf
+Warning messages:
+1: In grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  :
+  for 'Short (6–10 mo)' in 'mbcsToSbcs': - substituted for – (U+2013)
+2: In grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  :
+  for 'Medium (12–16 mo)' in 'mbcsToSbcs': - substituted for – (U+2013)
+[2026-05-20 01:24:57] Building figure 04: full vs reduced site-set scatter...
+[2026-05-20 01:24:59] Saved: /home/vadimtyu/Clean_Code_Running/Dissertation/Changepoint_Detection_Study/outputs/plots/fig_04_full_vs_reduced_scatter.png
+[2026-05-20 01:25:00] Saved: /home/vadimtyu/Clean_Code_Running/Dissertation/Changepoint_Detection_Study/outputs/plots/fig_04_full_vs_reduced_scatter.pdf
+[2026-05-20 01:25:00] Building figure 05: failure-rate heatmap...
+[2026-05-20 01:25:01] Saved: /home/vadimtyu/Clean_Code_Running/Dissertation/Changepoint_Detection_Study/outputs/plots/fig_05_failure_heatmap.png
+[2026-05-20 01:25:01] Saved: /home/vadimtyu/Clean_Code_Running/Dissertation/Changepoint_Detection_Study/outputs/plots/fig_05_failure_heatmap.pdf
+Warning messages:
+1: In grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  :
+  for 'Short (6–10 mo)' in 'mbcsToSbcs': - substituted for – (U+2013)
+2: In grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  :
+  for 'Medium (12–16 mo)' in 'mbcsToSbcs': - substituted for – (U+2013)
+3: In grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  :
+  for 'Short (6–10 mo)' in 'mbcsToSbcs': - substituted for – (U+2013)
+4: In grid.Call.graphics(C_text, as.graphicsAnnot(x$label), x$x, x$y,  :
+  for 'Medium (12–16 mo)' in 'mbcsToSbcs': - substituted for – (U+2013)
+[2026-05-20 01:25:01] Building figure 06: cross-dataset rank scatter...
+[2026-05-20 01:25:02] Saved: /home/vadimtyu/Clean_Code_Running/Dissertation/Changepoint_Detection_Study/outputs/plots/fig_06_cross_dataset_rank_scatter.png
+[2026-05-20 01:25:02] Saved: /home/vadimtyu/Clean_Code_Running/Dissertation/Changepoint_Detection_Study/outputs/plots/fig_06_cross_dataset_rank_scatter.pdf
+[2026-05-20 01:25:02] Building figure 07: NCBI US timeline...
+Error in add_months(start_k, 1L) : could not find function "add_months"
+Calls: build_timeline_figure -> build_timeline_data -> data.frame -> bin_midpoint
+Execution halted
