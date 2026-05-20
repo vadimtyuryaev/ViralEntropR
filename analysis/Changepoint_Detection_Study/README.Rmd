@@ -3,11 +3,6 @@ title: "ViralEntropR: A Stratified Bootstrap Benchmark of Change-Point Detection
 author: "Vadim Tyuryaev, Jane Heffernan, Hanna Jankowski"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 output:
-  github_document:
-    toc: true
-    toc_depth: 3
-    html_preview: false
-    df_print: kable
   html_document:
     theme: flatly
     highlight: tango
@@ -15,6 +10,11 @@ output:
     toc_float: true
     toc_depth: 3
     number_sections: true
+    df_print: kable
+  github_document:
+    toc: true
+    toc_depth: 3
+    html_preview: false
     df_print: kable
 bibliography: references_changepoint.bib
 always_allow_html: true
@@ -200,7 +200,8 @@ Within each tier, candidate windows are drawn by:
 1. Sampling a uniform random window length from the tier's feasible
    set.
 2. Sampling a uniform random start offset (in months) from
-   $\{0, 1, \ldots, \texttt{data\_end} - \texttt{length}\}$.
+   $\{0, 1, \ldots, n\}$ where $n$ is the number of feasible
+   start offsets (`data_end - length` in months).
 3. Counting truth events whose `Date_First_Detected_US` falls in
    $[\texttt{start}, \texttt{end})$, dropping any in the $T_1$ bin,
    deduplicating to **unique bins** (so two variants emerging in the

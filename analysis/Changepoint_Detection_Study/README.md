@@ -385,7 +385,8 @@ Within each tier, candidate windows are drawn by:
 1.  Sampling a uniform random window length from the tier’s feasible
     set.
 2.  Sampling a uniform random start offset (in months) from
-    $\{0, 1, \ldots, \texttt{data\_end} - \texttt{length}\}$.
+    $\{0, 1, \ldots, n\}$ where $n$ is the number of feasible start
+    offsets (`data_end - length` in months).
 3.  Counting truth events whose `Date_First_Detected_US` falls in
     $[\texttt{start}, \texttt{end})$, dropping any in the $T_1$ bin,
     deduplicating to **unique bins** (so two variants emerging in the
@@ -1318,8 +1319,9 @@ combination, ready for `ggplot` and tidyverse aggregation.
     #>   LAPACK version 3.12.1
     #> 
     #> locale:
-    #> [1] LC_COLLATE=English_Canada.utf8  LC_CTYPE=English_Canada.utf8    LC_MONETARY=English_Canada.utf8
-    #> [4] LC_NUMERIC=C                    LC_TIME=English_Canada.utf8    
+    #> [1] LC_COLLATE=English_Canada.utf8  LC_CTYPE=English_Canada.utf8   
+    #> [3] LC_MONETARY=English_Canada.utf8 LC_NUMERIC=C                   
+    #> [5] LC_TIME=English_Canada.utf8    
     #> 
     #> time zone: America/Toronto
     #> tzcode source: internal
@@ -1331,12 +1333,14 @@ combination, ready for `ggplot` and tidyverse aggregation.
     #> [1] kableExtra_1.4.0
     #> 
     #> loaded via a namespace (and not attached):
-    #>  [1] vctrs_0.7.1        svglite_2.2.2      cli_3.6.5          knitr_1.51         rlang_1.1.7        xfun_0.56         
-    #>  [7] stringi_1.8.7      otel_0.2.0         textshaping_1.0.4  jsonlite_2.0.0     glue_1.8.0         htmltools_0.5.9   
-    #> [13] sass_0.4.10        scales_1.4.0       rmarkdown_2.30     evaluate_1.0.5     jquerylib_0.1.4    fastmap_1.2.0     
-    #> [19] yaml_2.3.12        lifecycle_1.0.5    stringr_1.6.0      compiler_4.5.2     RColorBrewer_1.1-3 rstudioapi_0.18.0 
-    #> [25] systemfonts_1.3.1  farver_2.1.2       digest_0.6.39      viridisLite_0.4.3  R6_2.6.1           magrittr_2.0.4    
-    #> [31] bslib_0.10.0       tools_4.5.2        xml2_1.5.1         cachem_1.1.0
+    #>  [1] vctrs_0.7.1        svglite_2.2.2      cli_3.6.5          knitr_1.51        
+    #>  [5] rlang_1.1.7        xfun_0.56          stringi_1.8.7      otel_0.2.0        
+    #>  [9] textshaping_1.0.4  glue_1.8.0         htmltools_0.5.9    scales_1.4.0      
+    #> [13] rmarkdown_2.30     evaluate_1.0.5     fastmap_1.2.0      yaml_2.3.12       
+    #> [17] lifecycle_1.0.5    stringr_1.6.0      compiler_4.5.2     RColorBrewer_1.1-3
+    #> [21] rstudioapi_0.18.0  systemfonts_1.3.1  farver_2.1.2       digest_0.6.39     
+    #> [25] viridisLite_0.4.3  R6_2.6.1           magrittr_2.0.4     tools_4.5.2       
+    #> [29] xml2_1.5.1
 
 # References
 
