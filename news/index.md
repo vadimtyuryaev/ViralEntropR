@@ -1,5 +1,15 @@
 # Changelog
 
+## ViralEntropR 0.6.2
+
+- Additional CRAN feedback addressed in resubmission:
+  - The `\dontrun{}` block in the `sarscov2_variants` dataset example
+    that calls `References$display()` (which requires `DT`, in Suggests)
+    was missed in the prior audit. The block is now wrapped in
+    `if (interactive() && requireNamespace("DT", quietly = TRUE))`, the
+    CRAN-recommended pattern for examples that depend on Suggests
+    packages and are intended for interactive use.
+
 ## ViralEntropR 0.6.1
 
 - Additional fixes discovered during local verification of the

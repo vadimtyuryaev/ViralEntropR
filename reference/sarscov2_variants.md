@@ -245,11 +245,11 @@ sarscov2_variants$References$cite("Gamma")
 #> [7] "Tao K, Tzou PL, Nouhin J, et al. (2021). The biological and clinical significance of emerging SARS-CoV-2 variants. Nature Reviews Genetics. 22(12):757-773. doi:10.1038/s41576-021-00408-x"                                                                                                                                                                              
 #> [8] "Salleh MZ, Derrick JP, Deris ZZ (2021). Structural Evaluation of the Spike Glycoprotein Variants on SARS-CoV-2 Transmission and Immune Evasion. International Journal of Molecular Sciences. 22(14):7425. doi:10.3390/ijms22147425"                                                                                                                                      
 
-if (FALSE) { # \dontrun{
-# Interactive DT table (requires the DT package)
-sarscov2_variants$References$display()
+if (interactive() && requireNamespace("DT", quietly = TRUE)) {
+  # Interactive DT table of all references
+  sarscov2_variants$References$display()
 
-# Filtered to Omicron references only
-sarscov2_variants$References$display(variant = "Omicron")
-} # }
+  # Filtered to Omicron references only
+  sarscov2_variants$References$display(variant = "Omicron")
+}
 ```

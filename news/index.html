@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ViralEntropR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,6 +44,12 @@
       <small>Source: <a href="https://github.com/vadimtyuryaev/ViralEntropR/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.6.2" id="viralentropr-062">ViralEntropR 0.6.2<a class="anchor" aria-label="anchor" href="#viralentropr-062"></a></h2>
+<ul><li>Additional CRAN feedback addressed in resubmission:
+<ul><li>The <code>\dontrun{}</code> block in the <code>sarscov2_variants</code> dataset example that calls <code>References$display()</code> (which requires <code>DT</code>, in Suggests) was missed in the prior audit. The block is now wrapped in <code>if (interactive() &amp;&amp; requireNamespace("DT", quietly = TRUE))</code>, the CRAN-recommended pattern for examples that depend on Suggests packages and are intended for interactive use.</li>
+</ul></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.6.1" id="viralentropr-061">ViralEntropR 0.6.1<a class="anchor" aria-label="anchor" href="#viralentropr-061"></a></h2>
 <ul><li>Additional fixes discovered during local verification of the resubmission:
