@@ -251,12 +251,12 @@ NULL
 #' # Formatted citation strings for Gamma
 #' sarscov2_variants$References$cite("Gamma")
 #'
-#' \dontrun{
-#' # Interactive DT table (requires the DT package)
-#' sarscov2_variants$References$display()
+#' if (interactive() && requireNamespace("DT", quietly = TRUE)) {
+#'   # Interactive DT table of all references
+#'   sarscov2_variants$References$display()
 #'
-#' # Filtered to Omicron references only
-#' sarscov2_variants$References$display(variant = "Omicron")
+#'   # Filtered to Omicron references only
+#'   sarscov2_variants$References$display(variant = "Omicron")
 #' }
 "sarscov2_variants"
 

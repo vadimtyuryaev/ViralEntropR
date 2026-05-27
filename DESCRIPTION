@@ -1,6 +1,6 @@
 Package: ViralEntropR
 Title: A Computational Pipeline for Entropy-Informed Detection of Emerging Viral Variants
-Version: 0.6.1
+Version: 0.6.2
 Authors@R: c(
               person("Vadim", "Tyuryaev", ,"vadim.tyuryaev@gmail.com", 
                       role = c("aut", "cre"), 

@@ -1,8 +1,19 @@
+## Second resubmission
+
+Addresses one additional item raised by Konstanze Lauseker
+(2026-05-27): a `\dontrun{}` block in `sarscov2_variants.Rd` was
+missed in the previous audit. The block — which calls
+`References$display()` (requires `DT`, in Suggests) — has been
+replaced with `if (interactive() && requireNamespace("DT", quietly
+= TRUE)) { ... }`, matching the pattern recommended in the CRAN
+cookbook for examples that combine Suggests dependencies with
+interactive-only output.
+
 ## Resubmission
 
 This is a patch release (0.6.1) of ViralEntropR addressing the items
 raised in the CRAN initial-review feedback from Konstanze Lauseker
-(2026-05-XX):
+(2026-05-12):
 
 * Expanded "NCBI" on first use in the DESCRIPTION text.
 
