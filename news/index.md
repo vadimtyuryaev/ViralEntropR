@@ -2,7 +2,12 @@
 
 ## ViralEntropR 0.6.2
 
+CRAN release: 2026-05-30
+
+- First CRAN release (2026-05-30).
+
 - Additional CRAN feedback addressed in resubmission:
+
   - The `\dontrun{}` block in the `sarscov2_variants` dataset example
     that calls `References$display()` (which requires `DT`, in Suggests)
     was missed in the prior audit. The block is now wrapped in

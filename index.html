@@ -175,7 +175,7 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>You can install the released version from CRAN:</p>
+<p>You can install the released version from <a href="https://cran.r-project.org/web/packages/ViralEntropR/index.html" class="external-link">CRAN</a>:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"ViralEntropR"</span><span class="op">)</span></span></code></pre></div>
 <p>The development version is on GitHub:</p>
@@ -280,68 +280,56 @@
 <div class="section level2">
 <h2 id="analysis">Analysis<a class="anchor" aria-label="anchor" href="#analysis"></a>
 </h2>
-<div class="section level3">
-<h3 id="completed">Completed<a class="anchor" aria-label="anchor" href="#completed"></a>
-</h3>
-<p>Three standalone scripts in <code>analysis/</code> (excluded from the installed package via <code>.Rbuildignore</code>; available by cloning the GitHub repository):</p>
+<p>Seven standalone studies live in <code>analysis/</code> (excluded from the installed package via <code>.Rbuildignore</code>; available by cloning the GitHub repository). The package’s workflow runs in stages: it measures how variable each position of the Spike protein is over time (per-position Shannon entropy, an information measure of diversity); selects the most variable positions using a Gaussian mixture model (a statistical method that groups the positions by their entropy and isolates the high-entropy ones); tracks how each position’s amino-acid composition shifts over time (the pairwise Hellinger distance, a measure of how far apart two probability distributions sit); and finally groups positions by the shape of those time curves (functional clustering) or flags abrupt shifts in them (change-point detection), all referenced against the bundled catalog of WHO variants and their first-detection dates. Each study below either prepares the input data, checks that one stage behaves as intended, measures how much data a stage needs, or carries out a core analysis. Three time-windowing strategies recur throughout: a one-month window that expands from a fixed start, an overlapping two-month window that advances one month at a time, and a non-overlapping two-month window.</p>
 <table class="table">
 <colgroup>
-<col width="50%">
-<col width="50%">
+<col width="33%">
+<col width="33%">
+<col width="33%">
 </colgroup>
 <thead><tr>
-<th>Script (in <code>analysis/</code>)</th>
-<th>Topic</th>
+<th>Study (in <code>analysis/</code>)</th>
+<th>What it does</th>
+<th>Why it is needed and where it fits</th>
 </tr></thead>
 <tbody>
 <tr>
+<td><code>Changepoint_Detection_Study/</code></td>
+<td>Searches for abrupt shifts (“change points”) in the time series of per-position entropy, for the processed NCBI and GISAID sequence collections, and checks whether those shifts coincide with the dates each WHO variant was first reported in the United States (taken from the bundled <code>sarscov2_variants</code> table). It evaluates the package’s own binary segmentation and wild binary segmentation routines (<code><a href="reference/detect_changepoints_hdcp.html">detect_changepoints_hdcp()</a></code>, ViralEntropR) against two established methods from the <code>ecp</code> R package — an energy agglomerative method (<code>e.agglo</code>) and a dynamic-programming method with a tunable change-point budget (<code>ks.cp3o</code>) — under all three time-windowing strategies. <strong>Key Findings:</strong> the ranking of methods replicates almost perfectly across the two independent datasets (Spearman rank correlation 0.961), so it reflects method properties rather than dataset quirks. The energy agglomerative method is best on short windows (median F1 ≈ 0.80); on mid-range windows it is comparable to the dynamic-programming method, which in turn takes over on long windows as the agglomerative method over-segments, while binary and wild binary segmentation fail to detect short and mid ranges windows and achieve results comparable to the agglomerative method on the long range windows. Reducing the data to the model-selected positions preserves detection accuracy to within about <span class="math inline">\(5\%\)</span> F1.</td>
+<td>Validates the change-point branch of the workflow: confirms that shifts in entropy track real variant-emergence events, and identifies which method and time-slicing strategy locate them most accurately.</td>
+</tr>
+<tr>
 <td><code>Correlation_Analysis/</code></td>
-<td>Mantel-test study (vegan::mantel, 9,999 permutations) quantifying how faithfully pairwise Gower distances on SARS-CoV-2 Spike sequences are preserved after GMM entropy-based dimensionality reduction, by progressively accumulating GMM entropy classes (k=1,…,N−1, class 1 = highest mean entropy) and comparing the resulting reduced Gower matrix against the full 1,273-site reference; applied independently to NCBI US (109,536 sequences; 8,155 unique sequence are utilized) and GISAID US (129,371 sequences; subsampled to 10,000 unique haplotypes for tractability), with Pearson r at every k.</td>
-</tr>
-<tr>
-<td><code>GISAID_data_preprocessing/</code></td>
-<td>Reproducible six-stage preprocessing of the GISAID Spike-protein archive: load, date / country extraction, US country and date-window filter, ambiguity filtering, ClustalOmega alignment of short sequences (width &lt; 1273 aa) merged with full-length sequences, encoding, and final data-frame assembly.</td>
-</tr>
-<tr>
-<td><code>GMM_transformation_study/</code></td>
-<td>Empirical robustness study of GMM-based site selection under six monotone transformations of per-site entropy against the untransformed baseline; selected sites cross-referenced against VOC SNP catalogues (Alpha / Beta / Gamma / Delta for NCBI; with Omicron added for GISAID data). Conclusion: entropy-based GMM site selection is invariant to the choice of transformation.</td>
+<td>Tests whether reducing the data to only its most variable positions distorts the overall similarity between sequences. It compares two distance tables built on the Spike sequences — one using all 1,273 positions, the other using only the positions kept by the Gaussian mixture model — and measures how closely they agree as more entropy groups are added back (using the Mantel test, a permutation-based correlation between two distance tables, with 9,999 permutations, reporting a Pearson correlation at each step). Distances use the Gower dissimilarity, which suits categorical sequence data. Run separately on NCBI US (8,155 distinct sequences) and GISAID US (a manageable random subset of 10,000 distinct sequences). <strong>Key Findings:</strong> the structural topology of the complete 1,273-position distance matrix appears to be adequately captured by the two highest-entropy Gaussian mixture models clusters. This restricted subset largely recapitulates the full matrix structure, yielding Mantel Pearson correlations of 0.98 and 0.92 on the NCBI US and GISAID US datasets, respectively.</td>
+<td>Validates the position-reduction step: shows that keeping only the high-entropy positions preserves the between-sequence relationships the later clustering relies on, so the reduction does not discard meaningful structure.</td>
 </tr>
 <tr>
 <td><code>Entropy_Partitioning_Study/</code></td>
-<td>Site-specific Shannon entropy dynamics at variant-defining mutation sites under three temporal partitioning strategies — cumulative (1-month expanding from a fixed origin), sliding 2-month (one-month overlap), and disjoint 2-month — for six variants (Alpha (B.1.1.7), Beta (B.1.351), Gamma (P.1), Delta (B.1.617.2), Omicron (B.1.1.529), D614G). Four output types are produced and each is interpretable: entropy trajectories identify sites whose variability rises or falls together over time, providing the basis for the functional-data-analysis treatment; class-trajectory plots track each site’s GMM class assignment across partitions, with sites under positive selection expected to enter the highest-entropy class earlier and to escalate through classes faster than neutral sites; amino-acid frequency tables record which substitutions appear at each defining SNP position in each partition; and GMM class-assignment tables summarise per-site class labels per partition, with <code>Nseq</code> and <code>Nclust</code> summary rows giving the per-partition sample size and the number of fitted GMM components.</td>
+<td>Explores how the entropy at each variant-defining position rises and falls over time, under the three time-windowing strategies, for five variants — Alpha (B.1.1.7), Beta (B.1.351), Gamma (P.1), Delta (B.1.617.2), Omicron (B.1.1.529) — plus the D614G Spike mutation (a single amino-acid change on the early B.1 background, used as a reference point, not a designated variant). For each it produces: entropy-over-time curves; plots tracking which entropy group the model assigns each position to over time; tables of which amino acids appear at each position in each window; and summary tables of those group assignments, including the number of sequences and the number of model components fitted in each window.</td>
+<td>Characterizes the raw entropy-over-time signal and motivates the functional-data analysis: the curves it surfaces are exactly what the FDA study clusters, and it first exercises the three time-windowing strategies reused downstream.</td>
+</tr>
+<tr>
+<td><code>FDA_Analysis/</code></td>
+<td>Groups positions by the shape of their time curves, treating each curve as a continuous function of time. It clusters two kinds of curve: the entropy-over-time curve at each position, and the curve of how far that position’s amino-acid composition has drifted from a reference time point (pairwise Hellinger distance, measured both from the start of the window and from the predecessor variant). Run for all twelve WHO variants — five Variants of Concern: Alpha (B.1.1.7), Beta (B.1.351), Gamma (P.1), Delta (B.1.617.2), Omicron (B.1.1.529); seven Variants of Interest: Epsilon (B.1.427/B.1.429), Zeta (P.2), Eta (B.1.525), Iota (B.1.526), Theta (P.3), Kappa (B.1.617.1), Lambda (C.37) — across two sequence collections (NCBI US, GISAID US) and the three time-windowing strategies. It reports cluster quality (silhouette width), how reproducible the clusters are under resampling (bootstrap Jaccard stability), how much the clusters agree across windowing strategies (the Adjusted Rand Index), and whether a variant’s defining substitutions concentrate in one cluster (a Fisher exact test), and tracks frame-by-frame when the defining positions first cluster together relative to the official detection date (rendered as animations). Outputs: static figures, animated trajectory videos (<code>.gif</code>), and summary tables. <strong>Key Findings:</strong> clusters are well-separated (average silhouette ≈ 0.50 for entropy, ≈ 0.63–0.65 for Hellinger) but none reaches the strict resampling-stability threshold (mean Jaccard 0.57–0.61). The clustering is robust to the choice of windowed resolution (the overlapping (sliding) and non-overlapping(disjoint) two-month windows agree closely, median Adjusted Rand Index 1.0) but diverges for the cumulative window. Strict co-clustering of <em>all</em> of a variant’s defining substitutions occurs in only about <span class="math inline">\(21\%\)</span> of evaluable cases, and when it does it coincides with the official detection date (median +1 month) rather than preceding it.</td>
+<td>The central analysis: tests whether the most variable Spike positions organise into coherent groups before, at, and after a variant’s emergence.</td>
+</tr>
+<tr>
+<td><code>GISAID_data_preprocessing/</code></td>
+<td>Turns the raw GISAID Spike-protein archive into the clean, analysis-ready table the other studies consume, in six steps: load the archive; extract collection date and country; keep only United States sequences within the study date range; remove sequences containing ambiguous amino-acid codes; align the short (under-1,273-amino-acid) sequences to full length with the Clustal Omega aligner and merge them with the full-length sequences; convert amino acids to a numeric code; and assemble the final dated table.</td>
+<td>The data-preparation entry point: produces the dated, aligned, numerically encoded sequence table that every downstream study reads.</td>
+</tr>
+<tr>
+<td><code>GMM_transformation_study/</code></td>
+<td>Checks whether the position-selection step depends on how the entropy values are mathematically rescaled beforehand. It runs the Gaussian mixture model on per-position entropy under six different order-preserving rescalings and compares the selected positions against the untransformed case; the selected positions are then checked against published lists of each variant’s defining substitutions — Alpha (B.1.1.7), Beta (B.1.351), Gamma (P.1), Delta (B.1.617.2) for NCBI, with Omicron (B.1.1.529) added for GISAID. <strong>Key Findings:</strong> the selection is essentially unchanged by the rescaling.</td>
+<td>Confirms a key methodological choice: site selection remains insensitive to data transformation, preventing analytical bias. After removing invariant (zero-entropy) residues and singleton variants prior to fitting, the Gaussian mixture model is applied directly to the highly right-skewed entropy distribution of the remaining polymorphic sites. This accurately represents the full distance matrix, thereby obviating the need for a zero-inflated model.</td>
 </tr>
 <tr>
 <td><code>Sample_Size_Simulation_Study/</code></td>
-<td>Simulation study quantifying the number of emerging-variant sequences required for the entropy-GMM site-selection step to detect a new variant against a realistic, multi-variant SARS-CoV-2 surveillance background. Four scenarios spanning increasing background complexity (1 to 3 co-circulating variants) and emerging-variant mutational load (non-Omicron versus Omicron-like) are evaluated across a factorial design grid of 8,400 cells with 30 replicates each, yielding 252,000 simulations; results are summarised via censoring-aware Kaplan-Meier analysis, BCa bootstrap confidence intervals, and per-cell detection rates.</td>
+<td>Estimates how many sequences of a newly emerging variant are needed before the position-selection step can reliably detect it against a realistic background of already-circulating variants. It runs a large simulation — four scenarios spanning one to three co-circulating background variants and two levels of mutational load on the emerging variant (Omicron-like versus not) — over a grid of 8,400 combinations, each repeated 30 times, for 252,000 simulated runs in total. Results are summarised with time-to-detection (survival) analysis (Kaplan–Meier), bias-corrected bootstrap confidence intervals, and per-combination detection rates. <strong>Key Findings:</strong> with a reference background of 1,000–10,000 sequences the proposed pipeline reliably detects an emerging variant from roughly 40–50 of its sequences (<span class="math inline">\(100\%\)</span> detection). At low volumes (10–100 sequences) detection collapses as more variants co-circulate — from <span class="math inline">\(97.5\%\)</span> with one background variant to <span class="math inline">\(17.3\%\)</span> with three plus an Omicron-like emerging variant — and a heavier mutational load does not rescue it.</td>
+<td>A sample size analysis for the detection phase, equipping genomic surveillance practitioners with the minimum sequencing depth necessary to ensure reliable variant detection.</td>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section level3">
-<h3 id="forthcoming-analyses">Forthcoming analyses<a class="anchor" aria-label="anchor" href="#forthcoming-analyses"></a>
-</h3>
-<p>Three additional analyses are in progress.</p>
-<table class="table">
-<colgroup>
-<col width="50%">
-<col width="50%">
-</colgroup>
-<thead><tr>
-<th>Script (in <code>analysis/</code>)</th>
-<th>Topic</th>
-</tr></thead>
-<tbody>
-<tr>
-<td><code>FDA_Analysis/</code></td>
-<td>Hierarchical agglomerative clustering of per-site Shannon entropy curves and pairwise Hellinger distance trajectories within a functional-data-analysis framework, for the five WHO-designated SARS-CoV-2 variants of concern (Alpha (B.1.1.7), Beta (B.1.351), Gamma (P.1), Delta (B.1.617.2), Omicron (B.1.1.529)). Trajectories are treated as discrete realizations of continuous functions of time and clustered using HAC framework. Outputs include animated <code>.gif</code> visualizations of the clustered entropy and Hellinger trajectories themselves, showing how cluster membership and curve shape evolve before, at, and after official detection dates for the variants in question.</td>
-</tr>
-<tr>
-<td><code>CP_Detection_Study/</code></td>
-<td>Systematic evaluation of the two non-parametric change-point detection methods exported by the package — <code><a href="reference/detect_changepoints_ecp.html">detect_changepoints_ecp()</a></code> and <code><a href="reference/detect_changepoints_hdcp.html">detect_changepoints_hdcp()</a></code> — applied to the post-processed NCBI and GISAID Spike-protein time series. Detected change points are compared against the documented first-detection dates of WHO-designated variants of concern, taken from <code>sarscov2_variants$Date_First_Detected_US</code>. Detection accuracy is reported across the three partitioning strategies (cumulative, sliding, disjoint).</td>
-</tr>
-</tbody>
-</table>
-</div>
 </div>
 <div class="section level2">
 <h2 id="data">Data<a class="anchor" aria-label="anchor" href="#data"></a>
@@ -376,9 +364,11 @@
 <div class="sourceCode" id="cb8"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="sc">@</span>Manual{,</span>
 <span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  title <span class="ot">=</span> {ViralEntropR<span class="sc">:</span> A Computational Pipeline <span class="cf">for</span> Entropy<span class="sc">-</span>Informed Detection of Emerging Viral Variants},</span>
 <span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  author <span class="ot">=</span> {Vadim Tyuryaev and Jane Heffernan and Hanna Jankowski},</span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  note <span class="ot">=</span> {R package version <span class="dv">0</span>.<span class="fl">6.0</span>},</span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  url <span class="ot">=</span> {https<span class="sc">:</span><span class="er">//</span>github.com<span class="sc">/</span>vadimtyuryaev<span class="sc">/</span>ViralEntropR},</span>
-<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>  }</span></code></pre></div>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  year <span class="ot">=</span> {<span class="dv">2026</span>},</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  note <span class="ot">=</span> {R package version <span class="dv">0</span>.<span class="fl">6.2</span>},</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>  url <span class="ot">=</span> {https<span class="sc">:</span><span class="er">//</span>CRAN.R<span class="sc">-</span>project.org<span class="sc">/</span>package<span class="ot">=</span>ViralEntropR},</span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>  doi <span class="ot">=</span> {<span class="fl">10.32614</span><span class="sc">/</span>CRAN.package.ViralEntropR},</span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>}</span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="acknowledgments">Acknowledgments<a class="anchor" aria-label="anchor" href="#acknowledgments"></a>
@@ -460,6 +450,7 @@ van der Vaart, A. W. (1998), <em>Asymptotic statistics</em>, Cambridge series in
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">
+<li><a href="https://cloud.r-project.org/package=ViralEntropR" class="external-link">View on CRAN</a></li>
 <li><a href="https://github.com/vadimtyuryaev/ViralEntropR/" class="external-link">Browse source code</a></li>
 <li><a href="https://github.com/vadimtyuryaev/ViralEntropR/issues" class="external-link">Report a bug</a></li>
 </ul>
@@ -497,6 +488,7 @@ van der Vaart, A. W. (1998), <em>Asymptotic statistics</em>, Cambridge series in
 <li><a href="https://github.com/vadimtyuryaev/ViralEntropR/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/vadimtyuryaev/ViralEntropR/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
 <li><a href="https://lifecycle.r-lib.org/articles/stages.html#stable" class="external-link"><img src="https://img.shields.io/badge/lifecycle-stable-brightgreen.svg" alt="Lifecycle: stable"></a></li>
 <li><a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-FFD700.svg" alt="License: MIT"></a></li>
+<li><a href="https://doi.org/10.32614/CRAN.package.ViralEntropR" class="external-link"><img src="https://img.shields.io/badge/doi-10.32614%2FCRAN.package.ViralEntropR-blue" alt="DOI"></a></li>
 </ul>
 </div>
 
