@@ -1,0 +1,9 @@
+# Keep: scripts, cells (.rds), and tables (.csv).
+# Exclude heavy render artifacts.
+.Rhistory
+smoke_test.R
+outputs/plots/
+outputs/gifs/
+outputs/logs/
+ok_cells.txt
+*.tmp-*

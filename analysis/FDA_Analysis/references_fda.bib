@@ -1,0 +1,228 @@
+% =============================================================================
+% references_fda.bib
+%
+% Bibliography for analysis/FDA_Analysis/.
+%
+% Peer-reviewed Q1 references only. No arXiv, no web-only sources, no unused
+% entries. Each entry has been verified against the publisher's record at
+% bibliography assembly time.
+%
+% Conventions:
+%   - Field order: author, title, journal/booktitle/publisher, volume,
+%     number, pages, year, doi.
+%   - Book titles capitalised as on the title page.
+%   - DOI given without URL prefix; pkgdown / Pandoc will hyperlink.
+% =============================================================================
+
+
+% --- Functional Data Analysis: foundational textbooks ----------------------
+
+@book{RamsaySilverman2005,
+  author    = {Ramsay, J. O. and Silverman, B. W.},
+  title     = {Functional Data Analysis},
+  publisher = {Springer},
+  series    = {Springer Series in Statistics},
+  edition   = {2},
+  address   = {New York},
+  year      = {2005},
+  isbn      = {978-0-387-40080-8}
+}
+
+@book{KokoszkaReimherr2017,
+  author    = {Kokoszka, Piotr and Reimherr, Matthew},
+  title     = {Introduction to Functional Data Analysis},
+  publisher = {Chapman \& Hall/CRC},
+  series    = {Texts in Statistical Science},
+  address   = {Boca Raton, FL},
+  year      = {2017},
+  isbn      = {978-1-498-74634-2},
+  doi       = {10.1201/9781315117416}
+}
+
+
+% --- Functional clustering: methodological backbone of fdacluster ----------
+
+@article{Sangalli2010,
+  author  = {Sangalli, Laura M. and Secchi, Piercesare and Vantini, Simone
+             and Vitelli, Valeria},
+  title   = {K-mean alignment for curve clustering},
+  journal = {Computational Statistics \& Data Analysis},
+  volume  = {54},
+  number  = {5},
+  pages   = {1219--1233},
+  year    = {2010},
+  doi     = {10.1016/j.csda.2009.12.008}
+}
+
+
+% --- Cluster validation: silhouette, bootstrap stability, ARI --------------
+
+@article{Rousseeuw1987,
+  author  = {Rousseeuw, Peter J.},
+  title   = {Silhouettes: a graphical aid to the interpretation and
+             validation of cluster analysis},
+  journal = {Journal of Computational and Applied Mathematics},
+  volume  = {20},
+  pages   = {53--65},
+  year    = {1987},
+  doi     = {10.1016/0377-0427(87)90125-7}
+}
+
+@article{Hennig2007,
+  author  = {Hennig, Christian},
+  title   = {Cluster-wise assessment of cluster stability},
+  journal = {Computational Statistics \& Data Analysis},
+  volume  = {52},
+  number  = {1},
+  pages   = {258--271},
+  year    = {2007},
+  doi     = {10.1016/j.csda.2006.11.025}
+}
+
+@article{HubertArabie1985,
+  author  = {Hubert, Lawrence and Arabie, Phipps},
+  title   = {Comparing partitions},
+  journal = {Journal of Classification},
+  volume  = {2},
+  number  = {1},
+  pages   = {193--218},
+  year    = {1985},
+  doi     = {10.1007/BF01908075}
+}
+
+
+% --- Exact inference for contingency tables (Fisher enrichment test) -------
+
+@article{Agresti1992,
+  author  = {Agresti, Alan},
+  title   = {A survey of exact inference for contingency tables},
+  journal = {Statistical Science},
+  volume  = {7},
+  number  = {1},
+  pages   = {131--153},
+  year    = {1992},
+  doi     = {10.1214/ss/1177011454}
+}
+
+
+% --- Probability metrics: Hellinger distance ------------------------------
+
+@book{vanDerVaart1998,
+  author    = {van der Vaart, Aad W.},
+  title     = {Asymptotic Statistics},
+  publisher = {Cambridge University Press},
+  series    = {Cambridge Series in Statistical and Probabilistic Mathematics},
+  address   = {Cambridge},
+  year      = {1998},
+  isbn      = {978-0-521-78450-4},
+  doi       = {10.1017/CBO9780511802256}
+}
+
+
+% --- Gaussian Mixture Models: mclust ---------------------------------------
+
+@article{Scrucca2016,
+  author  = {Scrucca, Luca and Fop, Michael and Murphy, T. Brendan and
+             Raftery, Adrian E.},
+  title   = {mclust 5: clustering, classification and density estimation
+             using {G}aussian finite mixture models},
+  journal = {The R Journal},
+  volume  = {8},
+  number  = {1},
+  pages   = {289--317},
+  year    = {2016},
+  doi     = {10.32614/RJ-2016-021}
+}
+
+
+% --- Variable transformations: log-family justification ------------------
+
+@article{BoxCox1964,
+  author  = {Box, G. E. P. and Cox, D. R.},
+  title   = {An analysis of transformations},
+  journal = {Journal of the Royal Statistical Society, Series B
+             (Methodological)},
+  volume  = {26},
+  number  = {2},
+  pages   = {211--243},
+  year    = {1964},
+  doi     = {10.1111/j.2517-6161.1964.tb00553.x}
+}
+
+
+% --- Surveillance databases ----------------------------------------------
+
+@article{Sayers2022,
+  author  = {Sayers, Eric W. and Bolton, Evan E. and Brister, J. Rodney and
+             Canese, Kathi and Chan, Jessica and Comeau, Donald C. and
+             Connor, Ryan and Funk, Kathryn and Kelly, Chris and
+             Kim, Sunghwan and Madej, Tom and Marchler-Bauer, Aron and
+             Lanczycki, Christopher and Lathrop, Stacy and Lu, Zhiyong and
+             Thibaud-Nissen, Francoise and Murphy, Terence and Phan, Lon and
+             Skripchenko, Yuri and Tse, Tony and Wang, Jiyao and
+             Williams, Rebecca and Trawick, Barton W. and Pruitt, Kim D. and
+             Sherry, Stephen T.},
+  title   = {Database resources of the {N}ational {C}enter for {B}iotechnology
+             {I}nformation},
+  journal = {Nucleic Acids Research},
+  volume  = {50},
+  number  = {D1},
+  pages   = {D20--D26},
+  year    = {2022},
+  doi     = {10.1093/nar/gkab1112}
+}
+
+@article{ShuMcCauley2017,
+  author  = {Shu, Yuelong and McCauley, John},
+  title   = {{GISAID}: Global initiative on sharing all influenza data ---
+             from vision to reality},
+  journal = {Eurosurveillance},
+  volume  = {22},
+  number  = {13},
+  pages   = {30494},
+  year    = {2017},
+  doi     = {10.2807/1560-7917.ES.2017.22.13.30494}
+}
+
+
+% --- Simulation study reporting framework (ADEMP) ------------------------
+
+@article{Morris2019,
+  author  = {Morris, Tim P. and White, Ian R. and Crowther, Michael J.},
+  title   = {Using simulation studies to evaluate statistical methods},
+  journal = {Statistics in Medicine},
+  volume  = {38},
+  number  = {11},
+  pages   = {2074--2102},
+  year    = {2019},
+  doi     = {10.1002/sim.8086}
+}
+
+@article{Korber2020,
+  author  = {Korber, Bette and Fischer, Will M. and Gnanakaran, Sandrasegaram
+             and Yoon, Hyejin and Theiler, James and Abfalterer, Werner and
+             Hengartner, Nick and Giorgi, Elena E. and Bhattacharya, Tanmoy
+             and Foley, Brian and Hastie, Kathryn M. and Parker, Matthew D.
+             and Partridge, David G. and Evans, Cariad M. and Freeman,
+             Timothy M. and de Silva, Thushan I. and McDanal, Charlene and
+             Perez, Lautaro G. and Tang, Haili and Moon-Walker, Alex and
+             Whelan, Sean P. and LaBranche, Celia C. and Saphire, Erica
+             Ollmann and Montefiori, David C.},
+  title   = {Tracking Changes in {SARS-CoV-2} Spike: Evidence that {D614G}
+             Increases Infectivity of the {COVID-19} Virus},
+  journal = {Cell},
+  year    = {2020},
+  volume  = {182},
+  number  = {4},
+  pages   = {812--827.e19},
+  doi     = {10.1016/j.cell.2020.06.043}
+}
+
+@book{KaufmanRousseeuw1990,
+  author    = {Kaufman, Leonard and Rousseeuw, Peter J.},
+  title     = {Finding Groups in Data: An Introduction to Cluster Analysis},
+  publisher = {Wiley},
+  address   = {New York},
+  year      = {1990},
+  doi       = {10.1002/9780470316801}
+}
